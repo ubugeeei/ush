@@ -1,0 +1,19 @@
+enum Problem {
+  MissingConfig,
+}
+
+fn load_config() -> String {
+  raise Problem::MissingConfig
+}
+
+fn wrap(message: String) -> String {
+  return "<" + message + ">"
+}
+
+fn run() -> String {
+  let value = load_config()?
+  return wrap(value)
+}
+
+run()?
+print "unreachable"

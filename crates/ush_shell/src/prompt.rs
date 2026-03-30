@@ -174,19 +174,19 @@ mod tests {
 
     #[test]
     fn abbreviates_home_and_deep_paths() {
-        let home = Some("/Users/nishimura");
+        let home = Some("/Users/user");
 
-        assert_eq!(compact_path(Path::new("/Users/nishimura"), home), "~");
+        assert_eq!(compact_path(Path::new("/Users/user"), home), "~");
         assert_eq!(
-            compact_path(Path::new("/Users/nishimura/src"), home),
+            compact_path(Path::new("/Users/user/src"), home),
             "~/src"
         );
         assert_eq!(
             compact_path(
-                Path::new("/Users/nishimura/Code/github.com/ubugeeei/ubshell"),
+                Path::new("/Users/user/Code/github.com/ubugeeei/ush"),
                 home
             ),
-            "~/.../ubugeeei/ubshell"
+            "~/.../ubugeeei/ush"
         );
         assert_eq!(
             compact_path(Path::new("/usr/local/bin"), home),
@@ -197,12 +197,12 @@ mod tests {
     #[test]
     fn formats_default_prompt_with_short_path() {
         let prompt = default_prompt(
-            Path::new("/Users/nishimura/Code/github.com/ubugeeei/ubshell"),
-            Some("/Users/nishimura"),
+            Path::new("/Users/user/Code/github.com/ubugeeei/ush"),
+            Some("/Users/user"),
             0,
         );
 
-        assert_eq!(prompt, "~/.../ubugeeei/ubshell $ ");
+        assert_eq!(prompt, "~/.../ubugeeei/ush $ ");
     }
 
     #[test]
@@ -213,13 +213,13 @@ mod tests {
         starship.character.success_symbol = "❯".into();
 
         let prompt = render_prompt(
-            Path::new("/Users/nishimura/Code/github.com/ubugeeei/ubshell"),
-            Some("/Users/nishimura"),
+            Path::new("/Users/user/Code/github.com/ubugeeei/ush"),
+            Some("/Users/user"),
             0,
             Some(&starship),
         );
 
-        assert_eq!(prompt, "~/.../ubugeeei/ubshell\n❯ ");
+        assert_eq!(prompt, "~/.../ubugeeei/ush\n❯ ");
     }
 
     #[test]
@@ -229,8 +229,8 @@ mod tests {
         starship.character.error_symbol = "✗".into();
 
         let prompt = render_prompt(
-            Path::new("/Users/nishimura/project"),
-            Some("/Users/nishimura"),
+            Path::new("/Users/user/project"),
+            Some("/Users/user"),
             1,
             Some(&starship),
         );

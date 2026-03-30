@@ -242,7 +242,67 @@ match greeting {
 
 `raise` emits a typed script error from an ADT value. The compiler infers function error streams through `$` call pipelines and records them as `# raises:` comments in the generated `sh`. Inline external commands introduced by `$ command ...` are treated as `unknown` in that inferred stream.
 
-Postfix `?` propagates failures to the current caller in a Rust-like way. On value expressions such as `let value = worker()?`, the generated `sh` returns from the current function on failure instead of only relying on `set -e`. Statement forms such as `helper()?`, `shell command?`, and `$ false?` use the same propagation rule.
+### Typed Errors and `?`
+
+Use an enum-style ADT as the error type and `raise` to emit it:
+
+```text
+enum Problem {
+  MissingConfig,
+}
+
+fn load_config() -> String {
+  raise Problem::MissingConfig
+}
+```
+
+At runtime, `raise` prints `ush raise: Problem` to stderr and exits with status `1`.
+
+The compiler also tracks which errors can flow out of each function and writes that information into the generated `sh`:
+
+```text
+# raises: Problem
+ush_fn_load_config() {
+  ...
+}
+```
+
+Postfix `?` propagates failures to the current caller in a Rust-like way. It works in value expressions, call statements, and shell statements:
+
+```text
+fn read_message() -> String {
+  let value = load_config()?
+  return "<" + value + ">"
+}
+
+fn check_shell() {
+  $ false?
+}
+
+read_message()?
+```
+
+Propagation rules:
+
+- `let value = worker()?` returns from the current `.ush` function when `worker()` fails.
+- `worker()?` does the same for call statements.
+- `shell command?` and `$ false?` propagate the shell exit status upward instead of relying only on `set -e`.
+- Top-level `...?` exits the script with the propagated status.
+
+External commands are not type-checkable in advance, so `$ command ...` and `shell expr` contribute `unknown` to the inferred error stream. Typed `.ush` errors and shell errors are merged together:
+
+```text
+# raises: Problem | unknown
+ush_fn_pipeline() {
+  ...
+}
+```
+
+You can inspect the generated comments with:
+
+```bash
+cargo run -p ush -- compile examples/error_streams.ush
+```
 
 Use `shell expr` when the command itself needs to be assembled from `.ush` expressions:
 

@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use anyhow::{Result, bail};
 
+use crate::commands;
 use crate::helpers::HelperInvocation;
 
 #[derive(Debug, Clone)]
@@ -71,7 +72,7 @@ pub fn parse_line(line: &str, aliases: &BTreeMap<String, String>) -> Result<Pars
             assignments,
         };
 
-        if is_builtin(&command) {
+        if commands::is_builtin(&command) {
             stages.push(Stage::Builtin(spec));
         } else {
             stages.push(Stage::External(spec));
@@ -228,16 +229,5 @@ fn is_identifier(source: &str) -> bool {
 }
 
 pub fn is_builtin(command: &str) -> bool {
-    matches!(
-        command,
-        "cd" | "pwd"
-            | "exit"
-            | "alias"
-            | "unalias"
-            | "history"
-            | "export"
-            | "help"
-            | "source"
-            | "rm"
-    )
+    commands::is_builtin(command)
 }

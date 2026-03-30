@@ -7,7 +7,8 @@ use std::{
 
 use anyhow::{Context, Result, anyhow, bail};
 use quick_xml::{Reader, Writer, events::Event};
-use which::which;
+
+use crate::commands::find_external_command;
 
 use super::ValueStream;
 
@@ -72,14 +73,14 @@ pub(super) fn format_xml(source: &str) -> Result<String> {
 
 fn browser_command() -> Option<&'static str> {
     #[cfg(target_os = "macos")]
-    if which("open").is_ok() {
+    if find_external_command("open").is_some() {
         return Some("open");
     }
-    if which("xdg-open").is_ok() {
+    if find_external_command("xdg-open").is_some() {
         return Some("xdg-open");
     }
     #[cfg(not(target_os = "macos"))]
-    if which("open").is_ok() {
+    if find_external_command("open").is_some() {
         return Some("open");
     }
     None

@@ -15,7 +15,7 @@ cargo run -p ush -- compile examples/hello.ush
 
 ## Language Basics
 
-- `hello.ush`: minimal `let`, `print`, `shell`, and `match`
+- `hello.ush`: minimal `let`, `print`, inline `$ command`, and `match`
 - `functional.ush`: `$` application and grouped calls
 - `zero_arg.ush`: zero-arg functions with `()`
 - `unit.ush`: unit return values and `== ()`
@@ -45,6 +45,7 @@ cargo run -p ush -- compile examples/hello.ush
 ## Shell Integration
 
 - `alias.ush`: `alias name = ...` lowering to shell aliases
+- `hello.ush`: inline `$ command ...` shell escape
 - `shell_string.ush`: dynamic shell command strings
 - `traits.ush`: marker traits and builtin trait impl examples
 

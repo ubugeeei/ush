@@ -5,10 +5,9 @@ use std::{
     process::{Child, Command, Stdio},
 };
 
-use anyhow::{Context, Result, anyhow};
-use which::which;
+use anyhow::{Context, Result};
 
-use super::{Shell, ValueStream, signal, style};
+use super::{Shell, ValueStream, commands, signal, style};
 
 #[derive(Debug)]
 pub(crate) struct ResolvedCommand {
@@ -57,9 +56,7 @@ impl Shell {
         input: ValueStream,
         capture: bool,
     ) -> Result<(ValueStream, i32)> {
-        if which(&resolved.command).is_err() {
-            return Err(anyhow!("command not found: {}", resolved.command));
-        }
+        commands::ensure_external_command(&resolved.command)?;
         let mut command = Command::new(&resolved.command);
         populate_command(
             &mut command,

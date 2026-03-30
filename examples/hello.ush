@@ -1,6 +1,6 @@
 let greeting = "hello"
 print greeting + " world"
-shell "printf '%s\n' from-ush"
+$ printf '%s\n' from-ush
 match greeting {
   "hello" => print "matched"
   _ => print "fallback"

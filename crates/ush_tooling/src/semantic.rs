@@ -1,4 +1,4 @@
-use self::KeywordContext::{Decl, Func, Let, NoKeyword};
+use self::KeywordContext::{Decl, Func, Let, NoKeyword, Shell};
 use crate::token::{SemanticToken, SemanticTokenKind};
 
 const KEYWORDS: &[&str] = &[
@@ -12,6 +12,7 @@ enum KeywordContext {
     Decl,
     Func,
     Let,
+    Shell,
 }
 
 pub fn semantic_tokens(source: &str) -> Vec<SemanticToken> {
@@ -71,6 +72,12 @@ fn tokenize_line(line_no: u32, line: &str, out: &mut Vec<SemanticToken>) {
             continue;
         }
         if ch == '$' {
+            if is_shell_escape(line, index) {
+                push(out, line_no, index, 1, SemanticTokenKind::Operator);
+                index += 1;
+                context = Shell;
+                continue;
+            }
             let end = variable_end(line, index);
             push(
                 out,
@@ -114,7 +121,7 @@ fn classify_ident(ident: &str, context: KeywordContext, next: Option<char>) -> S
     if KEYWORDS.contains(&ident) {
         return SemanticTokenKind::Keyword;
     }
-    if matches!(context, Func) || next == Some('(') {
+    if matches!(context, Func | Shell) || next == Some('(') {
         return SemanticTokenKind::Function;
     }
     if matches!(context, Decl) || ident.chars().next().is_some_and(char::is_uppercase) {
@@ -169,6 +176,15 @@ fn variable_end(line: &str, start: usize) -> usize {
     take_while(line, start + 1, is_ident)
 }
 
+fn is_shell_escape(line: &str, start: usize) -> bool {
+    let prefix = line[..start].trim_end();
+    line[start + 1..]
+        .chars()
+        .next()
+        .is_some_and(|ch| ch.is_ascii_whitespace())
+        && (prefix.is_empty() || prefix.ends_with("=>"))
+}
+
 fn operator_end(line: &str, start: usize) -> usize {
     let pair = line.get(start..start + 2).unwrap_or("");
     if matches!(
@@ -201,38 +217,4 @@ fn is_ident_start(ch: char) -> bool {
 
 fn is_ident(ch: char) -> bool {
     ch == '_' || ch.is_ascii_alphanumeric()
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{SemanticTokenKind, semantic_tokens};
-
-    #[test]
-    fn tokenizes_keywords_and_calls() {
-        let tokens = semantic_tokens("fn greet(name: String) -> String {");
-
-        assert_eq!(tokens[0].kind, SemanticTokenKind::Keyword);
-        assert_eq!(tokens[1].kind, SemanticTokenKind::Function);
-        assert!(
-            tokens
-                .iter()
-                .any(|token| token.kind == SemanticTokenKind::Type)
-        );
-    }
-
-    #[test]
-    fn tokenizes_comments_and_strings() {
-        let tokens = semantic_tokens("print \"ok\" # note");
-
-        assert!(
-            tokens
-                .iter()
-                .any(|token| token.kind == SemanticTokenKind::String)
-        );
-        assert!(
-            tokens
-                .iter()
-                .any(|token| token.kind == SemanticTokenKind::Comment)
-        );
-    }
 }

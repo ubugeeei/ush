@@ -40,13 +40,14 @@ Implemented today:
 - `crates/ush_compiler` builds as `no_std + alloc` with CompactString, SmallVec, bumpalo, memchr, phf, and Fx-hashed maps in the core path
 - `apps/ush` and `crates/ush_shell` remain `std`-based by design
 - Installer patterns such as `curl -fsSL https://... | sh` are detected from the parsed pipeline and executed through POSIX `/bin/sh`
-- Builtins: `cd`, `pwd`, `alias`, `unalias`, `history`, `export`, `help`, `source`, `rm`
+- `.ush` inline shell escapes via `$ command ...`, alongside `shell expr` for dynamic command strings
+- Builtins: `:`, `.`, `cd`, `pwd`, `echo`, `true`, `false`, `alias`, `unalias`, `history`, `export`, `unset`, `env`, `command`, `which`, `type`, `test`, `[`, `help`, `source`, `rm`
 - Safety prompt for dangerous `rm -rf` unless `--yes` or `USH_INTERACTION=false`
 - Stylish renderers for `pwd`, `ls`, `cat`, `ps`, and `kill`
 - Structured helpers: `len`, `lines`, `json`, `xml`, `html`, `map`, `each`, `filter`, `any`, `some`
 - Environment-variable expansion, `~` expansion, and simple glob expansion
 - Criterion benchmark skeleton for parser/profiling work
-- `curl`, `nix`, and Docker base-image packaging entry points
+- GitHub Releases, `curl` installer, `nix`, and Docker packaging entry points
 - Emacs-style and macOS-friendly cursor bindings for word jumps, line jumps, and history search
 - `ush format` and `ush check` commands for formatter and typechecking passes
 - `ush_lsp` with document formatting, diagnostics, and semantic tokens for editor integration
@@ -70,7 +71,7 @@ Workspace layout:
 
 ## Usage
 
-If you installed `ush` with `install.sh`, the binary is placed in `"$USH_PREFIX/bin"` and `USH_PREFIX` defaults to `~/.local`.
+If you installed `ush` with `install.sh`, the binaries are placed in `"$USH_PREFIX/bin"` and `USH_PREFIX` defaults to `~/.local`.
 In the default case, make sure `~/.local/bin` is on your `PATH`:
 
 ```bash
@@ -90,10 +91,11 @@ If you installed with a custom prefix, use that prefix instead:
 export PATH="$USH_PREFIX/bin:$PATH"
 ```
 
-You can confirm the binary is visible with:
+You can confirm the binaries are visible with:
 
 ```bash
 command -v ush
+command -v ush_lsp
 ush -c 'printf "ok\n"'
 ```
 
@@ -231,11 +233,18 @@ Supported prototype syntax:
 ```text
 let greeting = "hello"
 print greeting + " world"
-shell "printf '%s\n' from-ush"
+$ printf '%s\n' from-ush
 match greeting {
   "hello" => print "matched"
   _ => print "fallback"
 }
+```
+
+Use `shell expr` when the command itself needs to be assembled from `.ush` expressions:
+
+```text
+let command = "printf '%s\n' dynamic"
+shell command
 ```
 
 Function calls, task spawning, and `await`-based result retrieval are also supported:
@@ -339,14 +348,44 @@ cargo run -p ush -- examples/docs.ush --complete gr
 
 ### curl
 
+`install.sh` downloads the matching GitHub Releases archive and installs `ush` plus `ush_lsp` into `~/.local/bin` by default.
+Release archives are currently published for:
+
+- macOS `x86_64`
+- macOS `aarch64`
+- Linux `x86_64-unknown-linux-gnu`
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ubugeeei/ubshell/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | sh
+```
+
+Pin a release version:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | env USH_VERSION=v0.1.0 sh
+```
+
+Install into a custom prefix:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | env USH_PREFIX="$HOME/.ush" sh
 ```
 
 ### nix
 
 ```bash
-nix profile install github:ubugeeei/ubshell
+nix profile install github:ubugeeei/ush
+```
+
+### source
+
+If your platform does not have a prebuilt release archive yet, build from source:
+
+```bash
+cargo build --release -p ush -p ush_lsp
+mkdir -p "$HOME/.local/bin"
+install -m 755 target/release/ush "$HOME/.local/bin/ush"
+install -m 755 target/release/ush_lsp "$HOME/.local/bin/ush_lsp"
 ```
 
 ### Docker
@@ -374,6 +413,15 @@ cargo bench -p ush_shell
 ```
 
 The initial benchmark targets parser + helper-pipeline shapes and is intended as a seed for more aggressive profiling.
+
+## Release
+
+GitHub Actions provides two release paths:
+
+- Push a `v*` tag to run the release pipeline directly
+- Run `Cut Release` from the Actions tab to create and push a tag, then call the same release pipeline
+
+`Cut Release` asks for a version like `v0.1.0` and a target ref such as `main`.
 
 ## CI
 

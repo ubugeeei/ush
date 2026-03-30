@@ -6,19 +6,16 @@ use std::{
 
 use anyhow::{Result, bail};
 
-use super::Shell;
+use super::{Shell, commands::BUILTIN_COMMANDS};
 use crate::prompt::render_prompt;
 
 impl Shell {
     pub(crate) fn command_names(&self) -> Vec<String> {
         let mut commands = BTreeSet::new();
         commands.extend(
-            [
-                "cd", "pwd", "exit", "alias", "unalias", "history", "export", "help", "source",
-                "rm",
-            ]
-            .into_iter()
-            .map(str::to_string),
+            BUILTIN_COMMANDS
+                .iter()
+                .map(|builtin| (*builtin).to_string()),
         );
         commands.extend(
             [

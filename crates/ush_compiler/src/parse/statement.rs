@@ -2,7 +2,7 @@ use anyhow::{Context, Result, anyhow, bail};
 
 use super::{
     super::{
-        ast::{Attribute, Statement},
+        ast::{Attribute, Expr, Statement},
         util::split_once_top_level,
     },
     SourceLine, attr, declaration,
@@ -73,6 +73,9 @@ pub(super) fn parse_let(source: &str) -> Result<Statement> {
 }
 
 pub(super) fn parse_inline_statement(source: &str) -> Result<Statement> {
+    if let Some(statement) = parse_shell_escape(source)? {
+        return Ok(statement);
+    }
     if let Some(rest) = source.strip_prefix("print ") {
         return Ok(Statement::Print(parse_statement_expr(rest)?));
     }
@@ -104,6 +107,9 @@ fn parse_statement(
     allow_declarations: bool,
     attrs: &[Attribute],
 ) -> Result<Statement> {
+    if let Some(statement) = parse_shell_escape(trimmed)? {
+        return Ok(statement);
+    }
     if allow_declarations {
         if let Some(statement) = declaration::parse_declaration(trimmed, lines, cursor, attrs)? {
             return Ok(statement);
@@ -151,6 +157,20 @@ fn split_assignment(source: &str) -> Option<(&str, &str)> {
 
 fn parse_statement_expr(source: &str) -> Result<super::super::ast::Expr> {
     parse_expr(source.trim().strip_prefix('$').unwrap_or(source).trim())
+}
+
+fn parse_shell_escape(source: &str) -> Result<Option<Statement>> {
+    let Some(rest) = source.strip_prefix('$') else {
+        return Ok(None);
+    };
+    if !rest.is_empty() && !rest.starts_with(char::is_whitespace) {
+        return Ok(None);
+    }
+    let command = rest.trim();
+    if command.is_empty() {
+        bail!("shell escape requires a command");
+    }
+    Ok(Some(Statement::Shell(Expr::String(command.into()))))
 }
 
 fn is_block_statement(statement: &Statement) -> bool {

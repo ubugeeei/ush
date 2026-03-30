@@ -1,4 +1,5 @@
 mod builtins;
+mod commands;
 mod execute;
 mod expand;
 mod helpers;

@@ -68,7 +68,7 @@ mod tests {
                 r#"
                 let greeting = "hello"
                 print greeting + " world"
-                shell "printf '%s\n' hi"
+                $ printf '%s\n' hi
             "#,
             )
             .expect("compile");

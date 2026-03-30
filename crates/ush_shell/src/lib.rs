@@ -7,6 +7,7 @@ mod parser;
 mod process;
 mod prompt;
 mod repl;
+mod signal;
 mod style;
 
 use std::{

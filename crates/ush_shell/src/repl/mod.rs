@@ -172,8 +172,8 @@ pub fn create_editor(
         .max_history_size(history_size)?
         .history_ignore_dups(true)?
         .history_ignore_space(true)
-        .completion_type(CompletionType::List)
-        .completion_show_all_if_ambiguous(true)
+        .completion_type(CompletionType::Circular)
+        .completion_show_all_if_ambiguous(false)
         .completion_prompt_limit(200)
         .keyseq_timeout(Some(300))
         .edit_mode(EditMode::Emacs)

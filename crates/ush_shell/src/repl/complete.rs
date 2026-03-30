@@ -11,8 +11,11 @@ pub fn complete(
     let prefix = &line[..pos];
     let start = syntax::word_start(line, pos);
     let word = &prefix[start..];
+    let trimmed = word.trim();
 
-    if let Some((_offset, needle, brace)) = syntax::env_query(word) {
+    if let Some((_offset, needle, brace)) =
+        syntax::env_query(word).filter(|(_, needle, _)| !needle.is_empty())
+    {
         let suffix = if brace && !word.ends_with('}') {
             "}"
         } else {
@@ -22,10 +25,16 @@ pub fn complete(
     }
 
     if is_export_name_context(prefix, start, word) {
+        if trimmed.is_empty() {
+            return Ok((start, Vec::new()));
+        }
         return Ok((start, helper.env_name_pairs(word)));
     }
 
     if syntax::command_position(prefix, start) {
+        if trimmed.is_empty() {
+            return Ok((start, Vec::new()));
+        }
         return Ok((start, helper.command_pairs(word)));
     }
 
@@ -88,5 +97,23 @@ mod tests {
 
         assert!(env_pairs.iter().any(|pair| pair.replacement == "$PATH"));
         assert!(export_pairs.iter().any(|pair| pair.replacement == "PATH="));
+    }
+
+    #[test]
+    fn does_not_dump_every_command_on_empty_prompt() {
+        let history = DefaultHistory::new();
+        let ctx = Context::new(&history);
+        let (_, pairs) = helper().complete("", 0, &ctx).expect("complete");
+
+        assert!(pairs.is_empty());
+    }
+
+    #[test]
+    fn does_not_dump_every_export_name_when_prefix_is_empty() {
+        let history = DefaultHistory::new();
+        let ctx = Context::new(&history);
+        let (_, pairs) = helper().complete("export ", 7, &ctx).expect("complete");
+
+        assert!(pairs.is_empty());
     }
 }

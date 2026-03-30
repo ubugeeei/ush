@@ -1,6 +1,8 @@
 mod cli;
 mod script_docs;
 
+use std::process;
+
 use anyhow::{Context, Result};
 use clap::Parser;
 
@@ -40,27 +42,25 @@ fn main() -> Result<()> {
     );
 
     if let Some(script) = &cli.script {
-        if script.extension().and_then(|ext| ext.to_str()) == Some("ush") {
+        let status = if script.extension().and_then(|ext| ext.to_str()) == Some("ush") {
             if script_docs::handle_script_doc_request(script, &cli.script_args)? {
                 return Ok(());
             }
             let compiler = UshCompiler::default();
             let compiled = compiler.compile_file(script)?;
             let mut shell = Shell::new(config, options)?;
-            shell.run_compiled_script(script, &compiled, &cli.script_args)?;
-            return Ok(());
-        }
-
-        run_posix_script(script, &cli.script_args, &options)?;
-        return Ok(());
+            shell.run_compiled_script(script, &compiled, &cli.script_args)?
+        } else {
+            run_posix_script(script, &cli.script_args, &options)?
+        };
+        process::exit(status);
     }
 
     let mut shell = Shell::new(config, options)?;
     if let Some(command) = &cli.command {
-        shell.execute(command)?;
-    } else {
-        shell.run_repl()?;
+        process::exit(shell.execute(command)?);
     }
 
+    shell.run_repl()?;
     Ok(())
 }

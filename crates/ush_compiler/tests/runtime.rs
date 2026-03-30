@@ -156,7 +156,7 @@ fn await_returns_async_function_result() {
         print "main"
         let task = async worker "worker"
         print "after"
-        let result = await task
+        let result = task.await
         print result
     "#,
     );
@@ -172,7 +172,7 @@ fn awaited_values_keep_their_declared_type() {
           return value + 2
         }
         let task = async compute 40
-        let result = await task
+        let result = task.await
         print result + 2
     "#,
     );

@@ -110,7 +110,7 @@ fn await_requires_a_task_handle() {
     let error = compile_error(
         r#"
         let value = "hello"
-        let result = await value
+        let result = value.await
     "#,
     );
 

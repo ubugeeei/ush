@@ -122,7 +122,7 @@ mod tests {
                   return message
                 }
                 let task = async worker "ok"
-                let result = await task
+                let result = task.await
                 print result
             "#,
             )

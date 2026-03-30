@@ -120,7 +120,7 @@ fn ush_script_supports_async_functions() {
         print "main"
         let task = async worker "worker"
         print "after"
-        let result = await task
+        let result = task.await
         print result
         "#,
     )

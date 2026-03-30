@@ -60,10 +60,10 @@ pub(super) fn parse_let(source: &str) -> Result<Statement> {
             call: signature::parse_call(rest, true)?,
         });
     }
-    if expr.trim_start().starts_with("await ") {
+    if let Some(task) = signature::parse_await_task(expr)? {
         return Ok(Statement::Await {
             name: name.into(),
-            task: signature::parse_await_task(expr)?,
+            task,
         });
     }
     Ok(Statement::Let {

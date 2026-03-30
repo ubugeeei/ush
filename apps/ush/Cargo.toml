@@ -12,4 +12,5 @@ ush_shell = { path = "../../crates/ush_shell" }
 ush_compiler = { path = "../../crates/ush_compiler" }
 
 [dev-dependencies]
+libc.workspace = true
 tempfile.workspace = true

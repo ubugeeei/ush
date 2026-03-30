@@ -2,13 +2,13 @@ use std::{
     collections::HashMap,
     io::Write,
     path::Path,
-    process::{Command, Stdio},
+    process::{Child, Command, Stdio},
 };
 
 use anyhow::{Context, Result, anyhow};
 use which::which;
 
-use super::{Shell, ValueStream, style};
+use super::{Shell, ValueStream, signal, style};
 
 #[derive(Debug)]
 pub(crate) struct ResolvedCommand {
@@ -43,13 +43,11 @@ impl Shell {
                 .map(|(name, value)| Ok((name.clone(), self.expand_value(value)?)))
                 .collect::<Result<HashMap<_, _>>>()?,
         };
-
         if self.options.stylish {
             if let Some(rendered) = self.try_stylish(&resolved, &input)? {
                 return Ok((rendered, 0));
             }
         }
-
         self.spawn_external(&resolved, input, capture)
     }
 
@@ -62,45 +60,22 @@ impl Shell {
         if which(&resolved.command).is_err() {
             return Err(anyhow!("command not found: {}", resolved.command));
         }
-
         let mut command = Command::new(&resolved.command);
-        command
-            .args(&resolved.args)
-            .current_dir(&self.cwd)
-            .envs(&self.env)
-            .envs(&resolved.env_overrides)
-            .stderr(Stdio::inherit())
-            .stdin(if input.is_empty() {
-                Stdio::inherit()
-            } else {
-                Stdio::piped()
-            })
-            .stdout(if capture {
-                Stdio::piped()
-            } else {
-                Stdio::inherit()
-            });
-
-        let mut child = command
-            .spawn()
-            .with_context(|| format!("failed to run {}", resolved.command))?;
-        if !input.is_empty() {
-            child
-                .stdin
-                .as_mut()
-                .context("child stdin unavailable")?
-                .write_all(&input.to_bytes()?)?;
-        }
-
-        if capture {
-            let output = child.wait_with_output()?;
-            let status = output.status.code().unwrap_or(1);
-            let stdout = String::from_utf8(output.stdout)
-                .unwrap_or_else(|error| String::from_utf8_lossy(&error.into_bytes()).to_string());
-            Ok((ValueStream::Text(stdout), status))
-        } else {
-            Ok((ValueStream::Empty, child.wait()?.code().unwrap_or(1)))
-        }
+        populate_command(
+            &mut command,
+            &self.cwd,
+            &self.env,
+            &resolved.env_overrides,
+            &resolved.args,
+            input.is_empty(),
+            capture,
+        );
+        self.spawn_command(
+            &mut command,
+            input,
+            capture,
+            &format!("failed to run {}", resolved.command),
+        )
     }
 
     pub(crate) fn execute_posix_shell_stage(
@@ -109,49 +84,23 @@ impl Shell {
         input: ValueStream,
         capture: bool,
     ) -> Result<(ValueStream, i32)> {
-        let args = self.expand_args(&spec.args)?;
-        let env_overrides = spec
+        let overrides = spec
             .assignments
             .iter()
             .map(|(name, value)| Ok((name.clone(), self.expand_value(value)?)))
             .collect::<Result<HashMap<_, _>>>()?;
-
+        let args = self.expand_args(&spec.args)?;
         let mut command = Command::new("/bin/sh");
-        command
-            .args(&args)
-            .current_dir(&self.cwd)
-            .envs(&self.env)
-            .envs(env_overrides)
-            .stderr(Stdio::inherit())
-            .stdin(if input.is_empty() {
-                Stdio::inherit()
-            } else {
-                Stdio::piped()
-            })
-            .stdout(if capture {
-                Stdio::piped()
-            } else {
-                Stdio::inherit()
-            });
-
-        let mut child = command.spawn().context("failed to spawn /bin/sh")?;
-        if !input.is_empty() {
-            child
-                .stdin
-                .as_mut()
-                .context("posix shell stdin unavailable")?
-                .write_all(&input.to_bytes()?)?;
-        }
-
-        if capture {
-            let output = child.wait_with_output()?;
-            Ok((
-                ValueStream::Text(String::from_utf8_lossy(&output.stdout).to_string()),
-                output.status.code().unwrap_or(1),
-            ))
-        } else {
-            Ok((ValueStream::Empty, child.wait()?.code().unwrap_or(1)))
-        }
+        populate_command(
+            &mut command,
+            &self.cwd,
+            &self.env,
+            &overrides,
+            &args,
+            input.is_empty(),
+            capture,
+        );
+        self.spawn_command(&mut command, input, capture, "failed to spawn /bin/sh")
     }
 
     pub(crate) fn run_fallback(
@@ -161,41 +110,17 @@ impl Shell {
         capture: bool,
     ) -> Result<(ValueStream, i32)> {
         let mut command = Command::new("/bin/sh");
-        command
-            .arg("-c")
-            .arg(source)
-            .current_dir(&self.cwd)
-            .envs(&self.env)
-            .stderr(Stdio::inherit())
-            .stdin(if input.is_empty() {
-                Stdio::inherit()
-            } else {
-                Stdio::piped()
-            })
-            .stdout(if capture {
-                Stdio::piped()
-            } else {
-                Stdio::inherit()
-            });
-
-        let mut child = command.spawn().context("failed to spawn /bin/sh")?;
-        if !input.is_empty() {
-            child
-                .stdin
-                .as_mut()
-                .context("fallback stdin unavailable")?
-                .write_all(&input.to_bytes()?)?;
-        }
-
-        if capture {
-            let output = child.wait_with_output()?;
-            Ok((
-                ValueStream::Text(String::from_utf8_lossy(&output.stdout).to_string()),
-                output.status.code().unwrap_or(1),
-            ))
-        } else {
-            Ok((ValueStream::Empty, child.wait()?.code().unwrap_or(1)))
-        }
+        command.arg("-c").arg(source);
+        populate_command(
+            &mut command,
+            &self.cwd,
+            &self.env,
+            &HashMap::new(),
+            &[],
+            input.is_empty(),
+            capture,
+        );
+        self.spawn_command(&mut command, input, capture, "failed to spawn /bin/sh")
     }
 
     pub fn run_compiled_script(
@@ -204,7 +129,8 @@ impl Shell {
         script: &str,
         args: &[String],
     ) -> Result<i32> {
-        let mut child = Command::new("/bin/sh")
+        let mut command = Command::new("/bin/sh");
+        command
             .arg("-s")
             .arg("--")
             .args(args)
@@ -212,19 +138,33 @@ impl Shell {
             .envs(&self.env)
             .stdin(Stdio::piped())
             .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit())
-            .spawn()
-            .with_context(|| {
-                format!("failed to launch compiled script for {}", origin.display())
-            })?;
-
+            .stderr(Stdio::inherit());
+        signal::prepare_foreground_command(&mut command);
+        let _sigint = signal::SigintGuard::ignore()?;
+        let mut child = command.spawn().with_context(|| {
+            format!("failed to launch compiled script for {}", origin.display())
+        })?;
         child
             .stdin
             .as_mut()
             .context("compiled script stdin unavailable")?
             .write_all(script.as_bytes())?;
-        self.last_status = child.wait()?.code().unwrap_or(1);
+        self.last_status = signal::exit_status(child.wait()?);
         Ok(self.last_status)
+    }
+
+    fn spawn_command(
+        &mut self,
+        command: &mut Command,
+        input: ValueStream,
+        capture: bool,
+        context: &str,
+    ) -> Result<(ValueStream, i32)> {
+        signal::prepare_foreground_command(command);
+        let _sigint = signal::SigintGuard::ignore()?;
+        let mut child = command.spawn().with_context(|| context.to_string())?;
+        write_input(&mut child, &input)?;
+        finish_child(child, capture)
     }
 
     fn try_stylish(
@@ -240,6 +180,58 @@ impl Shell {
             _ => Ok(None),
         }
     }
+}
+
+fn populate_command(
+    command: &mut Command,
+    cwd: &Path,
+    env: &HashMap<String, String>,
+    overrides: &HashMap<String, String>,
+    args: &[String],
+    inherit_stdin: bool,
+    capture: bool,
+) {
+    command
+        .args(args)
+        .current_dir(cwd)
+        .envs(env)
+        .envs(overrides)
+        .stderr(Stdio::inherit())
+        .stdin(if inherit_stdin {
+            Stdio::inherit()
+        } else {
+            Stdio::piped()
+        })
+        .stdout(if capture {
+            Stdio::piped()
+        } else {
+            Stdio::inherit()
+        });
+}
+
+fn write_input(child: &mut Child, input: &ValueStream) -> Result<()> {
+    if input.is_empty() {
+        return Ok(());
+    }
+    child
+        .stdin
+        .as_mut()
+        .context("child stdin unavailable")?
+        .write_all(&input.to_bytes()?)?;
+    Ok(())
+}
+
+fn finish_child(mut child: Child, capture: bool) -> Result<(ValueStream, i32)> {
+    if capture {
+        let output = child.wait_with_output()?;
+        let stdout = String::from_utf8(output.stdout)
+            .unwrap_or_else(|error| String::from_utf8_lossy(&error.into_bytes()).to_string());
+        return Ok((
+            ValueStream::Text(stdout),
+            signal::exit_status(output.status),
+        ));
+    }
+    Ok((ValueStream::Empty, signal::exit_status(child.wait()?)))
 }
 
 pub(crate) fn is_posix_shell_command(command: &str) -> bool {

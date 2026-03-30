@@ -121,13 +121,15 @@ fn parse_params(source: &str) -> Result<Vec<FunctionParam>> {
         .collect()
 }
 
-pub(super) fn parse_await_task(source: &str) -> Result<String> {
-    let task = source
-        .trim()
-        .strip_prefix("await ")
-        .ok_or_else(|| anyhow!("invalid await expression: {source}"))?
-        .trim();
-    parse_name(task)
+pub(super) fn parse_await_task(source: &str) -> Result<Option<String>> {
+    let trimmed = source.trim();
+    if let Some(task) = trimmed.strip_suffix(".await") {
+        return Ok(Some(parse_name(task.trim())?));
+    }
+    if let Some(task) = trimmed.strip_prefix("await ") {
+        return Ok(Some(parse_name(task.trim())?));
+    }
+    Ok(None)
 }
 
 fn split_paren_form(source: &str) -> Option<(&str, &str, &str)> {

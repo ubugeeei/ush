@@ -244,7 +244,7 @@ fn worker(message: String) -> String {
 print "main"
 let task = async worker "worker"
 print "after"
-let result = await task
+let result = task.await
 print result
 ```
 

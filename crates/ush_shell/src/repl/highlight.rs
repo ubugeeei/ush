@@ -198,9 +198,9 @@ mod tests {
 
     #[test]
     fn highlights_default_prompt_by_segment() {
-        let prompt = highlight_prompt("~/.../ubugeeei/ubshell $ ");
+        let prompt = highlight_prompt("~/.../ubugeeei/ush $ ");
 
-        assert!(prompt.contains("\u{1b}[1;38;5;223m~/.../ubugeeei/ubshell\u{1b}[0m"));
+        assert!(prompt.contains("\u{1b}[1;38;5;223m~/.../ubugeeei/ush\u{1b}[0m"));
         assert!(prompt.contains("\u{1b}[1;38;5;150m$\u{1b}[0m"));
     }
 

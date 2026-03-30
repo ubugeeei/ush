@@ -1,9 +1,12 @@
+mod fallback;
+
 use std::collections::BTreeMap;
 
 use anyhow::{Result, bail};
 
 use crate::commands;
 use crate::helpers::HelperInvocation;
+use fallback::needs_posix_fallback;
 
 #[derive(Debug, Clone)]
 pub enum ParsedLine {
@@ -134,40 +137,6 @@ fn expand_alias(stage: &str, aliases: &BTreeMap<String, String>) -> Result<Strin
         current = format!("{alias}{suffix}");
     }
     Ok(current)
-}
-
-fn needs_posix_fallback(line: &str) -> bool {
-    let trimmed = line.trim_start();
-    if trimmed.starts_with('!') || trimmed.starts_with('(') || trimmed.starts_with('{') {
-        return true;
-    }
-
-    let mut chars = line.char_indices().peekable();
-    let mut single = false;
-    let mut double = false;
-
-    while let Some((index, ch)) = chars.next() {
-        match ch {
-            '\'' if !double => single = !single,
-            '"' if !single => double = !double,
-            _ if single || double => {}
-            ';' | '`' | '&' | '<' => return true,
-            '>' => {
-                if line.get(index.saturating_sub(1)..index + 1) != Some("->") {
-                    return true;
-                }
-            }
-            '$' if matches!(chars.peek(), Some((_, '('))) => return true,
-            _ => {}
-        }
-    }
-
-    [
-        "&&", "||", "if ", "elif ", "else", "for ", "while ", "until ", "case ", "do ", "done",
-        "then", "fi", "esac",
-    ]
-    .into_iter()
-    .any(|pattern| line.contains(pattern))
 }
 
 fn strip_comment(line: &str) -> String {

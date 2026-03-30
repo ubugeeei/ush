@@ -1,5 +1,7 @@
 mod command;
 mod core;
+mod interactive;
+mod interactive_support;
 mod introspection;
 mod test_eval;
 
@@ -29,6 +31,9 @@ impl Shell {
             "history" => Ok((ValueStream::Text(self.read_history()), 0)),
             "export" => self.handle_export(&args),
             "unset" => self.handle_unset(&args),
+            "confirm" => self.handle_confirm(&args, input),
+            "input" => self.handle_input(&args, input),
+            "select" => self.handle_select(&args, input),
             "env" => self.handle_env(&args, input),
             "command" => self.handle_command_builtin(&args, input),
             "which" => self.handle_lookup(&args, LookupStyle::Path, "which"),
@@ -56,6 +61,9 @@ fn help_text() -> String {
         "  unalias name",
         "  export NAME=value",
         "  unset NAME",
+        "  confirm [--default yes|no] [prompt ...]",
+        "  input [--default value] [prompt ...]",
+        "  select [--prompt text] [--default value] [option ...]",
         "  env [NAME=value] [command ...]",
         "  command -v <name>",
         "  which <name>",

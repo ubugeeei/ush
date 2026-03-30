@@ -4,8 +4,9 @@ use anyhow::{Result, anyhow};
 use which::which;
 
 pub(crate) const BUILTIN_COMMANDS: &[&str] = &[
-    ":", ".", "[", "alias", "cd", "command", "echo", "env", "exit", "export", "false", "help",
-    "history", "pwd", "rm", "source", "test", "true", "type", "unalias", "unset", "which",
+    ":", ".", "[", "alias", "cd", "command", "confirm", "echo", "env", "exit", "export", "false",
+    "help", "history", "input", "pwd", "rm", "select", "source", "test", "true", "type", "unalias",
+    "unset", "which",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]

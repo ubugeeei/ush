@@ -34,3 +34,17 @@ fn falls_back_for_posix_control_flow_and_grouping() {
         ));
     }
 }
+
+#[test]
+fn does_not_fall_back_for_commands_containing_shell_keyword_substrings() {
+    for source in [
+        "confirm proceed?",
+        "input name?",
+        "printf 'red\nblue\n' | select red blue",
+    ] {
+        assert!(matches!(
+            parse_line(source, &BTreeMap::new()).expect("parse"),
+            ParsedLine::Pipeline(_)
+        ));
+    }
+}

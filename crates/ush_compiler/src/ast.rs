@@ -1,5 +1,6 @@
 use alloc::boxed::Box;
 
+use crate::errors::ErrorSet;
 use crate::types::{AstString as String, HeapVec as Vec};
 
 #[derive(Debug, Clone)]
@@ -95,6 +96,7 @@ pub(crate) struct FunctionDef {
     pub name: String,
     pub params: Vec<FunctionParam>,
     pub return_type: Option<Type>,
+    pub declared_errors: Option<ErrorSet>,
     pub body: Vec<Statement>,
 }
 
@@ -196,4 +198,17 @@ pub(crate) enum CompareOp {
     Le,
     Gt,
     Ge,
+}
+
+impl Type {
+    pub(crate) fn render(&self) -> String {
+        match self {
+            Self::String => "String".into(),
+            Self::Int => "Int".into(),
+            Self::Bool => "Bool".into(),
+            Self::Unit => "()".into(),
+            Self::Adt(name) => name.clone(),
+            Self::Task(inner) => format!("Task<{}>", inner.render()).into(),
+        }
+    }
 }

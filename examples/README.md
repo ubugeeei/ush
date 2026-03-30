@@ -29,7 +29,7 @@ cargo run -p ush -- compile examples/hello.ush
 - `adt.ush`: nested tuple-style enums
 - `option.ush`: wildcard matching on a small enum
 - `response.ush`: struct-style enum payloads with shorthand bindings
-- `error_streams.ush`: typed `raise`, inferred `# raises:`, and Rust-like `?` propagation
+- `error_streams.ush`: typed `Problem!T` signatures, `raise`, inferred `# raises:`, and Rust-like `?` propagation
 
 ## Async and Tasks
 

@@ -172,7 +172,7 @@ fn parse_function(
         .strip_suffix('{')
         .ok_or_else(|| anyhow!("expected `{{` after function signature"))?
         .trim();
-    let (name, params, return_type) = signature::parse_function_header(head)?;
+    let (name, params, return_type, declared_errors) = signature::parse_function_header(head)?;
     *cursor += 1;
     let body = super::statement::parse_block(lines, cursor, false)?;
     finish_block(lines, cursor, "function body")?;
@@ -181,6 +181,7 @@ fn parse_function(
         name,
         params,
         return_type,
+        declared_errors,
         body,
     }))
 }

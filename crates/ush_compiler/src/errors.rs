@@ -1,4 +1,7 @@
-use crate::types::{AstString as String, HeapVec as Vec};
+use crate::{
+    ast::Type,
+    types::{AstString as String, HeapVec as Vec},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub(crate) enum ErrorType {
@@ -30,6 +33,14 @@ impl ErrorSet {
         self.items.is_empty()
     }
 
+    pub(crate) fn is_subset_of(&self, other: &Self) -> bool {
+        self.items.iter().all(|item| other.items.contains(item))
+    }
+
+    pub(crate) fn iter(&self) -> impl Iterator<Item = &ErrorType> {
+        self.items.iter()
+    }
+
     pub(crate) fn render(&self) -> String {
         self.items
             .iter()
@@ -38,10 +49,24 @@ impl ErrorSet {
             .join(" | ")
             .into()
     }
+
+    pub(crate) fn render_union(&self, value: Option<&Type>) -> String {
+        let payload = value.map(Type::render).unwrap_or_else(|| "()".into());
+        if self.is_empty() {
+            return payload;
+        }
+
+        let errors = self.render();
+        if self.items.len() == 1 {
+            format!("{errors}!{payload}").into()
+        } else {
+            format!("({errors})!{payload}").into()
+        }
+    }
 }
 
 impl ErrorType {
-    fn render(&self) -> String {
+    pub(crate) fn render(&self) -> String {
         match self {
             Self::Known(name) => name.clone(),
             Self::Unknown => "unknown".into(),

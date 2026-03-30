@@ -3,6 +3,7 @@ use anyhow::{Result, anyhow, bail};
 use super::{
     super::{
         ast::{Attribute, Call, CallArg, Expr, FunctionParam},
+        errors::ErrorSet,
         util::{
             is_identifier, parse_type, split_once_top_level, split_top_level,
             split_top_level_whitespace,
@@ -10,18 +11,26 @@ use super::{
     },
     attr,
     expr::parse_expr,
+    returns::parse_function_return,
 };
 use crate::types::{AstString as String, HeapVec as Vec};
 
 pub(super) fn parse_function_header(
     header: &str,
-) -> Result<(String, Vec<FunctionParam>, Option<super::super::ast::Type>)> {
+) -> Result<(
+    String,
+    Vec<FunctionParam>,
+    Option<super::super::ast::Type>,
+    Option<ErrorSet>,
+)> {
     let (name, inner, tail) =
         split_paren_form(header).ok_or_else(|| anyhow!("functions must use `fn name(args)`"))?;
+    let (return_type, declared_errors) = parse_function_return(tail)?;
     Ok((
         parse_name(name)?,
         parse_params(inner)?,
-        parse_return_type(tail)?,
+        return_type,
+        declared_errors,
     ))
 }
 
@@ -156,19 +165,6 @@ fn split_paren_form(source: &str) -> Option<(&str, &str, &str)> {
         }
     }
     None
-}
-
-fn parse_return_type(source: &str) -> Result<Option<super::super::ast::Type>> {
-    if source.is_empty() {
-        return Ok(None);
-    }
-    let ty = source
-        .strip_prefix("->")
-        .ok_or_else(|| anyhow!("invalid function signature suffix: {source}"))?
-        .trim();
-    Ok(Some(
-        parse_type(ty).ok_or_else(|| anyhow!("invalid type: {ty}"))?,
-    ))
 }
 
 fn parse_name(source: &str) -> Result<String> {

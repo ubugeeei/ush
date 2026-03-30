@@ -2,7 +2,7 @@ enum Problem {
   MissingConfig,
 }
 
-fn load_config() -> String {
+fn load_config() -> Problem!String {
   raise Problem::MissingConfig
 }
 
@@ -10,7 +10,7 @@ fn wrap(message: String) -> String {
   return "<" + message + ">"
 }
 
-fn run() -> String {
+fn run() -> Problem!String {
   let value = load_config()?
   return wrap(value)
 }

@@ -33,7 +33,7 @@ Implemented today:
 - `.sh` / POSIX scripts executed through `/bin/sh`
 - `.ush` scripts compiled to `sh` and then executed by `/bin/sh`
 - Generated `.ush` output stays within POSIX `sh` syntax and POSIX command usage
-- Prototype typed language features: `type { ... }`, enums, traits, marker `impl`, `match`, typed `fn`, inferred error streams via `raise`, and Rust-like `?` propagation
+- Prototype typed language features: `type { ... }`, enums, traits, marker `impl`, `match`, typed `fn`, Zig-style error signatures like `Problem!String`, and Rust-like `?` propagation
 - Labeled function arguments plus parameter attributes such as `#[default(...)]` and `#[alias("n")]`
 - `alias name = "..."` declarations in `.ush`
 - `bin.ush` as a generated CLI entrypoint, with flags/defaults/completion derived from the `bin(...)` signature
@@ -228,7 +228,7 @@ Legacy `~/.config/ubsh` config files and `UBSHELL_*` env vars are still accepted
 
 `.ush` files are compiled to `sh`; execution still happens in `/bin/sh`.
 
-Supported prototype syntax:
+Small example:
 
 ```text
 let greeting = "hello"
@@ -240,173 +240,30 @@ match greeting {
 }
 ```
 
-`raise` emits a typed script error from an ADT value. The compiler infers function error streams through `$` call pipelines and records them as `# raises:` comments in the generated `sh`. Inline external commands introduced by `$ command ...` are treated as `unknown` in that inferred stream.
+Current highlights:
 
-### Typed Errors and `?`
+- `let`, `print`, `match`, typed `fn`, `enum`, `type`, and marker `trait`
+- `raise` plus typed error signatures like `Problem!String`, with Rust-like `?` propagation
+- `$ command ...` for inline shell execution and `shell expr` for dynamic command strings
+- `async` / `.await`
+- `bin(...)` entrypoints for generated CLI tools
+- `#|` doc comments for generated `--help`, `--man`, and completion text
 
-Use an enum-style ADT as the error type and `raise` to emit it:
-
-```text
-enum Problem {
-  MissingConfig,
-}
-
-fn load_config() -> String {
-  raise Problem::MissingConfig
-}
-```
-
-At runtime, `raise` prints `ush raise: Problem` to stderr and exits with status `1`.
-
-The compiler also tracks which errors can flow out of each function and writes that information into the generated `sh`:
-
-```text
-# raises: Problem
-ush_fn_load_config() {
-  ...
-}
-```
-
-Postfix `?` propagates failures to the current caller in a Rust-like way. It works in value expressions, call statements, and shell statements:
-
-```text
-fn read_message() -> String {
-  let value = load_config()?
-  return "<" + value + ">"
-}
-
-fn check_shell() {
-  $ false?
-}
-
-read_message()?
-```
-
-Propagation rules:
-
-- `let value = worker()?` returns from the current `.ush` function when `worker()` fails.
-- `worker()?` does the same for call statements.
-- `shell command?` and `$ false?` propagate the shell exit status upward instead of relying only on `set -e`.
-- Top-level `...?` exits the script with the propagated status.
-
-External commands are not type-checkable in advance, so `$ command ...` and `shell expr` contribute `unknown` to the inferred error stream. Typed `.ush` errors and shell errors are merged together:
-
-```text
-# raises: Problem | unknown
-ush_fn_pipeline() {
-  ...
-}
-```
-
-You can inspect the generated comments with:
-
-```bash
-cargo run -p ush -- compile examples/error_streams.ush
-```
-
-Use `shell expr` when the command itself needs to be assembled from `.ush` expressions:
-
-```text
-let command = "printf '%s\n' dynamic"
-shell command
-```
-
-Function calls, task spawning, and `await`-based result retrieval are also supported:
-
-```text
-fn worker(message: String) -> String {
-  return message
-}
-
-print "main"
-let task = async worker "worker"
-print "after"
-let result = task.await
-print result
-```
-
-Compile explicitly:
-
-```bash
-cargo run -p ush -- compile examples/hello.ush
-```
-
-Format a script:
-
-```bash
-cargo run -p ush -- format examples/hello.ush --stdout
-```
-
-Typecheck a script:
-
-```bash
-cargo run -p ush -- check examples/hello.ush
-```
-
-Run the LSP server over stdio:
-
-```bash
-cargo run -p ush_lsp
-```
-
-A larger example catalog lives in `examples/README.md`.
-
-`bin.ush` files can act like small CLI tools. The `bin(...)` function becomes the entrypoint, and parameter names drive `--long-flags`, `#[alias("x")]` adds a short flag, and `#[default(...)]` provides default values:
-
-```text
-fn bin(#[alias("n")] name: String, #[default(2)] count: Int, verbose: Bool) {
-  print name + ":" + count
-  print verbose
-}
-```
-
-Run it like:
-
-```bash
-cargo run -p ush -- examples/bin.ush --name ush --count 4 --verbose
-```
-
-Struct-like `type` declarations are also available as a prototype:
-
-```text
-type User {
-  name: String,
-  age: Int,
-}
-
-let user = User { name: "ush", age: 7 }
-match user {
-  User { name, age } => print name + ":" + age
-  _ => print "fallback"
-}
-```
-
-Execute directly:
+Useful commands:
 
 ```bash
 cargo run -p ush -- examples/hello.ush
+cargo run -p ush -- compile examples/hello.ush
+cargo run -p ush -- format examples/hello.ush --stdout
+cargo run -p ush -- check examples/hello.ush
+cargo run -p ush_lsp
 ```
 
-`#|` doc comments can be attached to the script itself and to top-level `fn`, `enum`, and `trait` declarations.
-Those comments are used to auto-generate help, manual text, and completion candidates:
+Start here for more detail:
 
-```text
-#| Documented ush example.
-#| @usage docs.ush --man greet
-#|
-#| Greet a user and return a message.
-#| @param name user name to greet
-#| @return greeting text
-fn greet(name: String) -> String {
-  return "hello " + name
-}
-```
-
-```bash
-cargo run -p ush -- examples/docs.ush --help
-cargo run -p ush -- examples/docs.ush --man greet
-cargo run -p ush -- examples/docs.ush --complete gr
-```
+- `examples/README.md` for runnable samples
+- `docs/README.md` for guide index
+- `docs/typed-errors.md` for a step-by-step walkthrough of `Problem!T`, `raise`, inferred `# raises:`, `?`, and external-command `unknown`
 
 ## Install
 

@@ -3,6 +3,7 @@ mod compare;
 mod declaration;
 mod expr;
 mod record;
+mod returns;
 mod signature;
 mod statement;
 

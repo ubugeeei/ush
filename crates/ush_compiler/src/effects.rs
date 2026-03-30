@@ -13,7 +13,10 @@ use crate::{
     errors::{ErrorSet, ErrorType},
     matching::compile_pattern,
 };
-use support::{binding_for_type, call_arg_errors, call_errors, expr_errors, raised_error};
+use support::{
+    binding_for_type, call_arg_errors, call_errors, exposed_errors, expr_errors, raised_error,
+    validate_function_errors,
+};
 
 pub(crate) type FunctionErrorRegistry = HashMap<String, ErrorSet>;
 type TaskErrorRegistry = HashMap<String, ErrorSet>;
@@ -28,7 +31,7 @@ pub(crate) fn analyze_function_errors(
     let mut registry = FunctionErrorRegistry::default();
     for statement in program {
         if let Statement::Function(def) = statement {
-            registry.insert(def.name.clone(), ErrorSet::default());
+            registry.insert(def.name.clone(), exposed_errors(def, &ErrorSet::default()));
         }
     }
 
@@ -38,15 +41,24 @@ pub(crate) fn analyze_function_errors(
             let Statement::Function(def) = statement else {
                 continue;
             };
-            let errors = analyze_function(def, globals, functions, impls, enums, &registry)?;
+            let inferred = analyze_function(def, globals, functions, impls, enums, &registry)?;
+            let errors = exposed_errors(def, &inferred);
             if registry.get(&def.name) != Some(&errors) {
                 registry.insert(def.name.clone(), errors);
                 changed = true;
             }
         }
         if !changed {
-            return Ok(registry);
+            break;
         }
+    }
+
+    for statement in program {
+        let Statement::Function(def) = statement else {
+            continue;
+        };
+        let inferred = analyze_function(def, globals, functions, impls, enums, &registry)?;
+        validate_function_errors(def, &inferred, enums)?;
     }
 
     Ok(registry)

@@ -32,13 +32,84 @@ fn run_program(source: &str) -> std::process::Output {
 fn raise_requires_an_error_adt() {
     let error = compile_error(
         r#"
-        fn fail() {
+        enum Problem {
+          Nope,
+        }
+
+        fn fail() -> Problem!() {
           raise "oops"
         }
     "#,
     );
 
     assert!(error.contains("raise expects an error ADT value"));
+}
+
+#[test]
+fn effectful_functions_must_declare_error_sets() {
+    let error = compile_error(
+        r#"
+        enum Problem {
+          Nope,
+        }
+
+        fn fail() -> String {
+          raise Problem::Nope
+        }
+    "#,
+    );
+
+    assert!(error.contains("does not declare an error set"));
+    assert!(error.contains("-> Problem!String"));
+}
+
+#[test]
+fn declared_error_sets_must_cover_inferred_errors() {
+    let error = compile_error(
+        r#"
+        enum Problem {
+          Nope,
+        }
+
+        enum Other {
+          Nope,
+        }
+
+        fn fail() -> Other!String {
+          raise Problem::Nope
+        }
+    "#,
+    );
+
+    assert!(error.contains("declares `Other!String`"));
+    assert!(error.contains("can raise `Problem`"));
+}
+
+#[test]
+fn call_sites_use_declared_error_sets_as_the_function_contract() {
+    let error = compile_error(
+        r#"
+        enum Problem {
+          Nope,
+        }
+
+        enum Other {
+          Nope,
+        }
+
+        fn fail() -> (Other | Problem)!String {
+          raise Problem::Nope
+        }
+
+        fn outer() -> Problem!String {
+          let value = fail()?
+          return value
+        }
+    "#,
+    );
+
+    assert!(error.contains("function `outer` declares `Problem!String`"));
+    assert!(error.contains("can raise `Other | Problem`"));
 }
 
 #[test]
@@ -49,7 +120,7 @@ fn function_error_streams_are_inferred_and_composed() {
           Nope,
         }
 
-        fn leaf() -> String {
+        fn leaf() -> Problem!String {
           raise Problem::Nope
         }
 
@@ -57,12 +128,12 @@ fn function_error_streams_are_inferred_and_composed() {
           return "<" + message + ">"
         }
 
-        fn mixed() -> String {
+        fn mixed() -> (Problem | unknown)!String {
           $ false
           return $ wrap $ leaf ()
         }
 
-        fn awaited() -> String {
+        fn awaited() -> Problem!String {
           let task = async leaf ()
           let value = task.await
           return value
@@ -83,7 +154,7 @@ fn raise_aborts_runtime_with_typed_message() {
           Nope,
         }
 
-        fn fail() -> String {
+        fn fail() -> Problem!String {
           raise Problem::Nope
         }
 
@@ -104,7 +175,7 @@ fn piped_raise_aborts_runtime_with_typed_message() {
           Nope,
         }
 
-        fn fail() -> String {
+        fn fail() -> Problem!String {
           raise Problem::Nope
         }
 
@@ -129,11 +200,11 @@ fn try_operator_returns_from_the_current_function() {
           Nope,
         }
 
-        fn fail() -> String {
+        fn fail() -> Problem!String {
           raise Problem::Nope
         }
 
-        fn outer() -> String {
+        fn outer() -> Problem!String {
           let value = fail()?
           return value
         }
@@ -148,13 +219,13 @@ fn try_operator_returns_from_the_current_function() {
 fn try_statements_propagate_call_and_shell_failures() {
     let compiled = compile_program(
         r#"
-        fn outer() {
+        fn outer() -> unknown!() {
           let command = "false"
           shell command?
           helper()?
         }
 
-        fn helper() {
+        fn helper() -> unknown!() {
           $ false?
         }
     "#,

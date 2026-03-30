@@ -137,6 +137,32 @@ pub(crate) fn parse_paren_body(source: &str) -> Option<(&str, &str)> {
     (close > open).then_some((source[..open].trim(), source[open + 1..close].trim()))
 }
 
+pub(crate) fn strip_wrapping_parens(source: &str) -> Option<&str> {
+    let trimmed = source.trim();
+    if !trimmed.starts_with('(') || !trimmed.ends_with(')') {
+        return None;
+    }
+
+    let bytes = trimmed.as_bytes();
+    let (mut single, mut double, mut depth) = (false, false, 0usize);
+    for (index, byte) in bytes.iter().enumerate() {
+        match *byte {
+            b'\'' if !double => single = !single,
+            b'"' if !single => double = !double,
+            b'(' if !single && !double => depth += 1,
+            b')' if !single && !double => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 && index + 1 != trimmed.len() {
+                    return None;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    Some(trimmed[1..trimmed.len() - 1].trim())
+}
+
 pub(crate) fn parse_brace_body(source: &str) -> Option<(&str, &str)> {
     let open = memchr(b'{', source.as_bytes())?;
     let close = memrchr(b'}', source.as_bytes())?;

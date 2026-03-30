@@ -1,0 +1,65 @@
+# Examples
+
+`ush` now ships with a larger example catalog.
+Most `.ush` files can be run directly:
+
+```bash
+cargo run -p ush -- examples/hello.ush
+```
+
+Compile any example to portable `sh` with:
+
+```bash
+cargo run -p ush -- compile examples/hello.ush
+```
+
+## Language Basics
+
+- `hello.ush`: minimal `let`, `print`, `shell`, and `match`
+- `functional.ush`: `$` application and grouped calls
+- `zero_arg.ush`: zero-arg functions with `()`
+- `unit.ush`: unit return values and `== ()`
+- `named_args.ush`: labeled arguments and `#[default(...)]`
+- `literal_match.ush`: literal `match` arms
+- `primitives.ush`: integer addition plus `Eq` and `Ord` comparisons
+
+## ADT and Pattern Matching
+
+- `type.ush`: struct-like `type { ... }` declarations
+- `adt.ush`: nested tuple-style enums
+- `option.ush`: wildcard matching on a small enum
+- `response.ush`: struct-style enum payloads with shorthand bindings
+
+## Async and Tasks
+
+- `async.ush`: basic `async` plus postfixed `.await`
+- `task_math.ush`: async `Int` return values
+- `task_fanout.ush`: multiple tasks awaited independently
+
+## CLI and Docs
+
+- `bin.ush`: minimal generated CLI entrypoint
+- `bin_defaults.ush`: defaults, aliases, and bool flags
+- `docs.ush`: `#|` comments with generated `--help`, `--man`, and `--complete`
+
+## Shell Integration
+
+- `alias.ush`: `alias name = ...` lowering to shell aliases
+- `shell_string.ush`: dynamic shell command strings
+- `traits.ush`: marker traits and builtin trait impl examples
+
+## Data Files for Helper Demos
+
+- `config.pkl`: sample runtime config
+- `sample.json`: input for `| json`
+- `sample.xml`: input for `| xml`
+- `sample.html`: input for `| html`
+
+Try the helper side like this:
+
+```bash
+cargo run -p ush -- -c 'cat examples/sample.json | json'
+cargo run -p ush -- -c 'cat examples/sample.xml | xml'
+cargo run -p ush -- -c 'cat examples/sample.html | html'
+cargo run -p ush -- --config examples/config.pkl
+```

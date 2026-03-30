@@ -1,0 +1,13 @@
+enum Response {
+  Http { code: Int, body: String },
+  Empty,
+}
+
+let code = 200
+let body = "ok"
+let response = Response::Http { code, body }
+
+match response {
+  Response::Http { code, body } => print body + ":" + code
+  _ => print "empty"
+}

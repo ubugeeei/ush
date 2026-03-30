@@ -48,6 +48,8 @@ Implemented today:
 - Criterion benchmark skeleton for parser/profiling work
 - `curl`, `nix`, and Docker base-image packaging entry points
 - Emacs-style and macOS-friendly cursor bindings for word jumps, line jumps, and history search
+- `ush format` and `ush check` commands for formatter and typechecking passes
+- `ush_lsp` with document formatting, diagnostics, and semantic tokens for editor integration
 
 Not there yet:
 
@@ -63,6 +65,8 @@ Workspace layout:
 - `crates/ush_config`: config loading and runtime paths
 - `crates/ush_compiler`: `.ush` to `sh` compiler core, `no_std + alloc` capable
 - `crates/ush_shell`: interactive shell, parser, stylish I/O, helpers
+- `crates/ush_tooling`: formatter, diagnostics, and semantic token generation
+- `apps/ush_lsp`: stdio LSP server for editors
 
 ## Usage
 
@@ -253,6 +257,26 @@ Compile explicitly:
 ```bash
 cargo run -p ush -- compile examples/hello.ush
 ```
+
+Format a script:
+
+```bash
+cargo run -p ush -- format examples/hello.ush --stdout
+```
+
+Typecheck a script:
+
+```bash
+cargo run -p ush -- check examples/hello.ush
+```
+
+Run the LSP server over stdio:
+
+```bash
+cargo run -p ush_lsp
+```
+
+A larger example catalog lives in `examples/README.md`.
 
 `bin.ush` files can act like small CLI tools. The `bin(...)` function becomes the entrypoint, and parameter names drive `--long-flags`, `#[alias("x")]` adds a short flag, and `#[default(...)]` provides default values:
 

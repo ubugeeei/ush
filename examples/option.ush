@@ -1,0 +1,11 @@
+enum Option {
+  None,
+  Some(String),
+}
+
+let value = Option::None
+
+match value {
+  Option::Some(message) => print message
+  _ => print "none"
+}

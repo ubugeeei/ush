@@ -1,0 +1,9 @@
+{
+  "name": "ush",
+  "kind": "example",
+  "features": [
+    "json",
+    "xml",
+    "html"
+  ]
+}

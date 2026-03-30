@@ -44,4 +44,14 @@ pub enum Action {
         #[arg(short, long, value_name = "FILE")]
         output: Option<PathBuf>,
     },
+    Format {
+        input: PathBuf,
+        #[arg(long)]
+        check: bool,
+        #[arg(long)]
+        stdout: bool,
+    },
+    Check {
+        input: PathBuf,
+    },
 }

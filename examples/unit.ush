@@ -1,0 +1,7 @@
+fn noop() -> () {
+  return ()
+}
+
+let value = noop ()
+
+print value == ()

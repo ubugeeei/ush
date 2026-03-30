@@ -10,6 +10,7 @@ clap.workspace = true
 ush_config = { path = "../../crates/ush_config" }
 ush_shell = { path = "../../crates/ush_shell" }
 ush_compiler = { path = "../../crates/ush_compiler" }
+ush_tooling = { path = "../../crates/ush_tooling" }
 
 [dev-dependencies]
 libc.workspace = true

@@ -1,0 +1,5 @@
+fn label() -> String {
+  return "ush"
+}
+
+print $ label ()

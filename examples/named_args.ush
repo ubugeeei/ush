@@ -1,0 +1,6 @@
+fn greet(name: String, #[default(2)] count: Int) -> String {
+  return name + ":" + count
+}
+
+print $ greet count: 3 name: "ush"
+print $ greet name: "mini"

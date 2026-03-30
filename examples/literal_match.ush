@@ -1,0 +1,7 @@
+let mode = "prod"
+
+match mode {
+  "dev" => print "development"
+  "prod" => print "production"
+  _ => print "unknown"
+}

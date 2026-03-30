@@ -1,0 +1,5 @@
+alias ll = "ls -la"
+alias gs = "git status -sb"
+
+shell "alias ll"
+shell "alias gs"

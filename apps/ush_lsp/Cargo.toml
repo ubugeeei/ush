@@ -1,0 +1,13 @@
+[package]
+name = "ush_lsp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+lsp-server.workspace = true
+lsp-types.workspace = true
+serde_json.workspace = true
+ush_tooling = { path = "../../crates/ush_tooling" }
+

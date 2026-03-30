@@ -1,0 +1,205 @@
+use anyhow::{Result, anyhow, bail};
+
+use super::super::{
+    ast::{
+        Expr, ExprFields, NamedExpr, NamedFieldType, NamedPattern, Pattern, PatternFields, Type,
+        VariantExpr, VariantPattern,
+    },
+    util::{
+        is_identifier, parse_brace_body, parse_paren_body, parse_string_literal, parse_type,
+        split_once_top_level, split_path, split_top_level,
+    },
+};
+use crate::types::{AstString as String, HeapVec as Vec};
+
+pub(super) fn parse_expr(source: &str) -> Result<Expr> {
+    let pieces = split_top_level(source, '+');
+    if pieces.len() > 1 {
+        return Ok(Expr::Add(
+            pieces
+                .into_iter()
+                .map(parse_atom)
+                .collect::<Result<Vec<_>>>()?,
+        ));
+    }
+    parse_atom(source.trim())
+}
+
+pub(super) fn parse_pattern(source: &str) -> Result<Pattern> {
+    let trimmed = source.trim();
+    if trimmed == "_" {
+        return Ok(Pattern::Wildcard);
+    }
+    if let Some(string) = parse_string_literal(trimmed) {
+        return Ok(Pattern::String(string));
+    }
+    if trimmed == "true" {
+        return Ok(Pattern::Bool(true));
+    }
+    if trimmed == "false" {
+        return Ok(Pattern::Bool(false));
+    }
+    if let Ok(number) = trimmed.parse::<i64>() {
+        return Ok(Pattern::Int(number));
+    }
+    if let Some(pattern) = parse_variant_pattern(trimmed)? {
+        return Ok(Pattern::Variant(pattern));
+    }
+    if is_identifier(trimmed) {
+        return Ok(Pattern::Binding(trimmed.into()));
+    }
+    bail!("unsupported pattern: {trimmed}")
+}
+
+pub(super) fn parse_named_type_list(source: &str) -> Result<Vec<NamedFieldType>> {
+    split_top_level(source, ',')
+        .into_iter()
+        .filter(|part| !part.is_empty())
+        .map(|part| {
+            let (name, ty) = split_once_top_level(part, ':')
+                .ok_or_else(|| anyhow!("invalid struct field: {part}"))?;
+            let name = parse_name(name)?;
+            Ok(NamedFieldType {
+                name,
+                ty: parse_type(ty).ok_or_else(|| anyhow!("invalid type: {ty}"))?,
+            })
+        })
+        .collect()
+}
+
+fn parse_atom(source: &str) -> Result<Expr> {
+    let trimmed = source.trim();
+    if trimmed.is_empty() {
+        bail!("empty expression");
+    }
+    if let Some(string) = parse_string_literal(trimmed) {
+        return Ok(Expr::String(string));
+    }
+    if trimmed == "true" {
+        return Ok(Expr::Bool(true));
+    }
+    if trimmed == "false" {
+        return Ok(Expr::Bool(false));
+    }
+    if let Ok(number) = trimmed.parse::<i64>() {
+        return Ok(Expr::Int(number));
+    }
+    if let Some(variant) = parse_variant_expr(trimmed)? {
+        return Ok(Expr::Variant(variant));
+    }
+    if is_identifier(trimmed) {
+        return Ok(Expr::Var(trimmed.into()));
+    }
+    bail!("unsupported expression: {trimmed}")
+}
+
+fn parse_variant_expr(source: &str) -> Result<Option<VariantExpr>> {
+    if let Some((head, inner)) = parse_paren_body(source) {
+        if let Some((enum_name, variant_name)) = split_path(head) {
+            return Ok(Some(VariantExpr {
+                enum_name,
+                variant_name,
+                fields: ExprFields::Tuple(parse_list(inner, parse_expr)?),
+            }));
+        }
+    }
+    if let Some((head, inner)) = parse_brace_body(source) {
+        if let Some((enum_name, variant_name)) = split_path(head) {
+            return Ok(Some(VariantExpr {
+                enum_name,
+                variant_name,
+                fields: ExprFields::Struct(parse_named_expr_list(inner)?),
+            }));
+        }
+    }
+    Ok(
+        split_path(source).map(|(enum_name, variant_name)| VariantExpr {
+            enum_name,
+            variant_name,
+            fields: ExprFields::Unit,
+        }),
+    )
+}
+
+fn parse_variant_pattern(source: &str) -> Result<Option<VariantPattern>> {
+    if let Some((head, inner)) = parse_paren_body(source) {
+        if let Some((enum_name, variant_name)) = split_path(head) {
+            return Ok(Some(VariantPattern {
+                enum_name,
+                variant_name,
+                fields: PatternFields::Tuple(parse_list(inner, parse_pattern)?),
+            }));
+        }
+    }
+    if let Some((head, inner)) = parse_brace_body(source) {
+        if let Some((enum_name, variant_name)) = split_path(head) {
+            return Ok(Some(VariantPattern {
+                enum_name,
+                variant_name,
+                fields: PatternFields::Struct(parse_named_pattern_list(inner)?),
+            }));
+        }
+    }
+    Ok(
+        split_path(source).map(|(enum_name, variant_name)| VariantPattern {
+            enum_name,
+            variant_name,
+            fields: PatternFields::Unit,
+        }),
+    )
+}
+
+fn parse_named_expr_list(source: &str) -> Result<Vec<NamedExpr>> {
+    parse_list(source, |part| {
+        if let Some((name, expr)) = split_once_top_level(part, ':') {
+            return Ok(NamedExpr {
+                name: parse_name(name)?,
+                expr: parse_expr(expr)?,
+            });
+        }
+        let name = parse_name(part)?;
+        Ok(NamedExpr {
+            name: name.clone(),
+            expr: Expr::Var(name),
+        })
+    })
+}
+
+fn parse_named_pattern_list(source: &str) -> Result<Vec<NamedPattern>> {
+    parse_list(source, |part| {
+        if let Some((name, pattern)) = split_once_top_level(part, ':') {
+            return Ok(NamedPattern {
+                name: parse_name(name)?,
+                pattern: parse_pattern(pattern)?,
+            });
+        }
+        let name = parse_name(part)?;
+        Ok(NamedPattern {
+            name: name.clone(),
+            pattern: Pattern::Binding(name),
+        })
+    })
+}
+
+pub(super) fn parse_type_list(source: &str) -> Result<Vec<Type>> {
+    parse_list(source, |part| {
+        parse_type(part).ok_or_else(|| anyhow!("invalid type: {part}"))
+    })
+}
+
+fn parse_list<T>(source: &str, mut parse: impl FnMut(&str) -> Result<T>) -> Result<Vec<T>> {
+    split_top_level(source, ',')
+        .into_iter()
+        .filter(|part| !part.is_empty())
+        .map(&mut parse)
+        .collect()
+}
+
+fn parse_name(source: &str) -> Result<String> {
+    let trimmed = source.trim();
+    if is_identifier(trimmed) {
+        Ok(trimmed.into())
+    } else {
+        bail!("invalid identifier: {trimmed}")
+    }
+}

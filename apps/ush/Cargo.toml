@@ -1,0 +1,15 @@
+[package]
+name = "ush"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+ush_config = { path = "../../crates/ush_config" }
+ush_shell = { path = "../../crates/ush_shell" }
+ush_compiler = { path = "../../crates/ush_compiler" }
+
+[dev-dependencies]
+tempfile.workspace = true

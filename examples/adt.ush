@@ -1,0 +1,17 @@
+enum Result {
+  Ok(String),
+  Err(String),
+}
+
+enum Envelope {
+  Wrap(Result),
+  Missing,
+}
+
+let payload = Envelope::Wrap(Result::Ok("done"))
+
+match payload {
+  Envelope::Wrap(Result::Ok(message)) => print message
+  Envelope::Wrap(Result::Err(message)) => print "error: " + message
+  _ => print "missing"
+}

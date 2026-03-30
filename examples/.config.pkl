@@ -1,0 +1,13 @@
+{
+  shell {
+    stylishDefault = true
+    interaction = true
+    historySize = 10000
+    prompt = "ush> "
+  }
+
+  aliases {
+    ll = "ls -la"
+    gs = "git status -sb"
+  }
+}

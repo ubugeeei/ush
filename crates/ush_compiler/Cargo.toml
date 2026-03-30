@@ -1,0 +1,22 @@
+[package]
+name = "ush_compiler"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["std"]
+std = ["anyhow/std"]
+
+[dependencies]
+anyhow = { version = "1.0.102", default-features = false }
+bumpalo.workspace = true
+compact_str.workspace = true
+hashbrown.workspace = true
+memchr.workspace = true
+phf.workspace = true
+rustc-hash.workspace = true
+smallvec.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

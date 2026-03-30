@@ -7,10 +7,10 @@ use super::{
         ast::{Call, Expr, Type},
         env::{Binding, CodegenState, EnumRegistry, Env, Storage},
     },
-    calls::{call_return_type, ensure_value_type, rendered_call},
-    compile_primitive_expr,
+    calls::{call_return_type, ensure_value_type},
+    compile_runtime_primitive_expr,
     functions::FunctionRegistry,
-    infer,
+    infer, rendered_call_runtime,
 };
 use crate::traits::TraitImplRegistry;
 use crate::types::OutputString as String;
@@ -22,6 +22,7 @@ pub(crate) fn compile_spawn(
     impls: &TraitImplRegistry,
     enums: &EnumRegistry,
     state: &mut CodegenState,
+    inside_function: bool,
     out: &mut String,
 ) -> Result<Binding> {
     let return_type = call_return_type(&call.name, functions)?
@@ -29,7 +30,16 @@ pub(crate) fn compile_spawn(
     ensure_value_type(&return_type)?;
 
     let prefix = state.temp_var("task");
-    let rendered = rendered_call(call, env, functions, impls, enums)?;
+    let rendered = rendered_call_runtime(
+        call,
+        env,
+        functions,
+        impls,
+        enums,
+        state,
+        inside_function,
+        out,
+    )?;
     out.push_str("__ush_task_seq=$((__ush_task_seq + 1))\n");
     out.push_str(&format!(
         "{prefix}__result=\"${{TMPDIR:-/tmp}}/{prefix}.$$.$__ush_task_seq\"\n"
@@ -76,6 +86,7 @@ pub(crate) fn compile_return(
     functions: &FunctionRegistry,
     impls: &TraitImplRegistry,
     enums: &EnumRegistry,
+    state: &mut CodegenState,
     return_type: Option<&Type>,
     out: &mut String,
 ) -> Result<()> {
@@ -88,13 +99,15 @@ pub(crate) fn compile_return(
     }
     ensure_value_type(declared)?;
 
+    let rendered =
+        compile_runtime_primitive_expr(expr, env, functions, impls, enums, state, true, out)?;
     out.push_str("if [ -n \"${__ush_return_path:-}\" ]; then\n");
     out.push_str("  printf '%s' ");
-    out.push_str(&compile_primitive_expr(expr, env, functions, impls, enums)?);
+    out.push_str(&rendered);
     out.push_str(" > \"$__ush_return_path\"\n");
     out.push_str("elif [ \"${__ush_capture_return:-0}\" = '1' ]; then\n");
     out.push_str("  printf '%s' ");
-    out.push_str(&compile_primitive_expr(expr, env, functions, impls, enums)?);
+    out.push_str(&rendered);
     out.push('\n');
     out.push_str("fi\n");
     out.push_str("return 0\n");

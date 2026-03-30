@@ -26,7 +26,10 @@ pub(crate) enum Statement {
     },
     Print(Expr),
     Shell(Expr),
+    TryShell(Expr),
+    Raise(Expr),
     Call(Call),
+    TryCall(Call),
     Return(Expr),
     Match {
         expr: Expr,
@@ -47,6 +50,7 @@ pub(crate) enum Expr {
         op: CompareOp,
         rhs: Box<Expr>,
     },
+    Try(Box<Expr>),
     Call(Call),
     Variant(VariantExpr),
 }

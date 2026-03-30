@@ -1,0 +1,152 @@
+use alloc::boxed::Box;
+
+use anyhow::{Result, anyhow, bail};
+
+use super::{
+    super::{
+        ast::{Expr, Statement, Type},
+        effects::FunctionErrorRegistry,
+        env::{CodegenState, EnumRegistry, Env},
+        matching::{compile_pattern, emit_value_to_target, materialize_expr},
+    },
+    compile_runtime_primitive_expr,
+    functions::FunctionRegistry,
+    infer,
+    shared::{binding_for_name, push_block, push_line},
+    statement::compile_statement,
+};
+use crate::traits::TraitImplRegistry;
+use crate::types::OutputString as String;
+
+pub(crate) fn compile_let(
+    name: &str,
+    expr: &Expr,
+    env: &mut Env,
+    functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
+    enums: &EnumRegistry,
+    state: &mut CodegenState,
+    inside_function: bool,
+    out: &mut String,
+) -> Result<()> {
+    let ty = infer(expr, env, functions, impls, enums)?;
+    match &ty {
+        Type::String | Type::Int | Type::Bool | Type::Unit => {
+            let rendered = compile_runtime_primitive_expr(
+                expr,
+                env,
+                functions,
+                impls,
+                enums,
+                state,
+                inside_function,
+                out,
+            )?;
+            out.push_str(name);
+            out.push('=');
+            out.push_str(&rendered);
+            out.push('\n');
+        }
+        Type::Adt(_) => emit_value_to_target(
+            name,
+            expr,
+            &ty,
+            env,
+            functions,
+            impls,
+            enums,
+            state,
+            inside_function,
+            out,
+        )?,
+        Type::Task(_) => bail!("task expressions must be bound via `let name = async ...`"),
+    }
+    env.insert(name.into(), binding_for_name(name, ty));
+    Ok(())
+}
+
+pub(crate) fn compile_match(
+    expr: &Expr,
+    arms: &[(super::super::ast::Pattern, Box<Statement>)],
+    env: &Env,
+    globals: &Env,
+    functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
+    enums: &EnumRegistry,
+    function_errors: &FunctionErrorRegistry,
+    state: &mut CodegenState,
+    return_type: Option<&Type>,
+    inside_function: bool,
+    out: &mut String,
+) -> Result<()> {
+    if arms.is_empty() {
+        bail!("match must have at least one arm");
+    }
+    let subject = materialize_expr(
+        expr,
+        env,
+        functions,
+        impls,
+        enums,
+        state,
+        inside_function,
+        out,
+    )?;
+    for (index, (pattern, arm)) in arms.iter().enumerate() {
+        let plan = compile_pattern(pattern, &subject, env, enums)?;
+        out.push_str(if index == 0 { "if " } else { "elif " });
+        out.push_str(&plan.condition);
+        out.push_str("; then\n");
+        for line in &plan.prelude {
+            push_line(out, line, 2);
+        }
+        let mut arm_env = plan.env;
+        let body = compile_one(
+            arm,
+            &mut arm_env,
+            globals,
+            functions,
+            impls,
+            enums,
+            function_errors,
+            state,
+            return_type,
+            inside_function,
+        )?;
+        push_block(out, &body, 2);
+    }
+    out.push_str("fi\n");
+    Ok(())
+}
+
+fn compile_one(
+    statement: &Statement,
+    env: &mut Env,
+    globals: &Env,
+    functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
+    enums: &EnumRegistry,
+    function_errors: &FunctionErrorRegistry,
+    state: &mut CodegenState,
+    return_type: Option<&Type>,
+    inside_function: bool,
+) -> Result<String> {
+    let mut buffer = String::new();
+    compile_statement(
+        statement,
+        env,
+        globals,
+        functions,
+        impls,
+        enums,
+        function_errors,
+        state,
+        return_type,
+        inside_function,
+        &mut buffer,
+    )?;
+    if buffer.is_empty() {
+        return Err(anyhow!("empty statement body"));
+    }
+    Ok(buffer)
+}

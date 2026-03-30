@@ -3,9 +3,9 @@ use anyhow::{Result, bail};
 use super::{
     super::{
         ast::{Expr, Type},
-        env::{EnumRegistry, Env},
+        env::{CodegenState, EnumRegistry, Env},
     },
-    compile_primitive_expr,
+    compile_runtime_primitive_expr,
     functions::FunctionRegistry,
     infer,
 };
@@ -18,6 +18,8 @@ pub(crate) fn compile_alias(
     functions: &FunctionRegistry,
     impls: &TraitImplRegistry,
     enums: &EnumRegistry,
+    state: &mut CodegenState,
+    inside_function: bool,
     out: &mut String,
 ) -> Result<()> {
     if infer(value, env, functions, impls, enums)? != Type::String {
@@ -26,9 +28,17 @@ pub(crate) fn compile_alias(
     out.push_str("alias ");
     out.push_str(name);
     out.push('=');
-    out.push_str(&compile_primitive_expr(
-        value, env, functions, impls, enums,
-    )?);
+    let rendered = compile_runtime_primitive_expr(
+        value,
+        env,
+        functions,
+        impls,
+        enums,
+        state,
+        inside_function,
+        out,
+    )?;
+    out.push_str(&rendered);
     out.push('\n');
     Ok(())
 }

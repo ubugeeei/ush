@@ -28,6 +28,7 @@ pub(crate) fn materialize_expr(
     impls: &TraitImplRegistry,
     enums: &EnumRegistry,
     state: &mut CodegenState,
+    inside_function: bool,
     out: &mut String,
 ) -> Result<Binding> {
     let ty = infer(expr, env, functions, impls, enums)?;
@@ -43,6 +44,7 @@ pub(crate) fn materialize_expr(
                 impls,
                 enums,
                 state,
+                inside_function,
                 out,
             )?;
             Ok(Binding {
@@ -52,10 +54,17 @@ pub(crate) fn materialize_expr(
         }
         primitive => {
             let temp = state.temp_var("match");
-            out.push_str(&format!(
-                "{temp}={}\n",
-                super::codegen::compile_primitive_expr(expr, env, functions, impls, enums)?
-            ));
+            let rendered = super::codegen::compile_runtime_primitive_expr(
+                expr,
+                env,
+                functions,
+                impls,
+                enums,
+                state,
+                inside_function,
+                out,
+            )?;
+            out.push_str(&format!("{temp}={rendered}\n"));
             Ok(Binding {
                 ty: primitive,
                 storage: Storage::Primitive(temp),
@@ -73,18 +82,35 @@ pub(crate) fn emit_value_to_target(
     impls: &TraitImplRegistry,
     enums: &EnumRegistry,
     state: &mut CodegenState,
+    inside_function: bool,
     out: &mut String,
 ) -> Result<()> {
     match expected {
         Type::String | Type::Int | Type::Bool | Type::Unit => {
-            out.push_str(&format!(
-                "{target}={}\n",
-                super::codegen::compile_primitive_expr(expr, env, functions, impls, enums)?
-            ));
+            let rendered = super::codegen::compile_runtime_primitive_expr(
+                expr,
+                env,
+                functions,
+                impls,
+                enums,
+                state,
+                inside_function,
+                out,
+            )?;
+            out.push_str(&format!("{target}={rendered}\n"));
         }
         Type::Adt(enum_name) => match expr {
             Expr::Variant(variant) => emit_variant(
-                target, variant, enum_name, env, functions, impls, enums, state, out,
+                target,
+                variant,
+                enum_name,
+                env,
+                functions,
+                impls,
+                enums,
+                state,
+                inside_function,
+                out,
             )?,
             Expr::Var(name) => {
                 let binding = env

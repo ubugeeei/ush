@@ -3,6 +3,7 @@ use anyhow::{Result, bail};
 use super::{
     super::{
         ast::{Expr, FunctionDef, Statement},
+        effects::FunctionErrorRegistry,
         env::{CodegenState, EnumRegistry, Env},
     },
     calls::ensure_signature,
@@ -68,10 +69,19 @@ pub(crate) fn compile_function(
     functions: &FunctionRegistry,
     impls: &TraitImplRegistry,
     enums: &EnumRegistry,
+    function_errors: &FunctionErrorRegistry,
     state: &mut CodegenState,
     out: &mut String,
 ) -> Result<()> {
     ensure_signature(def)?;
+    if let Some(errors) = function_errors
+        .get(&def.name)
+        .filter(|errors| !errors.is_empty())
+    {
+        out.push_str("# raises: ");
+        out.push_str(&errors.render());
+        out.push('\n');
+    }
     out.push_str("ush_fn_");
     out.push_str(&def.name);
     out.push_str("() {\n");
@@ -93,6 +103,7 @@ pub(crate) fn compile_function(
         functions,
         impls,
         enums,
+        function_errors,
         state,
         def.return_type.as_ref(),
     )?;
@@ -125,6 +136,7 @@ fn compile_many(
     functions: &FunctionRegistry,
     impls: &TraitImplRegistry,
     enums: &EnumRegistry,
+    function_errors: &FunctionErrorRegistry,
     state: &mut CodegenState,
     return_type: Option<&super::super::ast::Type>,
 ) -> Result<String> {
@@ -137,8 +149,10 @@ fn compile_many(
             functions,
             impls,
             enums,
+            function_errors,
             state,
             return_type,
+            true,
             &mut buffer,
         )?;
     }

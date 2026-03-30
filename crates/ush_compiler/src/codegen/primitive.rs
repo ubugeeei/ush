@@ -28,6 +28,7 @@ pub(crate) fn infer(
             .get(name)
             .map(|binding| binding.ty.clone())
             .ok_or_else(|| anyhow!("unknown variable: {name}")),
+        Expr::Try(inner) => infer(inner, env, functions, impls, enums),
         Expr::Add(parts) => infer_add(parts, env, functions, impls, enums),
         Expr::Compare { lhs, op, rhs } => {
             infer_compare(lhs, rhs, *op, env, functions, impls, enums)

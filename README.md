@@ -33,7 +33,7 @@ Implemented today:
 - `.sh` / POSIX scripts executed through `/bin/sh`
 - `.ush` scripts compiled to `sh` and then executed by `/bin/sh`
 - Generated `.ush` output stays within POSIX `sh` syntax and POSIX command usage
-- Prototype typed language features: `type { ... }`, enums, traits, marker `impl`, `match`, and typed `fn`
+- Prototype typed language features: `type { ... }`, enums, traits, marker `impl`, `match`, typed `fn`, inferred error streams via `raise`, and Rust-like `?` propagation
 - Labeled function arguments plus parameter attributes such as `#[default(...)]` and `#[alias("n")]`
 - `alias name = "..."` declarations in `.ush`
 - `bin.ush` as a generated CLI entrypoint, with flags/defaults/completion derived from the `bin(...)` signature
@@ -56,7 +56,7 @@ Not there yet:
 
 - Full native POSIX grammar coverage inside the Rust runtime
 - Richer typed structured values beyond text / JSON helpers
-- Broader language features such as HM inference, generics, HKT, modules, `yield`, `?`, and real green-thread scheduling
+- Broader language features such as HM inference, generics, HKT, modules, `yield`, and real green-thread scheduling
 - Inherent `impl Type { ... }` methods and a Rust-complete type system; the current prototype is still a small subset
 - A truly finished shell UX; editing, completion, and IME behavior are still being tuned
 
@@ -239,6 +239,10 @@ match greeting {
   _ => print "fallback"
 }
 ```
+
+`raise` emits a typed script error from an ADT value. The compiler infers function error streams through `$` call pipelines and records them as `# raises:` comments in the generated `sh`. Inline external commands introduced by `$ command ...` are treated as `unknown` in that inferred stream.
+
+Postfix `?` propagates failures to the current caller in a Rust-like way. On value expressions such as `let value = worker()?`, the generated `sh` returns from the current function on failure instead of only relying on `set -e`. Statement forms such as `helper()?`, `shell command?`, and `$ false?` use the same propagation rule.
 
 Use `shell expr` when the command itself needs to be assembled from `.ush` expressions:
 

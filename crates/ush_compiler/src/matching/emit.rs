@@ -19,6 +19,7 @@ pub(super) fn emit_variant(
     impls: &TraitImplRegistry,
     enums: &EnumRegistry,
     state: &mut CodegenState,
+    inside_function: bool,
     out: &mut String,
 ) -> Result<()> {
     if variant.enum_name != expected_enum {
@@ -42,6 +43,7 @@ pub(super) fn emit_variant(
                     impls,
                     enums,
                     state,
+                    inside_function,
                     out,
                 )?;
             }
@@ -66,6 +68,7 @@ pub(super) fn emit_variant(
                     impls,
                     enums,
                     state,
+                    inside_function,
                     out,
                 )?;
             }

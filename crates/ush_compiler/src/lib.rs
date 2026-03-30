@@ -3,7 +3,9 @@
 mod ast;
 mod codegen;
 mod docs;
+mod effects;
 mod env;
+mod errors;
 mod matching;
 mod parse;
 mod traits;
@@ -162,11 +164,15 @@ mod tests {
             )
             .expect("compile");
 
-        assert!(output.contains("value=\"$(__ush_capture_return='1' ush_fn_greet 'ush')\""));
+        assert!(
+            output.contains("__ush_value_0=\"$(__ush_capture_return='1' ush_fn_greet 'ush')\"")
+        );
+        assert!(output.contains("value=\"${__ush_value_0}\""));
         assert!(
             output.contains(
-                "printf '%s\\n' \"$(__ush_capture_return='1' ush_fn_greet \"${value}\")\""
+                "__ush_value_1=\"$(__ush_capture_return='1' ush_fn_greet \"${value}\")\""
             )
         );
+        assert!(output.contains("printf '%s\\n' \"${__ush_value_1}\""));
     }
 }

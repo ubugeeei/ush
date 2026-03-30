@@ -3,7 +3,7 @@ use anyhow::{Context, Result, anyhow, bail};
 use super::{
     super::{
         ast::{Attribute, Expr, Statement},
-        util::split_once_top_level,
+        util::{split_once_top_level, strip_top_level_suffix},
     },
     SourceLine, attr, declaration,
     expr::parse_expr,
@@ -80,7 +80,10 @@ pub(super) fn parse_inline_statement(source: &str) -> Result<Statement> {
         return Ok(Statement::Print(parse_statement_expr(rest)?));
     }
     if let Some(rest) = source.strip_prefix("shell ") {
-        return Ok(Statement::Shell(parse_statement_expr(rest)?));
+        return parse_shell_statement(rest);
+    }
+    if let Some(rest) = source.strip_prefix("raise ") {
+        return Ok(Statement::Raise(parse_statement_expr(rest)?));
     }
     if let Some(rest) = source.strip_prefix("return ") {
         return Ok(Statement::Return(parse_statement_expr(rest)?));
@@ -93,6 +96,11 @@ pub(super) fn parse_inline_statement(source: &str) -> Result<Statement> {
     }
     if let Some(rest) = source.strip_prefix("async ") {
         return Ok(Statement::Call(signature::parse_call(rest, true)?));
+    }
+    if let Some(base) = strip_top_level_suffix(source, '?')
+        && signature::looks_like_call(base)
+    {
+        return Ok(Statement::TryCall(signature::parse_call(base, false)?));
     }
     if signature::looks_like_call(source) {
         return Ok(Statement::Call(signature::parse_call(source, false)?));
@@ -122,7 +130,10 @@ fn parse_statement(
         return Ok(Statement::Print(parse_statement_expr(rest)?));
     }
     if let Some(rest) = trimmed.strip_prefix("shell ") {
-        return Ok(Statement::Shell(parse_statement_expr(rest)?));
+        return parse_shell_statement(rest);
+    }
+    if let Some(rest) = trimmed.strip_prefix("raise ") {
+        return Ok(Statement::Raise(parse_statement_expr(rest)?));
     }
     if let Some(rest) = trimmed.strip_prefix("return ") {
         return Ok(Statement::Return(parse_statement_expr(rest)?));
@@ -135,6 +146,11 @@ fn parse_statement(
     }
     if let Some(subject) = trimmed.strip_prefix("match ") {
         return declaration::parse_match(subject, lines, cursor);
+    }
+    if let Some(base) = strip_top_level_suffix(trimmed, '?')
+        && signature::looks_like_call(base)
+    {
+        return Ok(Statement::TryCall(signature::parse_call(base, false)?));
     }
     if signature::looks_like_call(trimmed) {
         return Ok(Statement::Call(signature::parse_call(trimmed, false)?));
@@ -159,6 +175,13 @@ fn parse_statement_expr(source: &str) -> Result<super::super::ast::Expr> {
     parse_expr(source.trim().strip_prefix('$').unwrap_or(source).trim())
 }
 
+fn parse_shell_statement(source: &str) -> Result<Statement> {
+    if let Some(inner) = strip_top_level_suffix(source, '?') {
+        return Ok(Statement::TryShell(parse_statement_expr(inner)?));
+    }
+    Ok(Statement::Shell(parse_statement_expr(source)?))
+}
+
 fn parse_shell_escape(source: &str) -> Result<Option<Statement>> {
     let Some(rest) = source.strip_prefix('$') else {
         return Ok(None);
@@ -169,6 +192,12 @@ fn parse_shell_escape(source: &str) -> Result<Option<Statement>> {
     let command = rest.trim();
     if command.is_empty() {
         bail!("shell escape requires a command");
+    }
+    if let Some(inner) = strip_top_level_suffix(command, '?') {
+        if inner.is_empty() {
+            bail!("shell escape requires a command");
+        }
+        return Ok(Some(Statement::TryShell(Expr::String(inner.into()))));
     }
     Ok(Some(Statement::Shell(Expr::String(command.into()))))
 }

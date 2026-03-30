@@ -3,11 +3,11 @@ use anyhow::{Result, anyhow, bail};
 use super::{
     super::{
         ast::{Call, Expr, FunctionDef, Type},
-        env::{EnumRegistry, Env},
+        env::{CodegenState, EnumRegistry, Env},
     },
     compile_primitive_expr,
     functions::FunctionRegistry,
-    infer,
+    infer, rendered_call_runtime,
 };
 use crate::traits::TraitImplRegistry;
 use crate::types::{AstVec as Vec, OutputString as String};
@@ -18,15 +18,57 @@ pub(crate) fn compile_call(
     functions: &FunctionRegistry,
     impls: &TraitImplRegistry,
     enums: &EnumRegistry,
+    state: &mut CodegenState,
+    inside_function: bool,
     out: &mut String,
 ) -> Result<()> {
-    let rendered = rendered_call(call, env, functions, impls, enums)?;
+    let rendered = rendered_call_runtime(
+        call,
+        env,
+        functions,
+        impls,
+        enums,
+        state,
+        inside_function,
+        out,
+    )?;
     out.push_str(&rendered);
     if call.asynchronous {
         out.push_str(" &\n__ush_jobs=\"${__ush_jobs}${__ush_jobs:+ }$!\"\n");
     } else {
         out.push('\n');
     }
+    Ok(())
+}
+
+pub(crate) fn compile_try_call(
+    call: &Call,
+    env: &Env,
+    functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
+    enums: &EnumRegistry,
+    state: &mut CodegenState,
+    inside_function: bool,
+    out: &mut String,
+) -> Result<()> {
+    let rendered = rendered_call_runtime(
+        call,
+        env,
+        functions,
+        impls,
+        enums,
+        state,
+        inside_function,
+        out,
+    )?;
+    out.push_str(&rendered);
+    out.push_str(" || ");
+    out.push_str(if inside_function {
+        "return \"$?\""
+    } else {
+        "exit \"$?\""
+    });
+    out.push('\n');
     Ok(())
 }
 

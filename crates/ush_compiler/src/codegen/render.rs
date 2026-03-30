@@ -44,6 +44,7 @@ pub(crate) fn compile_int_expr(
     match expr {
         Expr::Int(value) => Ok(value.to_string()),
         Expr::Var(name) => Ok(format!("$(({}))", primitive_int_var(env, name)?)),
+        Expr::Try(inner) => compile_int_expr(inner, env, functions, impls, enums),
         Expr::Call(call) => capture_call(call, env, functions, impls, enums, &Type::Int),
         Expr::Add(parts) => Ok(format!(
             "$(({}))",
@@ -63,6 +64,7 @@ pub(crate) fn compile_bool_expr(
     match expr {
         Expr::Bool(value) => Ok(if *value { "'true'" } else { "'false'" }.into()),
         Expr::Var(name) => Ok(format!("\"${{{}}}\"", primitive_bool_var(env, name)?)),
+        Expr::Try(inner) => compile_bool_expr(inner, env, functions, impls, enums),
         Expr::Compare { lhs, op, rhs } => {
             compile_compare_expr(lhs, rhs, *op, env, functions, impls, enums)
         }
@@ -86,6 +88,7 @@ pub(crate) fn compile_unit_expr(
         Expr::Var(name) if env.get(name).map(|binding| binding.ty.clone()) == Some(Type::Unit) => {
             Ok("''".into())
         }
+        Expr::Try(inner) => compile_unit_expr(inner, env, functions, impls, enums),
         Expr::Call(call) => Ok(format!(
             "\"{}\"",
             capture_call(call, env, functions, impls, enums, &Type::Unit)?
@@ -115,6 +118,7 @@ fn compile_string_fragment(
             Some(binding) => primitive_var(binding, name).map(|var| format!("\"${{{var}}}\"")),
             None => bail!("unknown variable: {name}"),
         },
+        Expr::Try(inner) => compile_string_fragment(inner, env, functions, impls, enums),
         Expr::Add(_) => compile_string_expr(expr, env, functions, impls, enums),
         Expr::Compare { lhs, op, rhs } => {
             compile_compare_expr(lhs, rhs, *op, env, functions, impls, enums)
@@ -139,6 +143,25 @@ fn int_terms(
         match part {
             Expr::Int(value) => compiled.push(value.to_string()),
             Expr::Var(name) => compiled.push(primitive_int_var(env, name)?.to_string()),
+            Expr::Try(inner) => match inner.as_ref() {
+                Expr::Int(value) => compiled.push(value.to_string()),
+                Expr::Var(name) => compiled.push(primitive_int_var(env, name)?.to_string()),
+                Expr::Call(call) => compiled.push(capture_call(
+                    call,
+                    env,
+                    functions,
+                    impls,
+                    enums,
+                    &Type::Int,
+                )?),
+                Expr::Add(_) if infer(inner, env, functions, impls, enums)? == Type::Int => {
+                    compiled.push(format!(
+                        "({})",
+                        compile_int_expr(inner, env, functions, impls, enums)?
+                    ));
+                }
+                _ => bail!("only integer addition is supported"),
+            },
             Expr::Call(call) => {
                 compiled.push(capture_call(
                     call,

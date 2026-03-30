@@ -2,8 +2,8 @@ use self::KeywordContext::{Decl, Func, Let, NoKeyword, Shell};
 use crate::token::{SemanticToken, SemanticTokenKind};
 
 const KEYWORDS: &[&str] = &[
-    "alias", "async", "enum", "fn", "impl", "let", "match", "print", "return", "shell", "trait",
-    "type",
+    "alias", "async", "enum", "fn", "impl", "let", "match", "print", "raise", "return", "shell",
+    "trait", "type",
 ];
 
 #[derive(Clone, Copy)]

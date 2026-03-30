@@ -1,11 +1,14 @@
 mod alias;
 mod bin;
+mod blocks;
 mod calls;
 mod compare;
 mod docs;
 mod functions;
+mod io;
 mod primitive;
 mod render;
+mod runtime_expr;
 mod shared;
 mod statement;
 mod tasks;
@@ -14,6 +17,7 @@ use anyhow::Result;
 
 use super::{
     ast::Statement,
+    effects,
     env::{CodegenState, EnumRegistry, Env},
 };
 use crate::ScriptDocs;
@@ -22,6 +26,7 @@ use crate::types::OutputString as String;
 
 pub(crate) use functions::FunctionRegistry;
 pub(crate) use primitive::{compile_primitive_expr, infer};
+pub(crate) use runtime_expr::{compile_runtime_primitive_expr, rendered_call_runtime};
 
 pub(crate) fn compile_program(
     program: &[Statement],
@@ -62,6 +67,8 @@ pub(crate) fn compile_program(
     );
 
     let globals = functions::analyze_globals(program, &functions, &trait_impls, &enums)?;
+    let function_errors =
+        effects::analyze_function_errors(program, &globals, &functions, &trait_impls, &enums)?;
     for statement in program {
         if matches!(statement, Statement::Enum(_)) {
             continue;
@@ -73,8 +80,10 @@ pub(crate) fn compile_program(
             &functions,
             &trait_impls,
             &enums,
+            &function_errors,
             &mut state,
             None,
+            false,
             &mut out,
         )?;
     }

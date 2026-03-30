@@ -99,6 +99,30 @@ pub(crate) fn split_once_top_level(source: &str, separator: char) -> Option<(&st
     None
 }
 
+pub(crate) fn strip_top_level_suffix(source: &str, suffix: char) -> Option<&str> {
+    let trimmed = source.trim();
+    let (mut single, mut double, mut paren, mut brace) = (false, false, 0usize, 0usize);
+    let mut candidate = None;
+
+    for (index, ch) in trimmed.char_indices() {
+        match ch {
+            '\'' if !double => single = !single,
+            '"' if !single => double = !double,
+            '(' if !single && !double => paren += 1,
+            ')' if !single && !double && paren > 0 => paren -= 1,
+            '{' if !single && !double => brace += 1,
+            '}' if !single && !double && brace > 0 => brace -= 1,
+            _ if ch == suffix && !single && !double && paren == 0 && brace == 0 => {
+                candidate = Some(index);
+            }
+            _ => {}
+        }
+    }
+
+    let index = candidate?;
+    (index + suffix.len_utf8() == trimmed.len()).then_some(trimmed[..index].trim())
+}
+
 pub(crate) fn split_path(source: &str) -> Option<(String, String)> {
     let index = memmem::find(source.as_bytes(), b"::")?;
     Some((

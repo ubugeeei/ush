@@ -4,7 +4,10 @@ use anyhow::{Result, anyhow, bail};
 
 use super::super::{
     ast::{Expr, NamedFieldType, Pattern, Type},
-    util::{is_identifier, parse_paren_body, parse_string_literal, parse_type, split_top_level},
+    util::{
+        is_identifier, parse_paren_body, parse_string_literal, parse_type, split_top_level,
+        strip_top_level_suffix,
+    },
 };
 use crate::types::HeapVec as Vec;
 
@@ -71,6 +74,12 @@ fn parse_atom(source: &str) -> Result<Expr> {
     let trimmed = source.trim();
     if trimmed.is_empty() {
         bail!("empty expression");
+    }
+    if let Some(inner) = strip_top_level_suffix(trimmed, '?') {
+        if inner.is_empty() {
+            bail!("try operator requires an expression");
+        }
+        return Ok(Expr::Try(Box::new(parse_expr(inner)?)));
     }
     if trimmed == "()" {
         return Ok(Expr::Unit);

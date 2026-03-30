@@ -138,7 +138,7 @@ fn sync_function_calls_execute_in_order() {
           print message + ":" + count
         }
         print "before"
-        greet("hello", 2)
+        greet "hello" 2
         print "after"
     "#,
     );
@@ -154,7 +154,7 @@ fn await_returns_async_function_result() {
           return message
         }
         print "main"
-        let task = async worker("worker")
+        let task = async worker "worker"
         print "after"
         let result = await task
         print result
@@ -171,11 +171,58 @@ fn awaited_values_keep_their_declared_type() {
         fn compute(value: Int) -> Int {
           return value + 2
         }
-        let task = async compute(40)
+        let task = async compute 40
         let result = await task
         print result + 2
     "#,
     );
 
     assert_eq!(output, "44\n");
+}
+
+#[test]
+fn call_expressions_support_space_separated_arguments() {
+    let output = run_program(
+        r#"
+        fn greet(message: String, count: Int) -> String {
+          return message + ":" + count
+        }
+        let value = greet "hello" 2
+        print value
+    "#,
+    );
+
+    assert_eq!(output, "hello:2\n");
+}
+
+#[test]
+fn dollar_operator_and_grouped_calls_work() {
+    let output = run_program(
+        r#"
+        fn greet(name: String) -> String {
+          return "hi " + name
+        }
+        fn wrap(message: String) -> String {
+          return "<" + message + ">"
+        }
+        print $ wrap $ greet "ush"
+        print $ wrap (greet "team")
+    "#,
+    );
+
+    assert_eq!(output, "<hi ush>\n<hi team>\n");
+}
+
+#[test]
+fn unit_style_application_calls_zero_arg_functions() {
+    let output = run_program(
+        r#"
+        fn name() -> String {
+          return "ush"
+        }
+        print $ name ()
+    "#,
+    );
+
+    assert_eq!(output, "ush\n");
 }

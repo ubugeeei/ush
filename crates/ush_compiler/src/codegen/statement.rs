@@ -8,6 +8,7 @@ use super::{
         env::{CodegenState, EnumRegistry, Env},
         matching::{compile_pattern, emit_value_to_target, materialize_expr},
     },
+    alias::compile_alias,
     calls::compile_call,
     compile_primitive_expr,
     functions::{FunctionRegistry, compile_function},
@@ -15,6 +16,7 @@ use super::{
     shared::{binding_for_name, push_block, push_line},
     tasks::{compile_await, compile_return, compile_spawn},
 };
+use crate::traits::TraitImplRegistry;
 use crate::types::{OutputString as String, Set as HashSet};
 
 pub(crate) fn register_enum(def: &EnumDef, enums: &mut EnumRegistry) -> Result<()> {
@@ -49,6 +51,7 @@ pub(crate) fn compile_statement(
     env: &mut Env,
     globals: &Env,
     functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
     enums: &EnumRegistry,
     state: &mut CodegenState,
     return_type: Option<&Type>,
@@ -56,10 +59,18 @@ pub(crate) fn compile_statement(
 ) -> Result<()> {
     match statement {
         Statement::Enum(_) => {}
-        Statement::Function(def) => compile_function(def, globals, functions, enums, state, out)?,
-        Statement::Let { name, expr } => compile_let(name, expr, env, enums, state, out)?,
+        Statement::Trait(_) | Statement::Impl(_) => {}
+        Statement::Function(def) => {
+            compile_function(def, globals, functions, impls, enums, state, out)?
+        }
+        Statement::Alias { name, value } => {
+            compile_alias(name, value, env, functions, impls, enums, out)?
+        }
+        Statement::Let { name, expr } => {
+            compile_let(name, expr, env, functions, impls, enums, state, out)?
+        }
         Statement::Spawn { name, call } => {
-            let binding = compile_spawn(call, env, functions, enums, state, out)?;
+            let binding = compile_spawn(call, env, functions, impls, enums, state, out)?;
             env.insert(name.clone(), binding);
         }
         Statement::Await { name, task } => {
@@ -72,16 +83,19 @@ pub(crate) fn compile_statement(
                 out.push('\n');
             }
         }
-        Statement::Print(expr) => push_print(expr, env, enums, out)?,
-        Statement::Shell(expr) => compile_shell(expr, env, enums, out)?,
-        Statement::Call(call) => compile_call(call, env, functions, enums, out)?,
-        Statement::Return(expr) => compile_return(expr, env, enums, return_type, out)?,
+        Statement::Print(expr) => push_print(expr, env, functions, impls, enums, out)?,
+        Statement::Shell(expr) => compile_shell(expr, env, functions, impls, enums, out)?,
+        Statement::Call(call) => compile_call(call, env, functions, impls, enums, out)?,
+        Statement::Return(expr) => {
+            compile_return(expr, env, functions, impls, enums, return_type, out)?
+        }
         Statement::Match { expr, arms } => compile_match(
             expr,
             arms,
             env,
             globals,
             functions,
+            impls,
             enums,
             state,
             return_type,
@@ -95,41 +109,59 @@ fn compile_let(
     name: &str,
     expr: &Expr,
     env: &mut Env,
+    functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
     enums: &EnumRegistry,
     state: &mut CodegenState,
     out: &mut String,
 ) -> Result<()> {
-    let ty = infer(expr, env, enums)?;
+    let ty = infer(expr, env, functions, impls, enums)?;
     match &ty {
-        Type::String | Type::Int | Type::Bool => {
+        Type::String | Type::Int | Type::Bool | Type::Unit => {
             out.push_str(name);
             out.push('=');
-            out.push_str(&compile_primitive_expr(expr, env, enums)?);
+            out.push_str(&compile_primitive_expr(expr, env, functions, impls, enums)?);
             out.push('\n');
         }
-        Type::Adt(_) => emit_value_to_target(name, expr, &ty, env, enums, state, out)?,
+        Type::Adt(_) => {
+            emit_value_to_target(name, expr, &ty, env, functions, impls, enums, state, out)?
+        }
         Type::Task(_) => bail!("task expressions must be bound via `let name = async ...`"),
     }
     env.insert(name.into(), binding_for_name(name, ty));
     Ok(())
 }
 
-fn push_print(expr: &Expr, env: &Env, enums: &EnumRegistry, out: &mut String) -> Result<()> {
+fn push_print(
+    expr: &Expr,
+    env: &Env,
+    functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
+    enums: &EnumRegistry,
+    out: &mut String,
+) -> Result<()> {
     out.push_str("printf '%s\\n' ");
-    out.push_str(&compile_primitive_expr(expr, env, enums)?);
+    out.push_str(&compile_primitive_expr(expr, env, functions, impls, enums)?);
     out.push('\n');
     Ok(())
 }
 
-fn compile_shell(expr: &Expr, env: &Env, enums: &EnumRegistry, out: &mut String) -> Result<()> {
-    if infer(expr, env, enums)? != Type::String {
+fn compile_shell(
+    expr: &Expr,
+    env: &Env,
+    functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
+    enums: &EnumRegistry,
+    out: &mut String,
+) -> Result<()> {
+    if infer(expr, env, functions, impls, enums)? != Type::String {
         bail!("shell statements must evaluate to string");
     }
     if let Expr::String(value) = expr {
         out.push_str(value);
     } else {
         out.push_str("eval ");
-        out.push_str(&compile_primitive_expr(expr, env, enums)?);
+        out.push_str(&compile_primitive_expr(expr, env, functions, impls, enums)?);
     }
     out.push('\n');
     Ok(())
@@ -141,6 +173,7 @@ fn compile_match(
     env: &Env,
     globals: &Env,
     functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
     enums: &EnumRegistry,
     state: &mut CodegenState,
     return_type: Option<&Type>,
@@ -149,7 +182,7 @@ fn compile_match(
     if arms.is_empty() {
         bail!("match must have at least one arm");
     }
-    let subject = materialize_expr(expr, env, enums, state, out)?;
+    let subject = materialize_expr(expr, env, functions, impls, enums, state, out)?;
     for (index, (pattern, arm)) in arms.iter().enumerate() {
         let plan = compile_pattern(pattern, &subject, env, enums)?;
         out.push_str(if index == 0 { "if " } else { "elif " });
@@ -164,6 +197,7 @@ fn compile_match(
             &mut arm_env,
             globals,
             functions,
+            impls,
             enums,
             state,
             return_type,
@@ -179,6 +213,7 @@ fn compile_one(
     env: &mut Env,
     globals: &Env,
     functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
     enums: &EnumRegistry,
     state: &mut CodegenState,
     return_type: Option<&Type>,
@@ -189,6 +224,7 @@ fn compile_one(
         env,
         globals,
         functions,
+        impls,
         enums,
         state,
         return_type,

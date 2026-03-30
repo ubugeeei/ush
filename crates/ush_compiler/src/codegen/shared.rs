@@ -7,7 +7,9 @@ use crate::types::{AstString as NameString, OutputString as String};
 pub(crate) fn binding_for_name(name: &str, ty: Type) -> Binding {
     let storage = match ty {
         Type::Adt(_) => Storage::Adt(NameString::from(name)),
-        Type::String | Type::Int | Type::Bool => Storage::Primitive(NameString::from(name)),
+        Type::String | Type::Int | Type::Bool | Type::Unit => {
+            Storage::Primitive(NameString::from(name))
+        }
         Type::Task(_) => Storage::Task(NameString::from(name)),
     };
     Binding { ty, storage }

@@ -1,4 +1,8 @@
+mod attr;
+mod compare;
+mod declaration;
 mod expr;
+mod record;
 mod signature;
 mod statement;
 

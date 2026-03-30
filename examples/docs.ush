@@ -1,0 +1,26 @@
+#| Documented ush example.
+#| Shows generated help, man output, and completion candidates.
+#| @usage docs.ush --man greet
+#| @example docs.ush --help
+#| @example docs.ush --man greet
+#| @example docs.ush --complete gr
+
+#| Greet a user and return a message.
+#| @param name user name to greet
+#| @return greeting text
+#| @example greet "ush"
+fn greet(name: String) -> String {
+  return "hello " + name
+}
+
+#| Tagged greeting status.
+enum Status {
+  Ready,
+  Done(String),
+}
+
+#| Marker trait for documented entities.
+trait Documented {
+}
+
+print $ greet "ush"

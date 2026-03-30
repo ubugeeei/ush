@@ -97,19 +97,22 @@ pub fn highlight_candidate(helper: &UshHelper, candidate: &str) -> String {
 }
 
 pub fn highlight_prompt(prompt: &str) -> String {
-    let Some(path) = prompt.strip_prefix("ush ") else {
+    let Some((body, marker_color)) = parse_prompt_body(prompt) else {
         return color(PROMPT_FALLBACK, prompt);
     };
-    let (path, marker_color) = if let Some(path) = path.strip_suffix(" $ ") {
-        (path, PROMPT_OK)
-    } else if let Some(path) = path.strip_suffix(" ! ") {
-        (path, PROMPT_ERR)
-    } else {
-        return color(PROMPT_FALLBACK, prompt);
-    };
-
+    if let Some(path) = body.strip_prefix("ush ") {
+        return format!(
+            "{PROMPT_NAME}ush{RESET} {PROMPT_PATH}{path}{RESET} {marker_color}{}{RESET} ",
+            if marker_color == PROMPT_OK { "$" } else { "!" }
+        );
+    }
+    if let Some((head, tail)) = body.rsplit_once('\n') {
+        let marker = if marker_color == PROMPT_OK { "$" } else { "!" };
+        let head = if tail.is_empty() { head } else { body };
+        return format!("{PROMPT_PATH}{head}{RESET}\n{marker_color}{marker}{RESET} ");
+    }
     format!(
-        "{PROMPT_NAME}ush{RESET} {PROMPT_PATH}{path}{RESET} {marker_color}{}{RESET} ",
+        "{PROMPT_PATH}{body}{RESET} {marker_color}{}{RESET} ",
         if marker_color == PROMPT_OK { "$" } else { "!" }
     )
 }
@@ -162,6 +165,16 @@ fn color(code: &str, value: &str) -> String {
     format!("{code}{value}{RESET}")
 }
 
+fn parse_prompt_body(prompt: &str) -> Option<(&str, &str)> {
+    if let Some(body) = prompt.strip_suffix(" $ ") {
+        return Some((body, PROMPT_OK));
+    }
+    if let Some(body) = prompt.strip_suffix(" ! ") {
+        return Some((body, PROMPT_ERR));
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use crate::repl::selection::SelectionMove;
@@ -185,9 +198,8 @@ mod tests {
 
     #[test]
     fn highlights_default_prompt_by_segment() {
-        let prompt = highlight_prompt("ush ~/.../ubugeeei/ubshell $ ");
+        let prompt = highlight_prompt("~/.../ubugeeei/ubshell $ ");
 
-        assert!(prompt.contains("\u{1b}[38;5;109mush\u{1b}[0m"));
         assert!(prompt.contains("\u{1b}[1;38;5;223m~/.../ubugeeei/ubshell\u{1b}[0m"));
         assert!(prompt.contains("\u{1b}[1;38;5;150m$\u{1b}[0m"));
     }

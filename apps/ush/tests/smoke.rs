@@ -9,12 +9,23 @@ fn ush() -> Command {
 #[test]
 fn helper_pipeline_counts_lines() {
     let output = ush()
-        .args(["-c", "printf 'a\nb\n' | length"])
+        .args(["-c", "printf 'a\nb\n' | len"])
         .output()
         .expect("run ush");
 
     assert!(output.status.success());
     assert_eq!(String::from_utf8_lossy(&output.stdout), "2\n");
+}
+
+#[test]
+fn helper_lambdas_support_backslash_and_block_syntax() {
+    let output = ush()
+        .args(["-c", r#"printf 'ush\n' | map(\line -> { upper(line) })"#])
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "USH\n");
 }
 
 #[test]
@@ -107,7 +118,7 @@ fn ush_script_supports_async_functions() {
           return message
         }
         print "main"
-        let task = async worker("worker")
+        let task = async worker "worker"
         print "after"
         let result = await task
         print result
@@ -122,4 +133,98 @@ fn ush_script_supports_async_functions() {
         String::from_utf8_lossy(&output.stdout),
         "main\nafter\nworker\n"
     );
+}
+
+#[test]
+fn ush_script_supports_functional_calls() {
+    let dir = tempdir().expect("tempdir");
+    let script = dir.path().join("functional.ush");
+    fs::write(
+        &script,
+        r#"
+        fn greet(name: String) -> String {
+          return "hi " + name
+        }
+        fn wrap(message: String) -> String {
+          return "<" + message + ">"
+        }
+        fn label() -> String {
+          return "ush"
+        }
+        print $ wrap $ greet (label ())
+        "#,
+    )
+    .expect("write script");
+
+    let output = ush().arg(&script).output().expect("run ush");
+
+    assert!(output.status.success());
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "<hi ush>\n");
+}
+
+#[test]
+fn ush_script_supports_unit_and_trait_declarations() {
+    let dir = tempdir().expect("tempdir");
+    let script = dir.path().join("traits.ush");
+    fs::write(
+        &script,
+        r#"
+        trait Named {}
+        impl Eq for () {}
+        impl Add for Int {}
+        fn noop() -> () {
+          return ()
+        }
+        let value = noop ()
+        print value == ()
+        print 1 + 2
+        "#,
+    )
+    .expect("write script");
+
+    let output = ush().arg(&script).output().expect("run ush");
+
+    assert!(output.status.success());
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "true\n3\n");
+}
+
+#[test]
+fn ush_script_exposes_generated_docs() {
+    let dir = tempdir().expect("tempdir");
+    let script = dir.path().join("docs.ush");
+    fs::write(
+        &script,
+        r#"
+        #| Demo script.
+        #| @usage docs.ush --man greet
+        #| Greet a user.
+        #| @param name target user
+        #| @return greeting text
+        fn greet(name: String) -> String {
+          return "hi " + name
+        }
+        print $ greet "ush"
+        "#,
+    )
+    .expect("write script");
+
+    let help = ush()
+        .args([script.to_str().unwrap(), "--help"])
+        .output()
+        .expect("run help");
+    let man = ush()
+        .args([script.to_str().unwrap(), "--man", "greet"])
+        .output()
+        .expect("run man");
+    let complete = ush()
+        .args([script.to_str().unwrap(), "--complete", "gr"])
+        .output()
+        .expect("run completion");
+
+    assert!(help.status.success());
+    assert!(String::from_utf8_lossy(&help.stdout).contains("Documented items:"));
+    assert!(man.status.success());
+    assert!(String::from_utf8_lossy(&man.stdout).contains("PARAMETERS"));
+    assert!(complete.status.success());
+    assert_eq!(String::from_utf8_lossy(&complete.stdout), "greet\n");
 }

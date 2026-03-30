@@ -49,6 +49,37 @@ pub(crate) fn split_top_level(source: &str, separator: char) -> Vec<&str> {
     result
 }
 
+pub(crate) fn split_top_level_whitespace(source: &str) -> Vec<&str> {
+    let mut result = Vec::new();
+    let mut start = None;
+    let (mut single, mut double, mut paren, mut brace) = (false, false, 0usize, 0usize);
+
+    for (index, ch) in source.char_indices() {
+        if !ch.is_whitespace() && start.is_none() {
+            start = Some(index);
+        }
+        match ch {
+            '\'' if !double => single = !single,
+            '"' if !single => double = !double,
+            '(' if !single && !double => paren += 1,
+            ')' if !single && !double && paren > 0 => paren -= 1,
+            '{' if !single && !double => brace += 1,
+            '}' if !single && !double && brace > 0 => brace -= 1,
+            _ if ch.is_whitespace() && !single && !double && paren == 0 && brace == 0 => {
+                if let Some(begin) = start.take() {
+                    result.push(source[begin..index].trim());
+                }
+            }
+            _ => {}
+        }
+    }
+
+    if let Some(begin) = start {
+        result.push(source[begin..].trim());
+    }
+    result
+}
+
 pub(crate) fn split_once_top_level(source: &str, separator: char) -> Option<(&str, &str)> {
     let (mut single, mut double, mut paren, mut brace) = (false, false, 0usize, 0usize);
     for (index, ch) in source.char_indices() {
@@ -116,6 +147,9 @@ pub(crate) fn is_identifier(source: &str) -> bool {
 
 pub(crate) fn parse_type(source: &str) -> Option<Type> {
     let trimmed = source.trim();
+    if matches!(trimmed, "()" | "Unit") {
+        return Some(Type::Unit);
+    }
     match PRIMITIVE_TYPES.get(trimmed).copied() {
         Some(PrimitiveType::String) => Some(Type::String),
         Some(PrimitiveType::Int) => Some(Type::Int),

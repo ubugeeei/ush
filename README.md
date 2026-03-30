@@ -33,13 +33,17 @@ Implemented today:
 - `.sh` / POSIX scripts executed through `/bin/sh`
 - `.ush` scripts compiled to `sh` and then executed by `/bin/sh`
 - Generated `.ush` output stays within POSIX `sh` syntax and POSIX command usage
+- Prototype typed language features: `type { ... }`, enums, traits, marker `impl`, `match`, and typed `fn`
+- Labeled function arguments plus parameter attributes such as `#[default(...)]` and `#[alias("n")]`
+- `alias name = "..."` declarations in `.ush`
+- `bin.ush` as a generated CLI entrypoint, with flags/defaults/completion derived from the `bin(...)` signature
 - `crates/ush_compiler` builds as `no_std + alloc` with CompactString, SmallVec, bumpalo, memchr, phf, and Fx-hashed maps in the core path
 - `apps/ush` and `crates/ush_shell` remain `std`-based by design
 - Installer patterns such as `curl -fsSL https://... | sh` are detected from the parsed pipeline and executed through POSIX `/bin/sh`
 - Builtins: `cd`, `pwd`, `alias`, `unalias`, `history`, `export`, `help`, `source`, `rm`
 - Safety prompt for dangerous `rm -rf` unless `--yes` or `USH_INTERACTION=false`
 - Stylish renderers for `pwd`, `ls`, `cat`, `ps`, and `kill`
-- Structured helpers: `length`, `lines`, `json`, `map`, `each`, `filter`, `any`, `some`
+- Structured helpers: `len`, `lines`, `json`, `xml`, `html`, `map`, `each`, `filter`, `any`, `some`
 - Environment-variable expansion, `~` expansion, and simple glob expansion
 - Criterion benchmark skeleton for parser/profiling work
 - `curl`, `nix`, and Docker base-image packaging entry points
@@ -49,7 +53,8 @@ Not there yet:
 
 - Full native POSIX grammar coverage inside the Rust runtime
 - Richer typed structured values beyond text / JSON helpers
-- Broader language features such as HM inference, generics, and exhaustiveness checking
+- Broader language features such as HM inference, generics, HKT, modules, `yield`, `?`, and real green-thread scheduling
+- Inherent `impl Type { ... }` methods and a Rust-complete type system; the current prototype is still a small subset
 - A truly finished shell UX; editing, completion, and IME behavior are still being tuned
 
 Workspace layout:
@@ -59,7 +64,36 @@ Workspace layout:
 - `crates/ush_compiler`: `.ush` to `sh` compiler core, `no_std + alloc` capable
 - `crates/ush_shell`: interactive shell, parser, stylish I/O, helpers
 
-## Quick Start
+## Usage
+
+If you installed `ush` with `install.sh`, the binary is placed in `"$USH_PREFIX/bin"` and `USH_PREFIX` defaults to `~/.local`.
+In the default case, make sure `~/.local/bin` is on your `PATH`:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+For a persistent setup:
+
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+If you installed with a custom prefix, use that prefix instead:
+
+```bash
+export PATH="$USH_PREFIX/bin:$PATH"
+```
+
+You can confirm the binary is visible with:
+
+```bash
+command -v ush
+ush -c 'printf "ok\n"'
+```
+
+`nix profile install ...` and the Docker image already expose `ush` on `PATH`.
 
 ```bash
 cargo run -p ush
@@ -68,7 +102,7 @@ cargo run -p ush
 Run a one-liner:
 
 ```bash
-cargo run -p ush -- -c 'printf "a\nb\n" | length'
+cargo run -p ush -- -c 'printf "a\nb\n" | len'
 ```
 
 Enable stylish mode:
@@ -111,26 +145,37 @@ When a selection is active, typing replaces it and `Backspace` / `Delete` remove
 `ush` keeps normal Unix pipes, but helper stages can operate on structured values:
 
 ```bash
-printf "alpha\nbeta\ngamma\n" | filter(it -> contains(it, "a")) | length
-printf "hello\nworld\n" | map(it -> upper(it))
-cat package.json | json | length
+printf "alpha\nbeta\ngamma\n" | filter(\it -> contains(it, "a")) | len
+printf "hello\nworld\n" | map(\it -> upper(it))
+printf "hello\n" | map(\line -> { upper(line) })
+cat package.json | json | len
+cat feed.xml | xml
+curl -fsSL https://example.com | html
 ```
 
 Currently supported helper forms:
 
-- `length`
+- `len`
+- `length` (compatibility alias)
 - `lines`
 - `json`
-- `map(it -> upper(it))`
-- `map(it -> lower(it))`
-- `map(it -> trim(it))`
-- `map(it -> replace(it, "from", "to"))`
-- `each(it -> print(it))`
-- `filter(it -> contains(it, "foo"))`
-- `filter(it -> starts_with(it, "foo"))`
-- `filter(it -> ends_with(it, "foo"))`
-- `any(it -> contains(it, "foo"))`
-- `some(it -> contains(it, "foo"))`
+- `xml`
+- `html`
+- `map(\it -> upper(it))`
+- `map(\it -> lower(it))`
+- `map(\it -> trim(it))`
+- `map(\it -> replace(it, "from", "to"))`
+- `each(\it -> print(it))`
+- `filter(\it -> contains(it, "foo"))`
+- `filter(\it -> starts_with(it, "foo"))`
+- `filter(\it -> ends_with(it, "foo"))`
+- `any(\it -> contains(it, "foo"))`
+- `some(\it -> contains(it, "foo"))`
+
+`html` writes the current stream into a temporary HTML file and opens it in your default browser.
+If `json` cannot parse the stream, `ush` falls back to this browser flow instead of failing immediately.
+`xml` pretty-prints valid XML and falls back to the same browser flow if the input is not valid XML.
+Helper lambdas also accept `\name -> expr`, `\name -> { expr }`, and zero-arg forms like `\-> { "ok" }`.
 
 ## Stylish Mode
 
@@ -197,7 +242,7 @@ fn worker(message: String) -> String {
 }
 
 print "main"
-let task = async worker("worker")
+let task = async worker "worker"
 print "after"
 let result = await task
 print result
@@ -209,10 +254,61 @@ Compile explicitly:
 cargo run -p ush -- compile examples/hello.ush
 ```
 
+`bin.ush` files can act like small CLI tools. The `bin(...)` function becomes the entrypoint, and parameter names drive `--long-flags`, `#[alias("x")]` adds a short flag, and `#[default(...)]` provides default values:
+
+```text
+fn bin(#[alias("n")] name: String, #[default(2)] count: Int, verbose: Bool) {
+  print name + ":" + count
+  print verbose
+}
+```
+
+Run it like:
+
+```bash
+cargo run -p ush -- examples/bin.ush --name ush --count 4 --verbose
+```
+
+Struct-like `type` declarations are also available as a prototype:
+
+```text
+type User {
+  name: String,
+  age: Int,
+}
+
+let user = User { name: "ush", age: 7 }
+match user {
+  User { name, age } => print name + ":" + age
+  _ => print "fallback"
+}
+```
+
 Execute directly:
 
 ```bash
 cargo run -p ush -- examples/hello.ush
+```
+
+`#|` doc comments can be attached to the script itself and to top-level `fn`, `enum`, and `trait` declarations.
+Those comments are used to auto-generate help, manual text, and completion candidates:
+
+```text
+#| Documented ush example.
+#| @usage docs.ush --man greet
+#|
+#| Greet a user and return a message.
+#| @param name user name to greet
+#| @return greeting text
+fn greet(name: String) -> String {
+  return "hello " + name
+}
+```
+
+```bash
+cargo run -p ush -- examples/docs.ush --help
+cargo run -p ush -- examples/docs.ush --man greet
+cargo run -p ush -- examples/docs.ush --complete gr
 ```
 
 ## Install
@@ -243,7 +339,7 @@ Use it as a base image:
 ```dockerfile
 FROM ush
 
-RUN printf "a\nb\n" | length
+RUN printf "a\nb\n" | len
 CMD ["ush"]
 ```
 

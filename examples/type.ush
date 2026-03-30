@@ -1,0 +1,10 @@
+type User {
+  name: String,
+  age: Int,
+}
+
+let user = User { name: "ush", age: 7 }
+match user {
+  User { name, age } => print name + ":" + age
+  _ => print "fallback"
+}

@@ -88,7 +88,7 @@ fn function_argument_count_mismatches_are_rejected() {
     "#,
     );
 
-    assert!(error.contains("expects 1 arguments"));
+    assert!(error.contains("expects at most 1 arguments"));
 }
 
 #[test]
@@ -126,4 +126,83 @@ fn return_outside_functions_is_rejected() {
     );
 
     assert!(error.contains("return is only valid inside functions"));
+}
+
+#[test]
+fn call_expressions_require_return_types() {
+    let error = compile_error(
+        r#"
+        fn greet(message: String) {
+          print message
+        }
+        let value = greet "hello"
+    "#,
+    );
+
+    assert!(error.contains("does not return a value"));
+}
+
+#[test]
+fn impl_requires_a_known_trait() {
+    let error = compile_error(
+        r#"
+        impl Named for Int {}
+    "#,
+    );
+
+    assert!(error.contains("unknown trait"));
+}
+
+#[test]
+fn duplicate_impls_are_rejected() {
+    let error = compile_error(
+        r#"
+        trait Named {}
+        impl Named for String {}
+        impl Named for String {}
+    "#,
+    );
+
+    assert!(error.contains("duplicate impl"));
+}
+
+#[test]
+fn unknown_named_arguments_are_rejected() {
+    let error = compile_error(
+        r#"
+        fn greet(name: String) {
+          print name
+        }
+        greet value: "ush"
+    "#,
+    );
+
+    assert!(error.contains("unknown argument label"));
+}
+
+#[test]
+fn default_value_types_must_match_parameter_types() {
+    let error = compile_error(
+        r#"
+        fn greet(#[default("oops")] count: Int) {
+          print count
+        }
+        greet()
+    "#,
+    );
+
+    assert!(error.contains("type mismatch for `count`"));
+}
+
+#[test]
+fn duplicate_parameter_aliases_are_rejected() {
+    let error = compile_error(
+        r#"
+        fn bin(#[alias("n")] name: String, #[alias("n")] count: Int) {
+          print name + ":" + count
+        }
+    "#,
+    );
+
+    assert!(error.contains("duplicate parameter alias"));
 }

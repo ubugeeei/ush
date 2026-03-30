@@ -2,21 +2,26 @@ use anyhow::{Result, bail};
 
 use super::{
     super::{
-        ast::{FunctionDef, Statement},
+        ast::{Expr, FunctionDef, Statement},
         env::{CodegenState, EnumRegistry, Env},
     },
     calls::ensure_signature,
     shared::{binding_for_name, push_block, push_line},
     statement::compile_statement,
 };
-use crate::types::{AstString as NameString, Map as HashMap, OutputString as String};
+use crate::traits::TraitImplRegistry;
+use crate::types::{
+    AstString as NameString, Map as HashMap, OutputString as String, Set as HashSet,
+};
 
 pub(crate) type FunctionRegistry = HashMap<NameString, FunctionDef>;
 
 pub(crate) fn register_function(def: &FunctionDef, functions: &mut FunctionRegistry) -> Result<()> {
+    ensure_function_attrs(def)?;
     if functions.contains_key(&def.name) {
         bail!("duplicate function: {}", def.name);
     }
+    let mut cli_aliases = HashSet::with_hasher(Default::default());
     for (index, param) in def.params.iter().enumerate() {
         if def.params[..index]
             .iter()
@@ -24,16 +29,33 @@ pub(crate) fn register_function(def: &FunctionDef, functions: &mut FunctionRegis
         {
             bail!("duplicate parameter: {}::{}", def.name, param.name);
         }
+        if let Some(alias) = &param.cli_alias {
+            if alias.len() != 1 || !alias.chars().all(|ch| ch.is_ascii_alphanumeric()) {
+                bail!(
+                    "parameter alias must be a single ASCII letter or digit: {}::{}",
+                    def.name,
+                    param.name
+                );
+            }
+            if !cli_aliases.insert(alias.clone()) {
+                bail!("duplicate parameter alias: {}::{alias}", def.name);
+            }
+        }
     }
     functions.insert(def.name.clone(), def.clone());
     Ok(())
 }
 
-pub(crate) fn analyze_globals(program: &[Statement], enums: &EnumRegistry) -> Result<Env> {
+pub(crate) fn analyze_globals(
+    program: &[Statement],
+    functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
+    enums: &EnumRegistry,
+) -> Result<Env> {
     let mut env = Env::default();
     for statement in program {
         if let Statement::Let { name, expr } = statement {
-            let ty = super::infer(expr, &env, enums)?;
+            let ty = super::infer(expr, &env, functions, impls, enums)?;
             env.insert(name.clone(), binding_for_name(name, ty));
         }
     }
@@ -44,6 +66,7 @@ pub(crate) fn compile_function(
     def: &FunctionDef,
     globals: &Env,
     functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
     enums: &EnumRegistry,
     state: &mut CodegenState,
     out: &mut String,
@@ -68,6 +91,7 @@ pub(crate) fn compile_function(
         &mut env,
         globals,
         functions,
+        impls,
         enums,
         state,
         def.return_type.as_ref(),
@@ -99,6 +123,7 @@ fn compile_many(
     env: &mut Env,
     globals: &Env,
     functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
     enums: &EnumRegistry,
     state: &mut CodegenState,
     return_type: Option<&super::super::ast::Type>,
@@ -110,6 +135,7 @@ fn compile_many(
             env,
             globals,
             functions,
+            impls,
             enums,
             state,
             return_type,
@@ -121,4 +147,20 @@ fn compile_many(
 
 fn param_storage(function_name: &str, index: usize) -> String {
     format!("__ush_fn_{}_arg_{}", function_name, index)
+}
+
+fn ensure_function_attrs(def: &FunctionDef) -> Result<()> {
+    let mut seen = HashSet::with_hasher(Default::default());
+    for attr in &def.attrs {
+        if !seen.insert(attr.name.clone()) {
+            bail!("duplicate function attribute: {}::{}", def.name, attr.name);
+        }
+        match (attr.name.as_str(), &attr.value) {
+            ("alias", Some(Expr::String(_))) => {}
+            ("alias", Some(_)) => bail!("function attribute `alias` expects a string literal"),
+            ("alias", None) => bail!("function attribute `alias` requires a string literal"),
+            (other, _) => bail!("unsupported function attribute on `{}`: {other}", def.name),
+        }
+    }
+    Ok(())
 }

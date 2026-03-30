@@ -1,0 +1,14 @@
+fn greet(name: String) -> String {
+  return "hi " + name
+}
+
+fn wrap(message: String) -> String {
+  return "<" + message + ">"
+}
+
+fn label() -> String {
+  return "ush"
+}
+
+let value = wrap $ greet (label ())
+print value

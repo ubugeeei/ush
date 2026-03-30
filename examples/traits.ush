@@ -1,0 +1,20 @@
+trait Named {}
+
+enum Token {
+  Value(String),
+  Empty,
+}
+
+impl Named for Token {}
+impl Eq for () {}
+impl Ord for String {}
+impl Add for Int {}
+
+fn noop() -> () {
+  return ()
+}
+
+let value = noop ()
+print value == ()
+print "ant" < "bee"
+print 1 + 2

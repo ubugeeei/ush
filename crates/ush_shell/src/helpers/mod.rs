@@ -1,7 +1,9 @@
+mod browser;
 mod lambda;
+mod lambda_syntax;
 mod value;
 
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use serde_json::Value;
 
 pub use value::ValueStream;
@@ -15,9 +17,11 @@ pub struct HelperInvocation {
 
 #[derive(Debug, Clone)]
 enum HelperKind {
-    Length,
+    Len,
     Lines,
     Json,
+    Xml,
+    Html,
     Map(Transform),
     Each(Transform),
     Filter(Predicate),
@@ -29,9 +33,11 @@ impl HelperInvocation {
     pub fn parse(raw: &str) -> Option<Result<Self>> {
         let trimmed = raw.trim();
         let kind = match trimmed {
-            "length" => Some(Ok(HelperKind::Length)),
+            "len" | "length" => Some(Ok(HelperKind::Len)),
             "lines" => Some(Ok(HelperKind::Lines)),
             "json" => Some(Ok(HelperKind::Json)),
+            "xml" => Some(Ok(HelperKind::Xml)),
+            "html" => Some(Ok(HelperKind::Html)),
             _ => parse_lambda_helper(trimmed),
         }?;
         Some(kind.map(|kind| Self { kind }))
@@ -39,13 +45,31 @@ impl HelperInvocation {
 
     pub fn execute(&self, input: ValueStream) -> Result<(ValueStream, i32)> {
         match &self.kind {
-            HelperKind::Length => Ok((ValueStream::Text(format!("{}\n", stream_len(input))), 0)),
+            HelperKind::Len => Ok((ValueStream::Text(format!("{}\n", stream_len(input))), 0)),
             HelperKind::Lines => Ok((ValueStream::Lines(input.into_lines()?), 0)),
             HelperKind::Json => {
                 let text = input.to_text()?;
-                let json = serde_json::from_str::<Value>(&text)
-                    .map_err(|source| anyhow!("failed to parse json from pipeline: {source}"))?;
-                Ok((ValueStream::Json(json), 0))
+                match serde_json::from_str::<Value>(&text) {
+                    Ok(json) => Ok((ValueStream::Json(json), 0)),
+                    Err(_) => {
+                        browser::open_in_browser(&ValueStream::Text(text))?;
+                        Ok((ValueStream::Empty, 0))
+                    }
+                }
+            }
+            HelperKind::Xml => {
+                let text = input.to_text()?;
+                match browser::format_xml(&text) {
+                    Ok(xml) => Ok((ValueStream::Text(xml), 0)),
+                    Err(_) => {
+                        browser::open_in_browser(&ValueStream::Text(text))?;
+                        Ok((ValueStream::Empty, 0))
+                    }
+                }
+            }
+            HelperKind::Html => {
+                browser::open_in_browser(&input)?;
+                Ok((ValueStream::Empty, 0))
             }
             HelperKind::Map(transform) | HelperKind::Each(transform) => {
                 let output = input
@@ -97,7 +121,18 @@ mod tests {
     use super::{HelperInvocation, ValueStream};
 
     #[test]
-    fn length_counts_lines() {
+    fn len_counts_lines() {
+        let helper = HelperInvocation::parse("len")
+            .expect("helper")
+            .expect("parse");
+        let (output, _) = helper
+            .execute(ValueStream::Text("a\nb\n".to_string()))
+            .expect("execute");
+        assert_eq!(output.to_text().expect("text"), "2\n");
+    }
+
+    #[test]
+    fn length_remains_as_compat_alias() {
         let helper = HelperInvocation::parse("length")
             .expect("helper")
             .expect("parse");
@@ -105,5 +140,43 @@ mod tests {
             .execute(ValueStream::Text("a\nb\n".to_string()))
             .expect("execute");
         assert_eq!(output.to_text().expect("text"), "2\n");
+    }
+
+    #[test]
+    fn html_helper_is_recognized() {
+        let helper = HelperInvocation::parse("html")
+            .expect("helper")
+            .expect("parse");
+        assert!(matches!(helper.kind, super::HelperKind::Html));
+    }
+
+    #[test]
+    fn xml_helper_is_recognized() {
+        let helper = HelperInvocation::parse("xml")
+            .expect("helper")
+            .expect("parse");
+        assert!(matches!(helper.kind, super::HelperKind::Xml));
+    }
+
+    #[test]
+    fn backslash_lambda_supports_custom_arg_names_and_block_bodies() {
+        let helper = HelperInvocation::parse(r#"map(\line -> { upper(line) })"#)
+            .expect("helper")
+            .expect("parse");
+        let (output, _) = helper
+            .execute(ValueStream::Text("ush\n".to_string()))
+            .expect("execute");
+        assert_eq!(output.to_text().expect("text"), "USH\n");
+    }
+
+    #[test]
+    fn zero_arg_block_lambda_can_produce_constants() {
+        let helper = HelperInvocation::parse(r#"map(\-> { "ok" })"#)
+            .expect("helper")
+            .expect("parse");
+        let (output, _) = helper
+            .execute(ValueStream::Text("a\nb\n".to_string()))
+            .expect("execute");
+        assert_eq!(output.to_text().expect("text"), "ok\nok\n");
     }
 }

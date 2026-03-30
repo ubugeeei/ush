@@ -68,7 +68,7 @@ impl ConditionalEventHandler for ClearSelectionHandler {
                 return Some(cmd);
             }
         }
-        if self.0.has_selection() {
+        if self.0.has_selection() && !should_keep_selection(evt) {
             self.0.clear();
         }
         None
@@ -85,8 +85,25 @@ fn selection_edit_command(evt: &Event, delete: SelectionDelete) -> Option<Cmd> {
         Some(KeyEvent(KeyCode::Backspace | KeyCode::Delete, _)) => {
             Some(Cmd::Kill(delete_movement(delete)))
         }
+        Some(KeyEvent(KeyCode::Char('H' | 'h'), mods))
+            if mods.contains(Modifiers::CTRL) && !mods.contains(Modifiers::ALT) =>
+        {
+            Some(Cmd::Kill(delete_movement(delete)))
+        }
+        Some(KeyEvent(KeyCode::Char('D' | 'd'), mods))
+            if mods.contains(Modifiers::CTRL) && !mods.contains(Modifiers::ALT) =>
+        {
+            Some(Cmd::Kill(delete_movement(delete)))
+        }
         _ => None,
     }
+}
+
+fn should_keep_selection(evt: &Event) -> bool {
+    matches!(
+        evt.get(0),
+        Some(KeyEvent(KeyCode::UnknownEscSeq | KeyCode::Null, _))
+    )
 }
 
 fn delete_movement(delete: SelectionDelete) -> Movement {

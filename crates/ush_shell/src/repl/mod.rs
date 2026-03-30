@@ -175,7 +175,7 @@ pub fn create_editor(
         .completion_type(CompletionType::List)
         .completion_show_all_if_ambiguous(true)
         .completion_prompt_limit(200)
-        .keyseq_timeout(Some(120))
+        .keyseq_timeout(Some(300))
         .edit_mode(EditMode::Emacs)
         .auto_add_history(true)
         .build();

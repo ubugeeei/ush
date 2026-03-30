@@ -2,8 +2,10 @@ use anyhow::{Result, bail};
 
 use super::super::{
     ast::{ExprFields, Type, VariantExpr, VariantFields},
+    codegen::FunctionRegistry,
     env::{Binding, CodegenState, EnumRegistry, Env, Storage, lookup_variant},
 };
+use crate::traits::TraitImplRegistry;
 use crate::types::{AstString as NameString, OutputString as String};
 
 use super::emit_value_to_target;
@@ -13,6 +15,8 @@ pub(super) fn emit_variant(
     variant: &VariantExpr,
     expected_enum: &str,
     env: &Env,
+    functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
     enums: &EnumRegistry,
     state: &mut CodegenState,
     out: &mut String,
@@ -34,6 +38,8 @@ pub(super) fn emit_variant(
                     expr,
                     ty,
                     env,
+                    functions,
+                    impls,
                     enums,
                     state,
                     out,
@@ -56,6 +62,8 @@ pub(super) fn emit_variant(
                     &expr.expr,
                     &field.ty,
                     env,
+                    functions,
+                    impls,
                     enums,
                     state,
                     out,
@@ -131,7 +139,7 @@ fn copy_field(
     out: &mut String,
 ) -> Result<()> {
     match ty {
-        Type::String | Type::Int | Type::Bool => {
+        Type::String | Type::Int | Type::Bool | Type::Unit => {
             out.push_str(&format!("{target}=\"${{{source}}}\"\n"))
         }
         Type::Adt(enum_name) => emit_copy(

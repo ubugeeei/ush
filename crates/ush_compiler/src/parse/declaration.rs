@@ -1,0 +1,242 @@
+use alloc::boxed::Box;
+
+use anyhow::{Context, Result, anyhow, bail};
+
+use super::{
+    super::{
+        ast::{
+            Attribute, EnumDef, FunctionDef, Statement, TraitDef, TraitImpl, VariantDef,
+            VariantFields,
+        },
+        util::{
+            is_identifier, parse_brace_body, parse_paren_body, parse_type,
+            split_top_level_whitespace,
+        },
+    },
+    SourceLine,
+    expr::{parse_expr, parse_named_type_list, parse_pattern, parse_type_list},
+    signature,
+};
+use crate::types::{AstString as String, HeapVec as Vec};
+
+pub(super) fn parse_declaration(
+    trimmed: &str,
+    lines: &[SourceLine<'_>],
+    cursor: &mut usize,
+    attrs: &[Attribute],
+) -> Result<Option<Statement>> {
+    if let Some(rest) = trimmed.strip_prefix("type ") {
+        return Ok(Some(parse_type_def(rest, lines, cursor)?));
+    }
+    if let Some(rest) = trimmed.strip_prefix("enum ") {
+        return Ok(Some(parse_enum(rest, lines, cursor)?));
+    }
+    if let Some(rest) = trimmed.strip_prefix("trait ") {
+        return Ok(Some(parse_trait(rest, lines, cursor)?));
+    }
+    if let Some(rest) = trimmed.strip_prefix("impl ") {
+        return Ok(Some(parse_impl(rest, lines, cursor)?));
+    }
+    if let Some(rest) = trimmed.strip_prefix("fn ") {
+        return Ok(Some(parse_function(rest, lines, cursor, attrs)?));
+    }
+    Ok(None)
+}
+
+pub(super) fn parse_match(
+    subject: &str,
+    lines: &[SourceLine<'_>],
+    cursor: &mut usize,
+) -> Result<Statement> {
+    let subject = subject
+        .strip_suffix('{')
+        .ok_or_else(|| anyhow!("expected `{{` after match subject"))?
+        .trim();
+    let mut arms = Vec::new();
+    *cursor += 1;
+
+    while *cursor < lines.len() {
+        let (line_no, line) = &lines[*cursor];
+        let trimmed = line.trim();
+        if trimmed == "}" {
+            break;
+        }
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            *cursor += 1;
+            continue;
+        }
+        let (pattern, statement) = trimmed
+            .split_once("=>")
+            .ok_or_else(|| anyhow!("invalid match arm"))?;
+        arms.push((
+            parse_pattern(pattern.trim())?,
+            Box::new(
+                super::statement::parse_inline_statement(statement.trim())
+                    .with_context(|| format!("line {line_no}: invalid match arm body"))?,
+            ),
+        ));
+        *cursor += 1;
+    }
+    finish_block(lines, cursor, "match expression")?;
+    Ok(Statement::Match {
+        expr: parse_expr(subject)?,
+        arms,
+    })
+}
+
+fn parse_enum(header: &str, lines: &[SourceLine<'_>], cursor: &mut usize) -> Result<Statement> {
+    let name = header
+        .strip_suffix('{')
+        .ok_or_else(|| anyhow!("expected `{{` after enum name"))?
+        .trim();
+    let mut variants = Vec::new();
+    let name = parse_name(name)?;
+    *cursor += 1;
+    while *cursor < lines.len() {
+        let variant_line = lines[*cursor].1.trim().trim_end_matches(',').trim();
+        if variant_line == "}" {
+            break;
+        }
+        if variant_line.is_empty() || variant_line.starts_with('#') {
+            *cursor += 1;
+            continue;
+        }
+        variants.push(parse_variant_def(variant_line)?);
+        *cursor += 1;
+    }
+    finish_block(lines, cursor, "enum definition")?;
+    Ok(Statement::Enum(EnumDef { name, variants }))
+}
+
+fn parse_type_def(header: &str, lines: &[SourceLine<'_>], cursor: &mut usize) -> Result<Statement> {
+    let name = header
+        .strip_suffix('{')
+        .ok_or_else(|| anyhow!("expected `{{` after type name"))?
+        .trim();
+    let name = parse_name(name)?;
+    let mut fields = Vec::new();
+    *cursor += 1;
+    while *cursor < lines.len() {
+        let field_line = lines[*cursor].1.trim().trim_end_matches(',').trim();
+        if field_line == "}" {
+            break;
+        }
+        if field_line.is_empty() || field_line.starts_with('#') {
+            *cursor += 1;
+            continue;
+        }
+        fields.extend(parse_named_type_list(field_line)?);
+        *cursor += 1;
+    }
+    finish_block(lines, cursor, "type definition")?;
+    Ok(Statement::Enum(EnumDef {
+        name: name.clone(),
+        variants: vec![VariantDef {
+            name,
+            fields: VariantFields::Struct(fields),
+        }]
+        .into_iter()
+        .collect(),
+    }))
+}
+
+fn parse_trait(header: &str, lines: &[SourceLine<'_>], cursor: &mut usize) -> Result<Statement> {
+    let name = parse_name(&parse_empty_item(
+        header,
+        lines,
+        cursor,
+        "trait declaration",
+    )?)?;
+    Ok(Statement::Trait(TraitDef { name }))
+}
+
+fn parse_impl(header: &str, lines: &[SourceLine<'_>], cursor: &mut usize) -> Result<Statement> {
+    let source = parse_empty_item(header, lines, cursor, "trait impl")?;
+    let parts = split_top_level_whitespace(source.as_str());
+    if parts.len() != 3 || parts[1] != "for" {
+        bail!("expected `impl Trait for Type {{}}`");
+    }
+    Ok(Statement::Impl(TraitImpl {
+        trait_name: parse_name(parts[0])?,
+        ty: parse_type(parts[2]).ok_or_else(|| anyhow!("invalid type: {}", parts[2]))?,
+    }))
+}
+
+fn parse_function(
+    header: &str,
+    lines: &[SourceLine<'_>],
+    cursor: &mut usize,
+    attrs: &[Attribute],
+) -> Result<Statement> {
+    let head = header
+        .strip_suffix('{')
+        .ok_or_else(|| anyhow!("expected `{{` after function signature"))?
+        .trim();
+    let (name, params, return_type) = signature::parse_function_header(head)?;
+    *cursor += 1;
+    let body = super::statement::parse_block(lines, cursor, false)?;
+    finish_block(lines, cursor, "function body")?;
+    Ok(Statement::Function(FunctionDef {
+        attrs: attrs.to_vec(),
+        name,
+        params,
+        return_type,
+        body,
+    }))
+}
+
+fn parse_variant_def(source: &str) -> Result<VariantDef> {
+    if let Some((head, inner)) = parse_paren_body(source) {
+        return Ok(VariantDef {
+            name: parse_name(head)?,
+            fields: VariantFields::Tuple(parse_type_list(inner)?),
+        });
+    }
+    if let Some((head, inner)) = parse_brace_body(source) {
+        return Ok(VariantDef {
+            name: parse_name(head)?,
+            fields: VariantFields::Struct(parse_named_type_list(inner)?),
+        });
+    }
+    Ok(VariantDef {
+        name: parse_name(source)?,
+        fields: VariantFields::Unit,
+    })
+}
+
+fn parse_empty_item(
+    header: &str,
+    lines: &[SourceLine<'_>],
+    cursor: &mut usize,
+    kind: &str,
+) -> Result<String> {
+    let trimmed = header.trim();
+    if let Some(inner) = trimmed.strip_suffix("{}") {
+        *cursor += 1;
+        return Ok(inner.trim().into());
+    }
+    let head = trimmed
+        .strip_suffix('{')
+        .ok_or_else(|| anyhow!("expected empty body for {kind}"))?
+        .trim();
+    *cursor += 1;
+    finish_block(lines, cursor, kind)?;
+    Ok(head.into())
+}
+
+fn finish_block(lines: &[SourceLine<'_>], cursor: &mut usize, kind: &str) -> Result<()> {
+    if *cursor >= lines.len() || lines[*cursor].1.trim() != "}" {
+        bail!("unterminated {kind}");
+    }
+    *cursor += 1;
+    Ok(())
+}
+
+fn parse_name(source: &str) -> Result<String> {
+    let trimmed = source.trim();
+    if is_identifier(trimmed) {
+        Ok(trimmed.into())
+    } else {
+        bail!("invalid identifier: {trimmed}")
+    }
+}

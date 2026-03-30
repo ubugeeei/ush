@@ -52,6 +52,7 @@ pub(super) fn bind_pattern(
                 if *value { "true" } else { "false" }
             ),
         ),
+        (Pattern::Unit, Type::Unit, _) => add_cond(plan, ":".into()),
         (Pattern::Variant(variant), Type::Adt(enum_name), Storage::Adt(prefix)) => {
             bind_variant_pattern(prefix, enum_name, variant, enums, plan)?
         }
@@ -119,7 +120,7 @@ fn bind_variant_pattern(
 
 fn binding_for_child(ty: Type, name: String) -> Result<Binding> {
     Ok(match ty {
-        Type::String | Type::Int | Type::Bool => Binding {
+        Type::String | Type::Int | Type::Bool | Type::Unit => Binding {
             ty,
             storage: Storage::Primitive(NameString::from(name)),
         },

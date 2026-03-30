@@ -174,12 +174,15 @@ fn help_text() -> String {
         "  Shift-Home/End   select to line edge (Cmd-Left/Right if terminal maps them)",
         "",
         "structured helpers:",
-        "  length",
+        "  len",
+        "  length          # compatibility alias",
         "  lines",
         "  json",
-        "  map(it -> upper(it))",
-        "  filter(it -> contains(it, \"foo\"))",
-        "  any(it -> starts_with(it, \"warn\"))",
+        "  xml             # pretty-print XML, or open it in a browser on parse failure",
+        "  html            # open the current stream in a browser",
+        "  map(\\it -> upper(it))",
+        "  filter(\\it -> contains(it, \"foo\"))",
+        "  any(\\it -> starts_with(it, \"warn\"))",
     ]
     .join("\n")
         + "\n"

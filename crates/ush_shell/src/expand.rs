@@ -7,7 +7,7 @@ use std::{
 use anyhow::{Result, bail};
 
 use super::Shell;
-use crate::prompt::default_prompt;
+use crate::prompt::render_prompt;
 
 impl Shell {
     pub(crate) fn command_names(&self) -> Vec<String> {
@@ -22,7 +22,8 @@ impl Shell {
         );
         commands.extend(
             [
-                "length", "lines", "json", "map", "filter", "each", "any", "some",
+                "len", "length", "lines", "json", "xml", "html", "map", "filter", "each", "any",
+                "some",
             ]
             .into_iter()
             .map(str::to_string),
@@ -48,10 +49,11 @@ impl Shell {
         if let Some(prompt) = &self.config.shell.prompt {
             return prompt.clone();
         }
-        default_prompt(
+        render_prompt(
             &self.cwd,
             self.env.get("HOME").map(String::as_str),
             self.last_status,
+            self.config.shell.starship.as_ref(),
         )
     }
 

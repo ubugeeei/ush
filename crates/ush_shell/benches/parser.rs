@@ -8,7 +8,7 @@ fn bench_parser(criterion: &mut Criterion) {
     criterion.bench_function("parse pipeline with helper", |bench| {
         bench.iter(|| {
             let _ = parse_line(
-                "ll src | filter(it -> contains(it, \"rs\")) | length",
+                "ll src | filter(it -> contains(it, \"rs\")) | len",
                 &aliases,
             );
         });

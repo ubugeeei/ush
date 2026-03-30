@@ -5,9 +5,11 @@ use anyhow::{Result, bail};
 
 use super::{
     ast::{Expr, Pattern, Type},
+    codegen::FunctionRegistry,
     codegen::infer,
     env::{Binding, CodegenState, EnumRegistry, Env, Storage, expect_adt},
 };
+use crate::traits::TraitImplRegistry;
 
 use crate::types::{AstVec as Vec, OutputString as String};
 use emit::{emit_copy, emit_variant};
@@ -22,11 +24,13 @@ pub(crate) struct PatternPlan {
 pub(crate) fn materialize_expr(
     expr: &Expr,
     env: &Env,
+    functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
     enums: &EnumRegistry,
     state: &mut CodegenState,
     out: &mut String,
 ) -> Result<Binding> {
-    let ty = infer(expr, env, enums)?;
+    let ty = infer(expr, env, functions, impls, enums)?;
     match ty.clone() {
         Type::Adt(enum_name) => {
             let prefix = state.temp_var("match");
@@ -35,6 +39,8 @@ pub(crate) fn materialize_expr(
                 expr,
                 &Type::Adt(enum_name.clone()),
                 env,
+                functions,
+                impls,
                 enums,
                 state,
                 out,
@@ -48,7 +54,7 @@ pub(crate) fn materialize_expr(
             let temp = state.temp_var("match");
             out.push_str(&format!(
                 "{temp}={}\n",
-                super::codegen::compile_primitive_expr(expr, env, enums)?
+                super::codegen::compile_primitive_expr(expr, env, functions, impls, enums)?
             ));
             Ok(Binding {
                 ty: primitive,
@@ -63,21 +69,23 @@ pub(crate) fn emit_value_to_target(
     expr: &Expr,
     expected: &Type,
     env: &Env,
+    functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
     enums: &EnumRegistry,
     state: &mut CodegenState,
     out: &mut String,
 ) -> Result<()> {
     match expected {
-        Type::String | Type::Int | Type::Bool => {
+        Type::String | Type::Int | Type::Bool | Type::Unit => {
             out.push_str(&format!(
                 "{target}={}\n",
-                super::codegen::compile_primitive_expr(expr, env, enums)?
+                super::codegen::compile_primitive_expr(expr, env, functions, impls, enums)?
             ));
         }
         Type::Adt(enum_name) => match expr {
-            Expr::Variant(variant) => {
-                emit_variant(target, variant, enum_name, env, enums, state, out)?
-            }
+            Expr::Variant(variant) => emit_variant(
+                target, variant, enum_name, env, functions, impls, enums, state, out,
+            )?,
             Expr::Var(name) => {
                 let binding = env
                     .get(name)

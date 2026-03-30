@@ -2,23 +2,25 @@ use anyhow::{Result, anyhow, bail};
 
 use super::{
     super::{
-        ast::{Call, FunctionDef, Type},
+        ast::{Call, Expr, FunctionDef, Type},
         env::{EnumRegistry, Env},
     },
     compile_primitive_expr,
     functions::FunctionRegistry,
     infer,
 };
+use crate::traits::TraitImplRegistry;
 use crate::types::{AstVec as Vec, OutputString as String};
 
 pub(crate) fn compile_call(
     call: &Call,
     env: &Env,
     functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
     enums: &EnumRegistry,
     out: &mut String,
 ) -> Result<()> {
-    let rendered = rendered_call(call, env, functions, enums)?;
+    let rendered = rendered_call(call, env, functions, impls, enums)?;
     out.push_str(&rendered);
     if call.asynchronous {
         out.push_str(" &\n__ush_jobs=\"${__ush_jobs}${__ush_jobs:+ }$!\"\n");
@@ -32,10 +34,11 @@ pub(crate) fn rendered_call(
     call: &Call,
     env: &Env,
     functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
     enums: &EnumRegistry,
 ) -> Result<String> {
     let def = function_for_call(&call.name, functions)?;
-    let args = rendered_args(call, env, enums, def)?;
+    let args = rendered_args(call, env, functions, impls, enums, def)?;
     let target = format!("ush_fn_{}", call.name);
     Ok(if args.is_empty() {
         target
@@ -46,6 +49,35 @@ pub(crate) fn rendered_call(
 
 pub(crate) fn call_return_type(name: &str, functions: &FunctionRegistry) -> Result<Option<Type>> {
     Ok(function_for_call(name, functions)?.return_type.clone())
+}
+
+pub(crate) fn call_expr_type(call: &Call, functions: &FunctionRegistry) -> Result<Type> {
+    call_return_type(&call.name, functions)?
+        .ok_or_else(|| anyhow!("function `{}` does not return a value", call.name))
+}
+
+pub(crate) fn capture_call(
+    call: &Call,
+    env: &Env,
+    functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
+    enums: &EnumRegistry,
+    expected: &Type,
+) -> Result<String> {
+    let actual = call_expr_type(call, functions)?;
+    ensure_value_type(&actual)?;
+    if &actual != expected {
+        bail!(
+            "function `{}` returns {:?}, but {:?} was required",
+            call.name,
+            actual,
+            expected
+        );
+    }
+    Ok(format!(
+        "$(__ush_capture_return='1' {})",
+        rendered_call(call, env, functions, impls, enums)?
+    ))
 }
 
 pub(crate) fn ensure_signature(def: &FunctionDef) -> Result<()> {
@@ -60,7 +92,7 @@ pub(crate) fn ensure_signature(def: &FunctionDef) -> Result<()> {
 
 pub(crate) fn ensure_value_type(ty: &Type) -> Result<()> {
     match ty {
-        Type::String | Type::Int | Type::Bool => Ok(()),
+        Type::String | Type::Int | Type::Bool | Type::Unit => Ok(()),
         Type::Adt(name) => bail!("ADT values are not supported here yet: {name}"),
         Type::Task(_) => bail!("nested task types are not supported"),
     }
@@ -69,23 +101,17 @@ pub(crate) fn ensure_value_type(ty: &Type) -> Result<()> {
 fn rendered_args(
     call: &Call,
     env: &Env,
+    functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
     enums: &EnumRegistry,
     def: &FunctionDef,
 ) -> Result<Vec<String>> {
     ensure_signature(def)?;
-    if call.args.len() != def.params.len() {
-        bail!(
-            "function `{}` expects {} arguments, found {}",
-            call.name,
-            def.params.len(),
-            call.args.len()
-        );
-    }
-    call.args
+    def.params
         .iter()
-        .zip(&def.params)
-        .map(|(arg, param)| {
-            let actual = infer(arg, env, enums)?;
+        .zip(resolve_call_args(call, def)?)
+        .map(|(param, arg)| {
+            let actual = infer(arg, env, functions, impls, enums)?;
             if actual != param.ty {
                 bail!(
                     "type mismatch for `{}`: expected {:?}, found {:?}",
@@ -94,7 +120,56 @@ fn rendered_args(
                     actual
                 );
             }
-            compile_primitive_expr(arg, env, enums)
+            compile_primitive_expr(arg, env, functions, impls, enums)
+        })
+        .collect()
+}
+
+fn resolve_call_args<'a>(call: &'a Call, def: &'a FunctionDef) -> Result<Vec<&'a Expr>> {
+    let mut resolved = vec![None; def.params.len()];
+    let mut next = 0usize;
+
+    for arg in &call.args {
+        let index = match &arg.label {
+            Some(label) => def
+                .params
+                .iter()
+                .position(|param| param.name == *label)
+                .ok_or_else(|| anyhow!("unknown argument label `{label}` for `{}`", call.name))?,
+            None => {
+                while next < resolved.len() && resolved[next].is_some() {
+                    next += 1;
+                }
+                if next >= resolved.len() {
+                    bail!(
+                        "function `{}` expects at most {} arguments",
+                        call.name,
+                        def.params.len()
+                    );
+                }
+                next
+            }
+        };
+        if resolved[index].is_some() {
+            bail!(
+                "duplicate argument for `{}`: {}",
+                call.name,
+                def.params[index].name
+            );
+        }
+        resolved[index] = Some(&arg.expr);
+        if arg.label.is_none() {
+            next += 1;
+        }
+    }
+
+    def.params
+        .iter()
+        .enumerate()
+        .map(|(index, param)| {
+            resolved[index]
+                .or(param.default.as_ref())
+                .ok_or_else(|| anyhow!("missing argument for `{}`: {}", call.name, param.name))
         })
         .collect()
 }

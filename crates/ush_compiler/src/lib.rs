@@ -2,9 +2,11 @@
 
 mod ast;
 mod codegen;
+mod docs;
 mod env;
 mod matching;
 mod parse;
+mod traits;
 mod types;
 mod util;
 
@@ -12,6 +14,7 @@ mod util;
 extern crate alloc;
 
 use anyhow::Result;
+pub use docs::ScriptDocs;
 use types::OutputString;
 
 #[cfg(feature = "std")]
@@ -27,13 +30,29 @@ impl UshCompiler {
     pub fn compile_file(&self, path: &Path) -> Result<OutputString> {
         let source = fs::read_to_string(path)
             .with_context(|| format!("failed to read {}", path.display()))?;
-        self.compile_source(&source)
+        self.compile_with_name(&source, path.file_name().and_then(|name| name.to_str()))
             .with_context(|| format!("failed to compile {}", path.display()))
     }
 
     pub fn compile_source(&self, source: &str) -> Result<OutputString> {
+        self.compile_with_name(source, None)
+    }
+
+    fn compile_with_name(&self, source: &str, script_name: Option<&str>) -> Result<OutputString> {
         let program = parse::parse_program(source)?;
-        codegen::compile_program(&program)
+        let docs = ScriptDocs::parse(source);
+        codegen::compile_program(&program, &docs, script_name)
+    }
+
+    #[cfg(feature = "std")]
+    pub fn describe_file(&self, path: &Path) -> Result<ScriptDocs> {
+        let source = fs::read_to_string(path)
+            .with_context(|| format!("failed to read {}", path.display()))?;
+        Ok(self.describe_source(&source))
+    }
+
+    pub fn describe_source(&self, source: &str) -> ScriptDocs {
+        ScriptDocs::parse(source)
     }
 }
 
@@ -102,7 +121,7 @@ mod tests {
                 fn worker(message: String) -> String {
                   return message
                 }
-                let task = async worker("ok")
+                let task = async worker "ok"
                 let result = await task
                 print result
             "#,
@@ -126,5 +145,28 @@ mod tests {
         assert!(output.contains("rm -f \"$__ush_task_file\""));
         assert!(!output.contains("mktemp"));
         assert!(output.contains("wait \"$__ush_job\""));
+    }
+
+    #[test]
+    fn functional_calls_capture_sync_return_values() {
+        let compiler = UshCompiler;
+        let output = compiler
+            .compile_source(
+                r#"
+                fn greet(message: String) -> String {
+                  return "<" + message + ">"
+                }
+                let value = greet "ush"
+                print $ greet (value)
+            "#,
+            )
+            .expect("compile");
+
+        assert!(output.contains("value=\"$(__ush_capture_return='1' ush_fn_greet 'ush')\""));
+        assert!(
+            output.contains(
+                "printf '%s\\n' \"$(__ush_capture_return='1' ush_fn_greet \"${value}\")\""
+            )
+        );
     }
 }

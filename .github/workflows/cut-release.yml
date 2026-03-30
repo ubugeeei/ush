@@ -1,0 +1,77 @@
+name: Cut Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release tag to create, for example v0.1.0
+        required: true
+        type: string
+      target_ref:
+        description: Branch or commit SHA to tag
+        required: true
+        default: main
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    name: Create and push tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target ref
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.target_ref }}
+
+      - name: Validate version
+        run: |
+          version="${{ inputs.version }}"
+
+          case "$version" in
+            v[0-9]*)
+              ;;
+            *)
+              echo "version must start with v, for example v0.1.0" >&2
+              exit 1
+              ;;
+          esac
+
+          case "$version" in
+            *[!0-9A-Za-z.-]*)
+              echo "version contains unsupported characters: $version" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Ensure tag does not already exist
+        run: |
+          version="${{ inputs.version }}"
+          git fetch --tags origin
+
+          if git show-ref --verify --quiet "refs/tags/$version"; then
+            echo "tag already exists: $version" >&2
+            exit 1
+          fi
+
+      - name: Create and push annotated tag
+        run: |
+          version="${{ inputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$version" -m "Release $version"
+          git push origin "refs/tags/$version"
+
+  release:
+    name: Build and publish release
+    needs: tag
+    uses: ./.github/workflows/release.yml
+    permissions:
+      contents: write
+    with:
+      version: ${{ inputs.version }}
+      target_ref: ${{ format('refs/tags/{0}', inputs.version) }}
+    secrets: inherit

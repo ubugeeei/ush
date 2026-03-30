@@ -177,15 +177,9 @@ mod tests {
         let home = Some("/Users/user");
 
         assert_eq!(compact_path(Path::new("/Users/user"), home), "~");
+        assert_eq!(compact_path(Path::new("/Users/user/src"), home), "~/src");
         assert_eq!(
-            compact_path(Path::new("/Users/user/src"), home),
-            "~/src"
-        );
-        assert_eq!(
-            compact_path(
-                Path::new("/Users/user/Code/github.com/ubugeeei/ush"),
-                home
-            ),
+            compact_path(Path::new("/Users/user/Code/github.com/ubugeeei/ush"), home),
             "~/.../ubugeeei/ush"
         );
         assert_eq!(

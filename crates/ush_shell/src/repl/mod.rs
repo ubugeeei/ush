@@ -1,8 +1,11 @@
 mod bindings;
 mod complete;
+mod completion_state;
 mod highlight;
 mod selection;
 mod syntax;
+#[cfg(test)]
+mod tests;
 mod validate;
 
 use std::{borrow::Cow, collections::BTreeSet, path::Path};
@@ -25,6 +28,7 @@ pub struct UshHelper {
     env_names: BTreeSet<String>,
     files: FilenameCompleter,
     hinter: HistoryHinter,
+    completion: completion_state::CompletionState,
     selection: SelectionHandle,
 }
 
@@ -35,6 +39,7 @@ impl UshHelper {
             env_names: env_names.into_iter().collect(),
             files: FilenameCompleter::new(),
             hinter: HistoryHinter::new(),
+            completion: completion_state::CompletionState::default(),
             selection: SelectionHandle::default(),
         }
     }
@@ -42,6 +47,7 @@ impl UshHelper {
     pub fn refresh(&mut self, commands: Vec<String>, env_names: Vec<String>) {
         self.commands = commands.into_iter().collect();
         self.env_names = env_names.into_iter().collect();
+        self.completion.clear();
         self.selection.clear();
     }
 
@@ -55,6 +61,10 @@ impl UshHelper {
 
     pub fn has_selection(&self) -> bool {
         self.selection.has_selection()
+    }
+
+    pub(crate) fn update_completion(&self, line: &str, pos: usize, start: usize, pairs: &[Pair]) {
+        self.completion.update(line, pos, start, pairs);
     }
 
     fn command_pairs(&self, needle: &str) -> Vec<Pair> {
@@ -122,6 +132,9 @@ impl Hinter for UshHelper {
     type Hint = String;
 
     fn hint(&self, line: &str, pos: usize, ctx: &Context<'_>) -> Option<String> {
+        if let Some(hint) = self.completion.hint(line, pos) {
+            return Some(hint);
+        }
         self.hinter.hint(line, pos, ctx)
     }
 }
@@ -193,50 +206,5 @@ pub fn classify_readline_error(error: ReadlineError) -> anyhow::Error {
         ReadlineError::Interrupted => anyhow::anyhow!("interrupted"),
         ReadlineError::Eof => anyhow::anyhow!("eof"),
         other => anyhow::anyhow!(other),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use rustyline::{Context, hint::Hinter, history::History};
-    use tempfile::tempdir;
-
-    use super::{UshHelper, create_editor};
-
-    #[test]
-    fn history_hint_prefers_previous_entries() {
-        let dir = tempdir().expect("tempdir");
-        let history_file = dir.path().join("history.txt");
-        let mut editor = create_editor(
-            &history_file,
-            10,
-            vec!["echo".to_string()],
-            vec!["PATH".to_string()],
-        )
-        .expect("editor");
-        editor.add_history_entry("echo hello").expect("history");
-        let ctx = Context::new(editor.history());
-        let helper = UshHelper::new(vec!["echo".to_string()], vec!["PATH".to_string()]);
-
-        assert_eq!(helper.hint("echo h", 6, &ctx), Some("ello".to_string()));
-    }
-
-    #[test]
-    fn editor_respects_history_limit() {
-        let dir = tempdir().expect("tempdir");
-        let history_file = dir.path().join("history.txt");
-        let mut editor = create_editor(
-            &history_file,
-            2,
-            vec!["echo".to_string()],
-            vec!["PATH".to_string()],
-        )
-        .expect("editor");
-
-        editor.add_history_entry("echo one").expect("history");
-        editor.add_history_entry("echo two").expect("history");
-        editor.add_history_entry("echo three").expect("history");
-
-        assert_eq!(editor.history().len(), 2);
     }
 }

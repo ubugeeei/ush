@@ -12,6 +12,7 @@ pub fn complete(
     let start = syntax::word_start(line, pos);
     let word = &prefix[start..];
     let trimmed = word.trim();
+    let mut pairs = Vec::new();
 
     if let Some((_offset, needle, brace)) =
         syntax::env_query(word).filter(|(_, needle, _)| !needle.is_empty())
@@ -21,28 +22,23 @@ pub fn complete(
         } else {
             ""
         };
-        return Ok((start, helper.env_pairs(&needle, brace, suffix)));
-    }
-
-    if is_export_name_context(prefix, start, word) {
-        if trimmed.is_empty() {
-            return Ok((start, Vec::new()));
+        pairs = helper.env_pairs(&needle, brace, suffix);
+    } else if is_export_name_context(prefix, start, word) {
+        if !trimmed.is_empty() {
+            pairs = helper.env_name_pairs(word);
         }
-        return Ok((start, helper.env_name_pairs(word)));
-    }
-
-    if syntax::command_position(prefix, start) {
-        if trimmed.is_empty() {
-            return Ok((start, Vec::new()));
+    } else if syntax::command_position(prefix, start) {
+        if !trimmed.is_empty() {
+            pairs = helper.command_pairs(word);
         }
-        return Ok((start, helper.command_pairs(word)));
+    } else if wants_path_completion(prefix, start, word) {
+        let (path_start, path_pairs) = helper.files.complete_path(line, pos)?;
+        helper.update_completion(line, pos, path_start, &path_pairs);
+        return Ok((path_start, path_pairs));
     }
 
-    if wants_path_completion(prefix, start, word) {
-        return helper.files.complete_path(line, pos);
-    }
-
-    Ok((start, Vec::new()))
+    helper.update_completion(line, pos, start, &pairs);
+    Ok((start, pairs))
 }
 
 fn is_export_name_context(prefix: &str, start: usize, word: &str) -> bool {

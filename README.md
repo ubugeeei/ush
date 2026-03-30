@@ -34,6 +34,7 @@ Implemented today:
 - `.ush` scripts compiled to `sh` and then executed by `/bin/sh`
 - Generated `.ush` output stays within POSIX `sh` syntax and POSIX command usage
 - Prototype typed language features: `type { ... }`, enums, traits, marker `impl`, `match`, typed `fn`, Zig-style error signatures like `Problem!String`, and Rust-like `?` propagation
+- Rust-like tail expressions in value-returning functions, where the final expression returns and `;` keeps it as a statement
 - Labeled function arguments plus parameter attributes such as `#[default(...)]` and `#[alias("n")]`
 - `alias name = "..."` declarations in `.ush`
 - `bin.ush` as a generated CLI entrypoint, with flags/defaults/completion derived from the `bin(...)` signature
@@ -242,7 +243,7 @@ match greeting {
 
 Current highlights:
 
-- `let`, `print`, `match`, typed `fn`, `enum`, `type`, and marker `trait`
+ - `let`, `print`, `match`, typed `fn`, `enum`, `type`, marker `trait`, and Rust-like tail expressions
 - `raise` plus typed error signatures like `Problem!String`, with Rust-like `?` propagation
 - `$ command ...` for inline shell execution and `shell expr` for dynamic command strings
 - `async` / `.await`

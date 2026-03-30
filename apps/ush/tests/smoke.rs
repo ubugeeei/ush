@@ -115,7 +115,7 @@ fn ush_script_supports_async_functions() {
         &script,
         r#"
         fn worker(message: String) -> String {
-          return message
+          message
         }
         print "main"
         let task = async worker "worker"
@@ -143,13 +143,13 @@ fn ush_script_supports_functional_calls() {
         &script,
         r#"
         fn greet(name: String) -> String {
-          return "hi " + name
+          "hi " + name
         }
         fn wrap(message: String) -> String {
-          return "<" + message + ">"
+          "<" + message + ">"
         }
         fn label() -> String {
-          return "ush"
+          "ush"
         }
         print $ wrap $ greet (label ())
         "#,
@@ -173,7 +173,7 @@ fn ush_script_supports_unit_and_trait_declarations() {
         impl Eq for () {}
         impl Add for Int {}
         fn noop() -> () {
-          return ()
+          ()
         }
         let value = noop ()
         print value == ()
@@ -201,7 +201,7 @@ fn ush_script_exposes_generated_docs() {
         #| @param name target user
         #| @return greeting text
         fn greet(name: String) -> String {
-          return "hi " + name
+          "hi " + name
         }
         print $ greet "ush"
         "#,

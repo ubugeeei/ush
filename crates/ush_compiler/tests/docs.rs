@@ -26,7 +26,7 @@ const SOURCE: &str = r#"
 #| @see demo.ush --man greet
 #| @example demo.ush --man greet
 fn greet(name: String) -> String {
-  return "hi " + name
+  "hi " + name
 }
 
 print $ greet "ush"

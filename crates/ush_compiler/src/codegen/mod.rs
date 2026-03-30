@@ -84,6 +84,7 @@ pub(crate) fn compile_program(
             &mut state,
             None,
             false,
+            false,
             &mut out,
         )?;
     }

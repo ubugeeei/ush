@@ -13,12 +13,15 @@ Compile any example to portable `sh` with:
 cargo run -p ush -- compile examples/hello.ush
 ```
 
+Value-returning functions now follow a Rust-like style: the last expression returns,
+and adding `;` keeps that expression as a statement instead.
+
 ## Language Basics
 
 - `hello.ush`: minimal `let`, `print`, inline `$ command`, and `match`
 - `functional.ush`: `$` application and grouped calls
 - `zero_arg.ush`: zero-arg functions with `()`
-- `unit.ush`: unit return values and `== ()`
+- `unit.ush`: unit return values, tail `()`, and `== ()`
 - `named_args.ush`: labeled arguments and `#[default(...)]`
 - `literal_match.ush`: literal `match` arms
 - `primitives.ush`: integer addition plus `Eq` and `Ord` comparisons
@@ -29,7 +32,7 @@ cargo run -p ush -- compile examples/hello.ush
 - `adt.ush`: nested tuple-style enums
 - `option.ush`: wildcard matching on a small enum
 - `response.ush`: struct-style enum payloads with shorthand bindings
-- `error_streams.ush`: typed `Problem!T` signatures, `raise`, inferred `# raises:`, and Rust-like `?` propagation
+- `error_streams.ush`: typed `Problem!T` signatures, `raise`, tail expressions, inferred `# raises:`, and Rust-like `?` propagation
 
 ## Async and Tasks
 

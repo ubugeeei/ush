@@ -1,6 +1,6 @@
 use alloc::boxed::Box;
 
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Result, bail};
 
 use super::{
     super::{
@@ -68,6 +68,7 @@ pub(crate) fn compile_let(
 pub(crate) fn compile_match(
     expr: &Expr,
     arms: &[(super::super::ast::Pattern, Box<Statement>)],
+    returns_value: bool,
     env: &Env,
     globals: &Env,
     functions: &FunctionRegistry,
@@ -103,6 +104,7 @@ pub(crate) fn compile_match(
         let mut arm_env = plan.env;
         let body = compile_one(
             arm,
+            returns_value,
             &mut arm_env,
             globals,
             functions,
@@ -121,6 +123,7 @@ pub(crate) fn compile_match(
 
 fn compile_one(
     statement: &Statement,
+    tail_position: bool,
     env: &mut Env,
     globals: &Env,
     functions: &FunctionRegistry,
@@ -143,10 +146,11 @@ fn compile_one(
         state,
         return_type,
         inside_function,
+        tail_position,
         &mut buffer,
     )?;
     if buffer.is_empty() {
-        return Err(anyhow!("empty statement body"));
+        buffer.push_str(":\n");
     }
     Ok(buffer)
 }

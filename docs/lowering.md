@@ -41,6 +41,8 @@ If the source has doc comments or a `bin(...)` entrypoint, the compiler also emi
 | `$ printf ...` | emitted as a normal shell command |
 | `shell command` | `eval "${command}"` |
 | `fn greet(...) -> String` | `ush_fn_greet() { ... }` |
+| final expression in `-> T` function | lowered like `return`, without writing `return` |
+| `expr;` in a `-> T` function | evaluated as a statement and discarded |
 | function return value | printed to stdout or a temp return file |
 | `$ label greet wrap` | nested `__ush_value_N="$(__ush_capture_return='1' ...)"` |
 | ADT / `type` value | split shell vars like `user__tag`, `user__name` |
@@ -114,7 +116,7 @@ Source:
 
 ```text
 fn greet(name: String) -> String {
-  return "hi " + name
+  "hi " + name
 }
 ```
 
@@ -137,6 +139,33 @@ two ways:
 
 - stdout capture with `__ush_capture_return='1'`
 - a temp file when the call runs in the background
+
+In value-returning functions, `.ush` follows a Rust-like rule:
+
+- the last expression returns if it has no trailing `;`
+- adding `;` keeps that line as a statement and execution continues
+
+Source:
+
+```text
+fn run() -> String {
+  "ignored";
+  "kept"
+}
+```
+
+Compiled `sh`:
+
+```sh
+ush_fn_run() {
+  if [ -n "${__ush_return_path:-}" ]; then
+    printf '%s' 'kept' > "$__ush_return_path"
+  elif [ "${__ush_capture_return:-0}" = '1' ]; then
+    printf '%s' 'kept'
+  fi
+  return 0
+}
+```
 
 ## Functional `$` Application
 
@@ -246,7 +275,7 @@ fn load_config() -> Problem!String {
 
 fn run() -> Problem!String {
   let value = load_config()?
-  return wrap(value)
+  wrap(value)
 }
 
 run()?

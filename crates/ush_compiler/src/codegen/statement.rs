@@ -12,7 +12,7 @@ use super::{
     functions::{FunctionRegistry, compile_function},
     io::{compile_raise, compile_shell, push_print},
     shared::binding_for_name,
-    tasks::{compile_await, compile_return, compile_spawn},
+    tasks::{compile_await, compile_expr_statement, compile_return, compile_spawn},
 };
 use crate::traits::TraitImplRegistry;
 use crate::types::{OutputString as String, Set as HashSet};
@@ -55,6 +55,7 @@ pub(crate) fn compile_statement(
     state: &mut CodegenState,
     return_type: Option<&Type>,
     inside_function: bool,
+    tail_position: bool,
     out: &mut String,
 ) -> Result<()> {
     match statement {
@@ -150,6 +151,22 @@ pub(crate) fn compile_statement(
         Statement::Raise(expr) => {
             compile_raise(expr, env, functions, impls, enums, inside_function, out)?
         }
+        Statement::Expr(expr) => {
+            if tail_position {
+                compile_return(expr, env, functions, impls, enums, state, return_type, out)?;
+            } else {
+                compile_expr_statement(
+                    expr,
+                    env,
+                    functions,
+                    impls,
+                    enums,
+                    state,
+                    inside_function,
+                    out,
+                )?;
+            }
+        }
         Statement::Call(call) => compile_call(
             call,
             env,
@@ -173,9 +190,14 @@ pub(crate) fn compile_statement(
         Statement::Return(expr) => {
             compile_return(expr, env, functions, impls, enums, state, return_type, out)?
         }
-        Statement::Match { expr, arms } => compile_match(
+        Statement::Match {
             expr,
             arms,
+            returns_value,
+        } => compile_match(
+            expr,
+            arms,
+            *returns_value,
             env,
             globals,
             functions,

@@ -8,12 +8,10 @@ use super::{
             Attribute, EnumDef, FunctionDef, Statement, TraitDef, TraitImpl, VariantDef,
             VariantFields,
         },
-        util::{
-            is_identifier, parse_brace_body, parse_paren_body, parse_type,
-            split_top_level_whitespace,
-        },
+        util::{parse_brace_body, parse_paren_body, parse_type, split_top_level_whitespace},
     },
     SourceLine,
+    declaration_support::{finish_block, parse_name},
     expr::{parse_expr, parse_named_type_list, parse_pattern, parse_type_list},
     signature,
 };
@@ -24,6 +22,7 @@ pub(super) fn parse_declaration(
     lines: &[SourceLine<'_>],
     cursor: &mut usize,
     attrs: &[Attribute],
+    _tail_position: bool,
 ) -> Result<Option<Statement>> {
     if let Some(rest) = trimmed.strip_prefix("type ") {
         return Ok(Some(parse_type_def(rest, lines, cursor)?));
@@ -47,6 +46,7 @@ pub(super) fn parse_match(
     subject: &str,
     lines: &[SourceLine<'_>],
     cursor: &mut usize,
+    returns_value: bool,
 ) -> Result<Statement> {
     let subject = subject
         .strip_suffix('{')
@@ -57,8 +57,8 @@ pub(super) fn parse_match(
 
     while *cursor < lines.len() {
         let (line_no, line) = &lines[*cursor];
-        let trimmed = line.trim();
-        if trimmed == "}" {
+        let trimmed = line.trim().trim_end_matches(',').trim();
+        if matches!(trimmed, "}" | "};") {
             break;
         }
         if trimmed.is_empty() || trimmed.starts_with('#') {
@@ -71,16 +71,18 @@ pub(super) fn parse_match(
         arms.push((
             parse_pattern(pattern.trim())?,
             Box::new(
-                super::statement::parse_inline_statement(statement.trim())
+                super::statement::parse_inline_body(statement.trim(), returns_value)
                     .with_context(|| format!("line {line_no}: invalid match arm body"))?,
             ),
         ));
         *cursor += 1;
     }
-    finish_block(lines, cursor, "match expression")?;
+    let terminated = finish_block(lines, cursor, "match expression")?;
+    let returns_value = returns_value && !terminated;
     Ok(Statement::Match {
         expr: parse_expr(subject)?,
         arms,
+        returns_value,
     })
 }
 
@@ -104,7 +106,7 @@ fn parse_enum(header: &str, lines: &[SourceLine<'_>], cursor: &mut usize) -> Res
         variants.push(parse_variant_def(variant_line)?);
         *cursor += 1;
     }
-    finish_block(lines, cursor, "enum definition")?;
+    let _ = finish_block(lines, cursor, "enum definition")?;
     Ok(Statement::Enum(EnumDef { name, variants }))
 }
 
@@ -128,7 +130,7 @@ fn parse_type_def(header: &str, lines: &[SourceLine<'_>], cursor: &mut usize) ->
         fields.extend(parse_named_type_list(field_line)?);
         *cursor += 1;
     }
-    finish_block(lines, cursor, "type definition")?;
+    let _ = finish_block(lines, cursor, "type definition")?;
     Ok(Statement::Enum(EnumDef {
         name: name.clone(),
         variants: vec![VariantDef {
@@ -174,8 +176,8 @@ fn parse_function(
         .trim();
     let (name, params, return_type, declared_errors) = signature::parse_function_header(head)?;
     *cursor += 1;
-    let body = super::statement::parse_block(lines, cursor, false)?;
-    finish_block(lines, cursor, "function body")?;
+    let body = super::statement::parse_block(lines, cursor, false, return_type.is_some())?;
+    let _ = finish_block(lines, cursor, "function body")?;
     Ok(Statement::Function(FunctionDef {
         attrs: attrs.to_vec(),
         name,
@@ -221,23 +223,6 @@ fn parse_empty_item(
         .ok_or_else(|| anyhow!("expected empty body for {kind}"))?
         .trim();
     *cursor += 1;
-    finish_block(lines, cursor, kind)?;
+    let _ = finish_block(lines, cursor, kind)?;
     Ok(head.into())
-}
-
-fn finish_block(lines: &[SourceLine<'_>], cursor: &mut usize, kind: &str) -> Result<()> {
-    if *cursor >= lines.len() || lines[*cursor].1.trim() != "}" {
-        bail!("unterminated {kind}");
-    }
-    *cursor += 1;
-    Ok(())
-}
-
-fn parse_name(source: &str) -> Result<String> {
-    let trimmed = source.trim();
-    if is_identifier(trimmed) {
-        Ok(trimmed.into())
-    } else {
-        bail!("invalid identifier: {trimmed}")
-    }
 }

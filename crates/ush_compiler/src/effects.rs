@@ -168,7 +168,7 @@ fn statement_errors(
             env.insert(name.clone(), binding_for_type(name, *inner.clone()));
             Ok(errors)
         }
-        Statement::Print(expr) | Statement::Return(expr) => {
+        Statement::Print(expr) | Statement::Expr(expr) | Statement::Return(expr) => {
             expr_errors(expr, env, functions, impls, enums, function_errors)
         }
         Statement::Shell(expr) | Statement::TryShell(expr) => {
@@ -184,7 +184,7 @@ fn statement_errors(
             errors.insert(raised_error(expr, env, functions, impls, enums)?);
             Ok(errors)
         }
-        Statement::Match { expr, arms } => {
+        Statement::Match { expr, arms, .. } => {
             let mut errors = expr_errors(expr, env, functions, impls, enums, function_errors)?;
             let subject = match infer(expr, env, functions, impls, enums)? {
                 Type::Adt(name) => Binding {

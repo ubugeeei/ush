@@ -32,7 +32,9 @@ pub(crate) fn compile_call(
         inside_function,
         out,
     )?;
+    out.push_str("( __ush_capture_return='0' __ush_return_path=''; ");
     out.push_str(&rendered);
+    out.push_str(" )");
     if call.asynchronous {
         out.push_str(" &\n__ush_jobs=\"${__ush_jobs}${__ush_jobs:+ }$!\"\n");
     } else {
@@ -61,7 +63,9 @@ pub(crate) fn compile_try_call(
         inside_function,
         out,
     )?;
+    out.push_str("( __ush_capture_return='0' __ush_return_path=''; ");
     out.push_str(&rendered);
+    out.push_str(" )");
     out.push_str(" || ");
     out.push_str(if inside_function {
         "return \"$?\""

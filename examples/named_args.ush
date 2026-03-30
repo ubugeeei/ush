@@ -1,5 +1,5 @@
 fn greet(name: String, #[default(2)] count: Int) -> String {
-  return name + ":" + count
+  name + ":" + count
 }
 
 print $ greet count: 3 name: "ush"

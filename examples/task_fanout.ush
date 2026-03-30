@@ -1,9 +1,9 @@
 fn left() -> String {
-  return "left"
+  "left"
 }
 
 fn right() -> String {
-  return "right"
+  "right"
 }
 
 let left_task = async left ()

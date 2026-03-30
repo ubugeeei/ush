@@ -1,13 +1,13 @@
 fn greet(name: String) -> String {
-  return "hi " + name
+  "hi " + name
 }
 
 fn wrap(message: String) -> String {
-  return "<" + message + ">"
+  "<" + message + ">"
 }
 
 fn label() -> String {
-  return "ush"
+  "ush"
 }
 
 let value = wrap $ greet (label ())

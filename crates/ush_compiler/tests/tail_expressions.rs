@@ -25,51 +25,62 @@ fn run_program(source: &str) -> String {
 }
 
 #[test]
-fn unit_values_can_be_returned_and_compared() {
+fn tail_expressions_return_without_explicit_return() {
     let output = run_program(
         r#"
-        fn noop() -> () {
-          ()
+        fn greet(name: String) -> String {
+          "hi " + name
         }
-        let value = noop ()
-        print value == ()
-        print value <= ()
+        print $ greet "ush"
     "#,
     );
 
-    assert_eq!(output, "true\ntrue\n");
+    assert_eq!(output, "hi ush\n");
 }
 
 #[test]
-fn primitive_comparisons_cover_eq_and_ord() {
+fn semicolon_keeps_statement_calls_distinct_from_tail_returns() {
     let output = run_program(
         r#"
-        print 1 == 1
-        print 1 < 2
-        print "ant" < "bee"
-        print true > false
+        fn trace() -> String {
+          print "trace"
+          "value"
+        }
+
+        fn run() -> String {
+          trace();
+          "after"
+        }
+
+        print $ run ()
     "#,
     );
 
-    assert_eq!(output, "true\ntrue\ntrue\ntrue\n");
+    assert_eq!(output, "trace\nafter\n");
 }
 
 #[test]
-fn trait_and_impl_declarations_compile_with_builtin_traits() {
+fn match_can_be_used_as_a_tail_expression_or_a_statement() {
     let output = run_program(
         r#"
-        trait Named {}
-        enum Token {
-          Value(String),
-          Empty,
+        fn choose(flag: Bool) -> String {
+          match flag {
+            true => "yes",
+            _ => "no",
+          }
         }
-        impl Named for Token {}
-        impl Eq for () {}
-        impl Ord for String {}
-        impl Add for Int {}
-        print 1 + 2
+
+        fn run() -> String {
+          match false {
+            true => "ignored",
+            _ => "ignored",
+          };
+          choose true
+        }
+
+        print $ run ()
     "#,
     );
 
-    assert_eq!(output, "3\n");
+    assert_eq!(output, "yes\n");
 }

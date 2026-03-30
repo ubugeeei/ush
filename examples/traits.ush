@@ -11,7 +11,7 @@ impl Ord for String {}
 impl Add for Int {}
 
 fn noop() -> () {
-  return ()
+  ()
 }
 
 let value = noop ()

@@ -20,7 +20,7 @@ fn ush_script_raise_exits_with_typed_error() {
             "  raise Problem::Nope\n",
             "}\n",
             "fn wrap(message: String) -> String {\n",
-            "  return message\n",
+            "  message\n",
             "}\n",
             "print $ wrap $ fail ()\n",
         ),

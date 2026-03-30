@@ -29,7 +29,7 @@ fn named_arguments_and_defaults_work_in_any_order() {
     let output = run_program(
         r#"
         fn greet(name: String, #[default(2)] count: Int) -> String {
-          return name + ":" + count
+          name + ":" + count
         }
         print $ greet count: 3 name: "ush"
         print $ greet name: "mini"

@@ -1,11 +1,13 @@
 mod attr;
 mod compare;
 mod declaration;
+mod declaration_support;
 mod expr;
 mod record;
 mod returns;
 mod signature;
 mod statement;
+mod statement_support;
 
 use anyhow::{Result, bail};
 use bumpalo::{Bump, collections::Vec as BumpVec};
@@ -22,7 +24,7 @@ pub(crate) fn parse_program(source: &str) -> Result<Vec<Statement>> {
         lines.push((index + 1, line));
     }
     let mut cursor = 0usize;
-    let program = statement::parse_block(&lines, &mut cursor, true)?;
+    let program = statement::parse_block(&lines, &mut cursor, true, false)?;
 
     if cursor < lines.len() {
         let (line_no, line) = &lines[cursor];

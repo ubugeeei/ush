@@ -1,5 +1,5 @@
 fn label() -> String {
-  return "ush"
+  "ush"
 }
 
 print $ label ()

@@ -151,7 +151,7 @@ fn await_returns_async_function_result() {
     let output = run_program(
         r#"
         fn worker(message: String) -> String {
-          return message
+          message
         }
         print "main"
         let task = async worker "worker"
@@ -169,7 +169,7 @@ fn awaited_values_keep_their_declared_type() {
     let output = run_program(
         r#"
         fn compute(value: Int) -> Int {
-          return value + 2
+          value + 2
         }
         let task = async compute 40
         let result = task.await
@@ -185,7 +185,7 @@ fn call_expressions_support_space_separated_arguments() {
     let output = run_program(
         r#"
         fn greet(message: String, count: Int) -> String {
-          return message + ":" + count
+          message + ":" + count
         }
         let value = greet "hello" 2
         print value
@@ -200,10 +200,10 @@ fn dollar_operator_and_grouped_calls_work() {
     let output = run_program(
         r#"
         fn greet(name: String) -> String {
-          return "hi " + name
+          "hi " + name
         }
         fn wrap(message: String) -> String {
-          return "<" + message + ">"
+          "<" + message + ">"
         }
         print $ wrap $ greet "ush"
         print $ wrap (greet "team")
@@ -218,7 +218,7 @@ fn unit_style_application_calls_zero_arg_functions() {
     let output = run_program(
         r#"
         fn name() -> String {
-          return "ush"
+          "ush"
         }
         print $ name ()
     "#,

@@ -17,7 +17,7 @@ The first prose line becomes the short summary.
 ```text
 #| Greet a user and return a message.
 fn greet(name: String) -> String {
-  return "hello " + name
+  "hello " + name
 }
 ```
 
@@ -36,7 +36,7 @@ Use an empty `#|` line when you want a second paragraph.
 #| This function is intentionally tiny, but the docs block is written in a
 #| std/rustdoc-like style with a short summary followed by more detail.
 fn greet(name: String) -> String {
-  return "hello " + name
+  "hello " + name
 }
 ```
 
@@ -52,7 +52,7 @@ Use `@param` and `@return` for function signatures.
 #| @param name user name to greet
 #| @return greeting text
 fn greet(name: String) -> String {
-  return "hello " + name
+  "hello " + name
 }
 ```
 
@@ -68,7 +68,7 @@ For std-like detail, use explicit section tags:
 #| @warning Escape the result before embedding it into HTML.
 #| @error This function does not raise typed `.ush` errors today.
 fn greet(name: String) -> String {
-  return "hello " + name
+  "hello " + name
 }
 ```
 
@@ -153,7 +153,7 @@ That generated `sh` will include `__ush_print_help`, `__ush_print_man`, and
 #| @see Status
 #| @example greet "ush"
 fn greet(name: String) -> String {
-  return "hello " + name
+  "hello " + name
 }
 ```
 

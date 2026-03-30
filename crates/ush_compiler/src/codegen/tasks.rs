@@ -113,3 +113,28 @@ pub(crate) fn compile_return(
     out.push_str("return 0\n");
     Ok(())
 }
+
+pub(crate) fn compile_expr_statement(
+    expr: &Expr,
+    env: &Env,
+    functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
+    enums: &EnumRegistry,
+    state: &mut CodegenState,
+    inside_function: bool,
+    out: &mut String,
+) -> Result<()> {
+    let ty = infer(expr, env, functions, impls, enums)?;
+    ensure_value_type(&ty)?;
+    let _ = compile_runtime_primitive_expr(
+        expr,
+        env,
+        functions,
+        impls,
+        enums,
+        state,
+        inside_function,
+        out,
+    )?;
+    Ok(())
+}

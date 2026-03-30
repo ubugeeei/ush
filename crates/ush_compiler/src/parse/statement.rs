@@ -2,12 +2,16 @@ use anyhow::{Context, Result, anyhow, bail};
 
 use super::{
     super::{
-        ast::{Attribute, Expr, Statement},
-        util::{split_once_top_level, strip_top_level_suffix},
+        ast::{Attribute, Statement},
+        util::strip_top_level_suffix,
     },
     SourceLine, attr, declaration,
     expr::parse_expr,
     signature,
+    statement_support::{
+        is_tail_position, parse_alias, parse_shell_escape, parse_shell_statement,
+        parse_statement_expr, trim_statement_terminator,
+    },
 };
 use crate::types::HeapVec as Vec;
 
@@ -15,6 +19,7 @@ pub(super) fn parse_block(
     lines: &[SourceLine<'_>],
     cursor: &mut usize,
     allow_declarations: bool,
+    allow_tail_expr: bool,
 ) -> Result<Vec<Statement>> {
     let mut statements = Vec::new();
     let mut attrs = Vec::new();
@@ -38,8 +43,17 @@ pub(super) fn parse_block(
             }
             break;
         }
-        let statement = parse_statement(trimmed, lines, cursor, allow_declarations, &attrs)
-            .with_context(|| format!("line {line_no}"))?;
+        let (trimmed, terminated) = trim_statement_terminator(trimmed);
+        let tail_position = allow_tail_expr && !terminated && is_tail_position(lines, *cursor);
+        let statement = parse_statement(
+            trimmed,
+            lines,
+            cursor,
+            allow_declarations,
+            &attrs,
+            tail_position,
+        )
+        .with_context(|| format!("line {line_no}"))?;
         if !attrs.is_empty() && !accepts_attributes(&statement) {
             bail!("line {line_no}: attributes are only valid on declarations");
         }
@@ -72,7 +86,9 @@ pub(super) fn parse_let(source: &str) -> Result<Statement> {
     })
 }
 
-pub(super) fn parse_inline_statement(source: &str) -> Result<Statement> {
+pub(super) fn parse_inline_body(source: &str, tail_position: bool) -> Result<Statement> {
+    let (source, terminated) = trim_statement_terminator(source.trim());
+    let tail_position = tail_position && !terminated;
     if let Some(statement) = parse_shell_escape(source)? {
         return Ok(statement);
     }
@@ -97,6 +113,9 @@ pub(super) fn parse_inline_statement(source: &str) -> Result<Statement> {
     if let Some(rest) = source.strip_prefix("async ") {
         return Ok(Statement::Call(signature::parse_call(rest, true)?));
     }
+    if tail_position && let Ok(expr) = parse_expr(source) {
+        return Ok(Statement::Expr(expr));
+    }
     if let Some(base) = strip_top_level_suffix(source, '?')
         && signature::looks_like_call(base)
     {
@@ -104,6 +123,9 @@ pub(super) fn parse_inline_statement(source: &str) -> Result<Statement> {
     }
     if signature::looks_like_call(source) {
         return Ok(Statement::Call(signature::parse_call(source, false)?));
+    }
+    if let Ok(expr) = parse_expr(source) {
+        return Ok(Statement::Expr(expr));
     }
     bail!("unsupported inline statement: {source}")
 }
@@ -114,12 +136,15 @@ fn parse_statement(
     cursor: &mut usize,
     allow_declarations: bool,
     attrs: &[Attribute],
+    tail_position: bool,
 ) -> Result<Statement> {
     if let Some(statement) = parse_shell_escape(trimmed)? {
         return Ok(statement);
     }
     if allow_declarations {
-        if let Some(statement) = declaration::parse_declaration(trimmed, lines, cursor, attrs)? {
+        if let Some(statement) =
+            declaration::parse_declaration(trimmed, lines, cursor, attrs, tail_position)?
+        {
             return Ok(statement);
         }
     }
@@ -145,7 +170,10 @@ fn parse_statement(
         return Ok(Statement::Call(signature::parse_call(rest, true)?));
     }
     if let Some(subject) = trimmed.strip_prefix("match ") {
-        return declaration::parse_match(subject, lines, cursor);
+        return declaration::parse_match(subject, lines, cursor, tail_position);
+    }
+    if tail_position && let Ok(expr) = parse_expr(trimmed) {
+        return Ok(Statement::Expr(expr));
     }
     if let Some(base) = strip_top_level_suffix(trimmed, '?')
         && signature::looks_like_call(base)
@@ -155,51 +183,14 @@ fn parse_statement(
     if signature::looks_like_call(trimmed) {
         return Ok(Statement::Call(signature::parse_call(trimmed, false)?));
     }
+    if let Ok(expr) = parse_expr(trimmed) {
+        return Ok(Statement::Expr(expr));
+    }
     bail!("unsupported syntax: {trimmed}")
 }
 
-fn parse_alias(source: &str) -> Result<Statement> {
-    let (name, value) = split_assignment(source).ok_or_else(|| anyhow!("invalid alias binding"))?;
-    Ok(Statement::Alias {
-        name: name.into(),
-        value: parse_expr(value)?,
-    })
-}
-
 fn split_assignment(source: &str) -> Option<(&str, &str)> {
-    let (name, expr) = split_once_top_level(source, '=')?;
-    Some((name.trim(), expr.trim()))
-}
-
-fn parse_statement_expr(source: &str) -> Result<super::super::ast::Expr> {
-    parse_expr(source.trim().strip_prefix('$').unwrap_or(source).trim())
-}
-
-fn parse_shell_statement(source: &str) -> Result<Statement> {
-    if let Some(inner) = strip_top_level_suffix(source, '?') {
-        return Ok(Statement::TryShell(parse_statement_expr(inner)?));
-    }
-    Ok(Statement::Shell(parse_statement_expr(source)?))
-}
-
-fn parse_shell_escape(source: &str) -> Result<Option<Statement>> {
-    let Some(rest) = source.strip_prefix('$') else {
-        return Ok(None);
-    };
-    if !rest.is_empty() && !rest.starts_with(char::is_whitespace) {
-        return Ok(None);
-    }
-    let command = rest.trim();
-    if command.is_empty() {
-        bail!("shell escape requires a command");
-    }
-    if let Some(inner) = strip_top_level_suffix(command, '?') {
-        if inner.is_empty() {
-            bail!("shell escape requires a command");
-        }
-        return Ok(Some(Statement::TryShell(Expr::String(inner.into()))));
-    }
-    Ok(Some(Statement::Shell(Expr::String(command.into()))))
+    super::statement_support::split_assignment(source)
 }
 
 fn is_block_statement(statement: &Statement) -> bool {

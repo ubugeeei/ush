@@ -1,5 +1,5 @@
 fn worker(message: String) -> String {
-  return message
+  message
 }
 
 print "main"

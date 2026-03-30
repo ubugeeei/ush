@@ -24,7 +24,7 @@
 #| @see Status
 #| @example greet "ush"
 fn greet(name: String) -> String {
-  return "hello " + name
+  "hello " + name
 }
 
 #| Tagged greeting status.

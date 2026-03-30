@@ -103,7 +103,7 @@ fn call_sites_use_declared_error_sets_as_the_function_contract() {
 
         fn outer() -> Problem!String {
           let value = fail()?
-          return value
+          value
         }
     "#,
     );
@@ -125,18 +125,18 @@ fn function_error_streams_are_inferred_and_composed() {
         }
 
         fn wrap(message: String) -> String {
-          return "<" + message + ">"
+          "<" + message + ">"
         }
 
         fn mixed() -> (Problem | unknown)!String {
           $ false
-          return $ wrap $ leaf ()
+          $ wrap $ leaf ()
         }
 
         fn awaited() -> Problem!String {
           let task = async leaf ()
           let value = task.await
-          return value
+          value
         }
     "#,
     );
@@ -180,7 +180,7 @@ fn piped_raise_aborts_runtime_with_typed_message() {
         }
 
         fn wrap(message: String) -> String {
-          return message
+          message
         }
 
         print $ wrap $ fail ()
@@ -206,7 +206,7 @@ fn try_operator_returns_from_the_current_function() {
 
         fn outer() -> Problem!String {
           let value = fail()?
-          return value
+          value
         }
     "#,
     );
@@ -232,6 +232,6 @@ fn try_statements_propagate_call_and_shell_failures() {
     );
 
     assert!(compiled.contains("eval \"${command}\" || return \"$?\""));
-    assert!(compiled.contains("ush_fn_helper || return \"$?\""));
+    assert!(compiled.contains("$(__ush_capture_return='1' ush_fn_helper)\" || return \"$?\""));
     assert!(compiled.contains("false || return \"$?\""));
 }

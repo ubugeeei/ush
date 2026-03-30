@@ -29,12 +29,14 @@ pub(crate) enum Statement {
     Shell(Expr),
     TryShell(Expr),
     Raise(Expr),
+    Expr(Expr),
     Call(Call),
     TryCall(Call),
     Return(Expr),
     Match {
         expr: Expr,
         arms: Vec<(Pattern, Box<Statement>)>,
+        returns_value: bool,
     },
 }
 

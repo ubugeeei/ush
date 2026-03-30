@@ -75,9 +75,12 @@ In a value expression:
 ```text
 fn read_message() -> Problem!String {
   let value = load_config()?
-  return "<" + value + ">"
+  "<" + value + ">"
 }
 ```
+
+As with Rust, the last expression returns from the function. Add `;` if you want to
+evaluate an expression and keep going instead of returning it.
 
 In a call statement:
 
@@ -193,12 +196,12 @@ fn load_config() -> Problem!String {
 }
 
 fn wrap(message: String) -> String {
-  return "<" + message + ">"
+  "<" + message + ">"
 }
 
 fn run() -> Problem!String {
   let value = load_config()?
-  return wrap(value)
+  wrap(value)
 }
 
 run()?

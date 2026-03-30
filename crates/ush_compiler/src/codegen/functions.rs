@@ -141,7 +141,7 @@ fn compile_many(
     return_type: Option<&super::super::ast::Type>,
 ) -> Result<String> {
     let mut buffer = String::new();
-    for statement in statements {
+    for (index, statement) in statements.iter().enumerate() {
         compile_statement(
             statement,
             env,
@@ -153,6 +153,7 @@ fn compile_many(
             state,
             return_type,
             true,
+            index + 1 == statements.len(),
             &mut buffer,
         )?;
     }

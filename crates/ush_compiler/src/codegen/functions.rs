@@ -2,14 +2,15 @@ use anyhow::{Result, bail};
 
 use super::{
     super::{
-        ast::{Expr, FunctionDef, Statement},
+        ast::{Expr, FunctionDef, Statement, StatementKind},
         effects::FunctionErrorRegistry,
         env::{CodegenState, EnumRegistry, Env},
     },
     calls::ensure_signature,
-    shared::{binding_for_name, push_block, push_line},
+    shared::{binding_for_name, push_line, push_output},
     statement::compile_statement,
 };
+use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
 use crate::types::{
     AstString as NameString, Map as HashMap, OutputString as String, Set as HashSet,
@@ -55,7 +56,7 @@ pub(crate) fn analyze_globals(
 ) -> Result<Env> {
     let mut env = Env::default();
     for statement in program {
-        if let Statement::Let { name, expr } = statement {
+        if let StatementKind::Let { name, expr } = &statement.kind {
             let ty = super::infer(expr, &env, functions, impls, enums)?;
             env.insert(name.clone(), binding_for_name(name, ty));
         }
@@ -71,7 +72,7 @@ pub(crate) fn compile_function(
     enums: &EnumRegistry,
     function_errors: &FunctionErrorRegistry,
     state: &mut CodegenState,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<()> {
     ensure_signature(def)?;
     if let Some(errors) = function_errors
@@ -110,13 +111,13 @@ pub(crate) fn compile_function(
     if body.is_empty() {
         push_line(out, ":", 2);
     } else {
-        push_block(out, &body, 2);
+        push_output(out, &body, 2);
     }
     out.push_str("}\n\n");
     Ok(())
 }
 
-pub(crate) fn push_wait_footer(out: &mut String) {
+pub(crate) fn push_wait_footer(out: &mut OutputBuffer) {
     out.push_str("\nif [ -n \"$__ush_jobs\" ]; then\n");
     out.push_str("  for __ush_job in $__ush_jobs; do\n");
     out.push_str("    wait \"$__ush_job\" 2>/dev/null || true\n");
@@ -139,8 +140,8 @@ fn compile_many(
     function_errors: &FunctionErrorRegistry,
     state: &mut CodegenState,
     return_type: Option<&super::super::ast::Type>,
-) -> Result<String> {
-    let mut buffer = String::new();
+) -> Result<OutputBuffer> {
+    let mut buffer = OutputBuffer::default();
     for (index, statement) in statements.iter().enumerate() {
         compile_statement(
             statement,

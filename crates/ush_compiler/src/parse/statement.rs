@@ -2,7 +2,7 @@ use anyhow::{Context, Result, anyhow, bail};
 
 use super::{
     super::{
-        ast::{Attribute, Statement},
+        ast::{Attribute, Statement, StatementKind},
         util::strip_top_level_suffix,
     },
     SourceLine, attr, declaration,
@@ -10,7 +10,7 @@ use super::{
     signature,
     statement_support::{
         is_tail_position, parse_alias, parse_shell_escape, parse_shell_statement,
-        parse_statement_expr, trim_statement_terminator,
+        parse_statement_expr, split_assignment, trim_statement_terminator,
     },
 };
 use crate::types::HeapVec as Vec;
@@ -46,6 +46,7 @@ pub(super) fn parse_block(
         let (trimmed, terminated) = trim_statement_terminator(trimmed);
         let tail_position = allow_tail_expr && !terminated && is_tail_position(lines, *cursor);
         let statement = parse_statement(
+            *line_no,
             trimmed,
             lines,
             cursor,
@@ -66,71 +67,94 @@ pub(super) fn parse_block(
     Ok(statements)
 }
 
-pub(super) fn parse_let(source: &str) -> Result<Statement> {
+pub(super) fn parse_let(source: &str) -> Result<StatementKind> {
     let (name, expr) = split_assignment(source).ok_or_else(|| anyhow!("invalid let binding"))?;
     if let Some(rest) = expr.strip_prefix("async ") {
-        return Ok(Statement::Spawn {
+        return Ok(StatementKind::Spawn {
             name: name.into(),
             call: signature::parse_call(rest, true)?,
         });
     }
     if let Some(task) = signature::parse_await_task(expr)? {
-        return Ok(Statement::Await {
+        return Ok(StatementKind::Await {
             name: name.into(),
             task,
         });
     }
-    Ok(Statement::Let {
+    Ok(StatementKind::Let {
         name: name.into(),
         expr: parse_expr(expr)?,
     })
 }
 
-pub(super) fn parse_inline_body(source: &str, tail_position: bool) -> Result<Statement> {
+pub(super) fn parse_inline_body(
+    line_no: usize,
+    source: &str,
+    tail_position: bool,
+) -> Result<Statement> {
     let (source, terminated) = trim_statement_terminator(source.trim());
     let tail_position = tail_position && !terminated;
-    if let Some(statement) = parse_shell_escape(source)? {
-        return Ok(statement);
+    if let Some(kind) = parse_shell_escape(source)? {
+        return Ok(Statement::new(line_no, kind));
     }
     if let Some(rest) = source.strip_prefix("print ") {
-        return Ok(Statement::Print(parse_statement_expr(rest)?));
+        return Ok(Statement::new(
+            line_no,
+            StatementKind::Print(parse_statement_expr(rest)?),
+        ));
     }
     if let Some(rest) = source.strip_prefix("shell ") {
-        return parse_shell_statement(rest);
+        return Ok(Statement::new(line_no, parse_shell_statement(rest)?));
     }
     if let Some(rest) = source.strip_prefix("raise ") {
-        return Ok(Statement::Raise(parse_statement_expr(rest)?));
+        return Ok(Statement::new(
+            line_no,
+            StatementKind::Raise(parse_statement_expr(rest)?),
+        ));
     }
     if let Some(rest) = source.strip_prefix("return ") {
-        return Ok(Statement::Return(parse_statement_expr(rest)?));
+        return Ok(Statement::new(
+            line_no,
+            StatementKind::Return(parse_statement_expr(rest)?),
+        ));
     }
     if let Some(rest) = source.strip_prefix("let ") {
-        return parse_let(rest);
+        return Ok(Statement::new(line_no, parse_let(rest)?));
     }
     if let Some(rest) = source.strip_prefix("alias ") {
-        return parse_alias(rest);
+        return Ok(Statement::new(line_no, parse_alias(rest)?));
     }
     if let Some(rest) = source.strip_prefix("async ") {
-        return Ok(Statement::Call(signature::parse_call(rest, true)?));
+        return Ok(Statement::new(
+            line_no,
+            StatementKind::Call(signature::parse_call(rest, true)?),
+        ));
     }
     if tail_position && let Ok(expr) = parse_expr(source) {
-        return Ok(Statement::Expr(expr));
+        return Ok(Statement::new(line_no, StatementKind::Expr(expr)));
     }
     if let Some(base) = strip_top_level_suffix(source, '?')
         && signature::looks_like_call(base)
     {
-        return Ok(Statement::TryCall(signature::parse_call(base, false)?));
+        return Ok(Statement::new(
+            line_no,
+            StatementKind::TryCall(signature::parse_call(base, false)?),
+        ));
     }
     if signature::looks_like_call(source) {
-        return Ok(Statement::Call(signature::parse_call(source, false)?));
+        return Ok(Statement::new(
+            line_no,
+            StatementKind::Call(signature::parse_call(source, false)?),
+        ));
     }
     if let Ok(expr) = parse_expr(source) {
-        return Ok(Statement::Expr(expr));
+        return Ok(Statement::new(line_no, StatementKind::Expr(expr)));
     }
     bail!("unsupported inline statement: {source}")
 }
 
 fn parse_statement(
+    line_no: usize,
     trimmed: &str,
     lines: &[SourceLine<'_>],
     cursor: &mut usize,
@@ -138,72 +162,89 @@ fn parse_statement(
     attrs: &[Attribute],
     tail_position: bool,
 ) -> Result<Statement> {
-    if let Some(statement) = parse_shell_escape(trimmed)? {
-        return Ok(statement);
+    if let Some(kind) = parse_shell_escape(trimmed)? {
+        return Ok(Statement::new(line_no, kind));
     }
     if allow_declarations {
-        if let Some(statement) =
-            declaration::parse_declaration(trimmed, lines, cursor, attrs, tail_position)?
+        if let Some(kind) =
+            declaration::parse_declaration(line_no, trimmed, lines, cursor, attrs, tail_position)?
         {
-            return Ok(statement);
+            return Ok(Statement::new(line_no, kind));
         }
     }
     if let Some(rest) = trimmed.strip_prefix("let ") {
-        return parse_let(rest);
+        return Ok(Statement::new(line_no, parse_let(rest)?));
     }
     if let Some(rest) = trimmed.strip_prefix("print ") {
-        return Ok(Statement::Print(parse_statement_expr(rest)?));
+        return Ok(Statement::new(
+            line_no,
+            StatementKind::Print(parse_statement_expr(rest)?),
+        ));
     }
     if let Some(rest) = trimmed.strip_prefix("shell ") {
-        return parse_shell_statement(rest);
+        return Ok(Statement::new(line_no, parse_shell_statement(rest)?));
     }
     if let Some(rest) = trimmed.strip_prefix("raise ") {
-        return Ok(Statement::Raise(parse_statement_expr(rest)?));
+        return Ok(Statement::new(
+            line_no,
+            StatementKind::Raise(parse_statement_expr(rest)?),
+        ));
     }
     if let Some(rest) = trimmed.strip_prefix("return ") {
-        return Ok(Statement::Return(parse_statement_expr(rest)?));
+        return Ok(Statement::new(
+            line_no,
+            StatementKind::Return(parse_statement_expr(rest)?),
+        ));
     }
     if let Some(rest) = trimmed.strip_prefix("alias ") {
-        return parse_alias(rest);
+        return Ok(Statement::new(line_no, parse_alias(rest)?));
     }
     if let Some(rest) = trimmed.strip_prefix("async ") {
-        return Ok(Statement::Call(signature::parse_call(rest, true)?));
+        return Ok(Statement::new(
+            line_no,
+            StatementKind::Call(signature::parse_call(rest, true)?),
+        ));
     }
     if let Some(subject) = trimmed.strip_prefix("match ") {
-        return declaration::parse_match(subject, lines, cursor, tail_position);
+        return Ok(Statement::new(
+            line_no,
+            declaration::parse_match(subject, lines, cursor, tail_position)?,
+        ));
     }
     if tail_position && let Ok(expr) = parse_expr(trimmed) {
-        return Ok(Statement::Expr(expr));
+        return Ok(Statement::new(line_no, StatementKind::Expr(expr)));
     }
     if let Some(base) = strip_top_level_suffix(trimmed, '?')
         && signature::looks_like_call(base)
     {
-        return Ok(Statement::TryCall(signature::parse_call(base, false)?));
+        return Ok(Statement::new(
+            line_no,
+            StatementKind::TryCall(signature::parse_call(base, false)?),
+        ));
     }
     if signature::looks_like_call(trimmed) {
-        return Ok(Statement::Call(signature::parse_call(trimmed, false)?));
+        return Ok(Statement::new(
+            line_no,
+            StatementKind::Call(signature::parse_call(trimmed, false)?),
+        ));
     }
     if let Ok(expr) = parse_expr(trimmed) {
-        return Ok(Statement::Expr(expr));
+        return Ok(Statement::new(line_no, StatementKind::Expr(expr)));
     }
     bail!("unsupported syntax: {trimmed}")
 }
 
-fn split_assignment(source: &str) -> Option<(&str, &str)> {
-    super::statement_support::split_assignment(source)
-}
-
 fn is_block_statement(statement: &Statement) -> bool {
     matches!(
-        statement,
-        Statement::Enum(_)
-            | Statement::Trait(_)
-            | Statement::Impl(_)
-            | Statement::Function(_)
-            | Statement::Match { .. }
+        statement.kind,
+        StatementKind::Enum(_)
+            | StatementKind::Trait(_)
+            | StatementKind::Impl(_)
+            | StatementKind::Function(_)
+            | StatementKind::Match { .. }
     )
 }
 
 fn accepts_attributes(statement: &Statement) -> bool {
-    matches!(statement, Statement::Function(_))
+    matches!(statement.kind, StatementKind::Function(_))
 }

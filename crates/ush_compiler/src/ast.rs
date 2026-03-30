@@ -4,7 +4,19 @@ use crate::errors::ErrorSet;
 use crate::types::{AstString as String, HeapVec as Vec};
 
 #[derive(Debug, Clone)]
-pub(crate) enum Statement {
+pub(crate) struct Statement {
+    pub line: usize,
+    pub kind: StatementKind,
+}
+
+impl Statement {
+    pub(crate) fn new(line: usize, kind: StatementKind) -> Self {
+        Self { line, kind }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum StatementKind {
     Enum(EnumDef),
     Trait(TraitDef),
     Impl(TraitImpl),

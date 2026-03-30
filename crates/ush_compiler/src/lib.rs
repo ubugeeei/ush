@@ -8,6 +8,7 @@ mod env;
 mod errors;
 mod matching;
 mod parse;
+mod sourcemap;
 mod traits;
 mod types;
 mod util;
@@ -17,6 +18,7 @@ extern crate alloc;
 
 use anyhow::Result;
 pub use docs::ScriptDocs;
+pub use sourcemap::{CompiledScript, SourceMap, SourceMapLine};
 use types::OutputString;
 
 #[cfg(feature = "std")]
@@ -30,6 +32,11 @@ pub struct UshCompiler;
 impl UshCompiler {
     #[cfg(feature = "std")]
     pub fn compile_file(&self, path: &Path) -> Result<OutputString> {
+        Ok(self.compile_file_with_sourcemap(path)?.shell)
+    }
+
+    #[cfg(feature = "std")]
+    pub fn compile_file_with_sourcemap(&self, path: &Path) -> Result<CompiledScript> {
         let source = fs::read_to_string(path)
             .with_context(|| format!("failed to read {}", path.display()))?;
         self.compile_with_name(&source, path.file_name().and_then(|name| name.to_str()))
@@ -37,10 +44,14 @@ impl UshCompiler {
     }
 
     pub fn compile_source(&self, source: &str) -> Result<OutputString> {
+        Ok(self.compile_source_with_sourcemap(source)?.shell)
+    }
+
+    pub fn compile_source_with_sourcemap(&self, source: &str) -> Result<CompiledScript> {
         self.compile_with_name(source, None)
     }
 
-    fn compile_with_name(&self, source: &str, script_name: Option<&str>) -> Result<OutputString> {
+    fn compile_with_name(&self, source: &str, script_name: Option<&str>) -> Result<CompiledScript> {
         let program = parse::parse_program(source)?;
         let docs = ScriptDocs::parse(source);
         codegen::compile_program(&program, &docs, script_name)

@@ -2,7 +2,7 @@ use anyhow::{Result, anyhow, bail};
 
 use super::{
     super::{
-        ast::{Expr, Statement},
+        ast::{Expr, StatementKind},
         util::{split_once_top_level, strip_top_level_suffix},
     },
     SourceLine,
@@ -14,9 +14,9 @@ pub(super) fn split_assignment(source: &str) -> Option<(&str, &str)> {
     Some((name.trim(), expr.trim()))
 }
 
-pub(super) fn parse_alias(source: &str) -> Result<Statement> {
+pub(super) fn parse_alias(source: &str) -> Result<StatementKind> {
     let (name, value) = split_assignment(source).ok_or_else(|| anyhow!("invalid alias binding"))?;
-    Ok(Statement::Alias {
+    Ok(StatementKind::Alias {
         name: name.into(),
         value: parse_expr(value)?,
     })
@@ -26,14 +26,14 @@ pub(super) fn parse_statement_expr(source: &str) -> Result<Expr> {
     parse_expr(source.trim().strip_prefix('$').unwrap_or(source).trim())
 }
 
-pub(super) fn parse_shell_statement(source: &str) -> Result<Statement> {
+pub(super) fn parse_shell_statement(source: &str) -> Result<StatementKind> {
     if let Some(inner) = strip_top_level_suffix(source, '?') {
-        return Ok(Statement::TryShell(parse_statement_expr(inner)?));
+        return Ok(StatementKind::TryShell(parse_statement_expr(inner)?));
     }
-    Ok(Statement::Shell(parse_statement_expr(source)?))
+    Ok(StatementKind::Shell(parse_statement_expr(source)?))
 }
 
-pub(super) fn parse_shell_escape(source: &str) -> Result<Option<Statement>> {
+pub(super) fn parse_shell_escape(source: &str) -> Result<Option<StatementKind>> {
     let Some(rest) = source.strip_prefix('$') else {
         return Ok(None);
     };
@@ -48,9 +48,9 @@ pub(super) fn parse_shell_escape(source: &str) -> Result<Option<Statement>> {
         if inner.is_empty() {
             bail!("shell escape requires a command");
         }
-        return Ok(Some(Statement::TryShell(Expr::String(inner.into()))));
+        return Ok(Some(StatementKind::TryShell(Expr::String(inner.into()))));
     }
-    Ok(Some(Statement::Shell(Expr::String(command.into()))))
+    Ok(Some(StatementKind::Shell(Expr::String(command.into()))))
 }
 
 pub(super) fn trim_statement_terminator(source: &str) -> (&str, bool) {

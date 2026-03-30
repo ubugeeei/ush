@@ -12,8 +12,8 @@ use super::{
     functions::FunctionRegistry,
     infer, rendered_call_runtime,
 };
+use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
-use crate::types::OutputString as String;
 
 pub(crate) fn compile_spawn(
     call: &Call,
@@ -23,7 +23,7 @@ pub(crate) fn compile_spawn(
     enums: &EnumRegistry,
     state: &mut CodegenState,
     inside_function: bool,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<Binding> {
     let return_type = call_return_type(&call.name, functions)?
         .ok_or_else(|| anyhow!("async bindings require a return type: {}", call.name))?;
@@ -61,7 +61,7 @@ pub(crate) fn compile_spawn(
     })
 }
 
-pub(crate) fn compile_await(task: &str, env: &Env, out: &mut String) -> Result<Binding> {
+pub(crate) fn compile_await(task: &str, env: &Env, out: &mut OutputBuffer) -> Result<Binding> {
     let binding = env
         .get(task)
         .ok_or_else(|| anyhow!("unknown task: {task}"))?;
@@ -88,7 +88,7 @@ pub(crate) fn compile_return(
     enums: &EnumRegistry,
     state: &mut CodegenState,
     return_type: Option<&Type>,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<()> {
     let Some(declared) = return_type else {
         bail!("return is only valid inside functions");
@@ -122,7 +122,7 @@ pub(crate) fn compile_expr_statement(
     enums: &EnumRegistry,
     state: &mut CodegenState,
     inside_function: bool,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<()> {
     let ty = infer(expr, env, functions, impls, enums)?;
     ensure_value_type(&ty)?;

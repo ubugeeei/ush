@@ -9,6 +9,7 @@ use super::{
     functions::FunctionRegistry,
     infer, rendered_call_runtime,
 };
+use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
 use crate::types::{AstVec as Vec, OutputString as String};
 
@@ -20,7 +21,7 @@ pub(crate) fn compile_call(
     enums: &EnumRegistry,
     state: &mut CodegenState,
     inside_function: bool,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<()> {
     let rendered = rendered_call_runtime(
         call,
@@ -51,7 +52,7 @@ pub(crate) fn compile_try_call(
     enums: &EnumRegistry,
     state: &mut CodegenState,
     inside_function: bool,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<()> {
     let rendered = rendered_call_runtime(
         call,

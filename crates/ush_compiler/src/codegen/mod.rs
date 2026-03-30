@@ -16,13 +16,13 @@ mod tasks;
 use anyhow::Result;
 
 use super::{
-    ast::Statement,
+    ast::{Statement, StatementKind},
     effects,
     env::{CodegenState, EnumRegistry, Env},
 };
 use crate::ScriptDocs;
+use crate::sourcemap::{CompiledScript, OutputBuffer};
 use crate::traits::{TraitImplRegistry, TraitRegistry, register_trait, register_trait_impl};
-use crate::types::OutputString as String;
 
 pub(crate) use functions::FunctionRegistry;
 pub(crate) use primitive::{compile_primitive_expr, infer};
@@ -32,23 +32,23 @@ pub(crate) fn compile_program(
     program: &[Statement],
     docs: &ScriptDocs,
     script_name: Option<&str>,
-) -> Result<String> {
+) -> Result<CompiledScript> {
     let mut env = Env::default();
     let mut functions = functions::FunctionRegistry::default();
     let mut enums = EnumRegistry::default();
     let mut traits = TraitRegistry::default();
     let mut trait_impls = TraitImplRegistry::default();
     let mut state = CodegenState::default();
-    let mut out = String::from(
+    let mut out = OutputBuffer::from_text(
         "#!/bin/sh\nset -eu\n\n__ush_jobs=''\n__ush_task_seq='0'\n__ush_task_files=''\n\n",
     );
 
     for statement in program {
-        match statement {
-            Statement::Enum(def) => statement::register_enum(def, &mut enums)?,
-            Statement::Trait(def) => register_trait(def, &mut traits)?,
-            Statement::Impl(item) => register_trait_impl(item, &traits, &mut trait_impls)?,
-            Statement::Function(def) => functions::register_function(def, &mut functions)?,
+        match &statement.kind {
+            StatementKind::Enum(def) => statement::register_enum(def, &mut enums)?,
+            StatementKind::Trait(def) => register_trait(def, &mut traits)?,
+            StatementKind::Impl(item) => register_trait_impl(item, &traits, &mut trait_impls)?,
+            StatementKind::Function(def) => functions::register_function(def, &mut functions)?,
             _ => {}
         }
     }
@@ -70,7 +70,7 @@ pub(crate) fn compile_program(
     let function_errors =
         effects::analyze_function_errors(program, &globals, &functions, &trait_impls, &enums)?;
     for statement in program {
-        if matches!(statement, Statement::Enum(_)) {
+        if matches!(statement.kind, StatementKind::Enum(_)) {
             continue;
         }
         statement::compile_statement(
@@ -92,5 +92,5 @@ pub(crate) fn compile_program(
         bin::push_bin_entry(&mut out, def, &globals, &functions, &trait_impls, &enums)?;
     }
     functions::push_wait_footer(&mut out);
-    Ok(out)
+    Ok(out.into_compiled())
 }

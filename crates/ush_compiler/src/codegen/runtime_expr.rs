@@ -11,6 +11,7 @@ use super::{
     compile_primitive_expr,
     functions::FunctionRegistry,
 };
+use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
 use crate::types::OutputString as String;
 
@@ -28,7 +29,7 @@ pub(crate) fn compile_runtime_primitive_expr(
     enums: &EnumRegistry,
     state: &mut CodegenState,
     inside_function: bool,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<String> {
     let mut runtime_env = env.clone();
     let prepared = hoist_expr(
@@ -53,7 +54,7 @@ pub(crate) fn rendered_call_runtime(
     enums: &EnumRegistry,
     state: &mut CodegenState,
     inside_function: bool,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<String> {
     let mut runtime_env = env.clone();
     let prepared = hoist_call(
@@ -79,7 +80,7 @@ fn hoist_expr(
     state: &mut CodegenState,
     mode: FailureMode,
     inside_function: bool,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<Expr> {
     Ok(match expr {
         Expr::Add(parts) => Expr::Add(
@@ -160,7 +161,7 @@ fn hoist_call(
     state: &mut CodegenState,
     mode: FailureMode,
     inside_function: bool,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<Call> {
     let mut prepared = call.clone();
     for arg in &mut prepared.args {
@@ -188,7 +189,7 @@ fn hoist_call_capture(
     state: &mut CodegenState,
     mode: FailureMode,
     inside_function: bool,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<Expr> {
     let prepared = hoist_call(
         call,

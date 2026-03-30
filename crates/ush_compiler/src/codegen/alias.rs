@@ -9,7 +9,7 @@ use super::{
     functions::FunctionRegistry,
     infer,
 };
-use crate::{traits::TraitImplRegistry, types::OutputString as String};
+use crate::{sourcemap::OutputBuffer, traits::TraitImplRegistry};
 
 pub(crate) fn compile_alias(
     name: &str,
@@ -20,7 +20,7 @@ pub(crate) fn compile_alias(
     enums: &EnumRegistry,
     state: &mut CodegenState,
     inside_function: bool,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<()> {
     if infer(value, env, functions, impls, enums)? != Type::String {
         bail!("alias values must evaluate to string");

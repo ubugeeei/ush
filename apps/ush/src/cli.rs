@@ -43,6 +43,8 @@ pub enum Action {
         input: PathBuf,
         #[arg(short, long, value_name = "FILE")]
         output: Option<PathBuf>,
+        #[arg(long = "sourcemap", value_name = "FILE")]
+        sourcemap: Option<PathBuf>,
     },
     Format {
         input: PathBuf,

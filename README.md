@@ -255,6 +255,7 @@ Useful commands:
 ```bash
 cargo run -p ush -- examples/hello.ush
 cargo run -p ush -- compile examples/hello.ush
+cargo run -p ush -- compile examples/hello.ush --sourcemap /tmp/hello.sh.map.json
 cargo run -p ush -- format examples/hello.ush --stdout
 cargo run -p ush -- check examples/hello.ush
 cargo run -p ush_lsp

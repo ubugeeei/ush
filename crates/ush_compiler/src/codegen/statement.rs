@@ -2,7 +2,7 @@ use anyhow::{Result, bail};
 
 use super::{
     super::{
-        ast::{EnumDef, Statement, Type, VariantFields},
+        ast::{EnumDef, Statement, StatementKind, Type, VariantFields},
         effects::FunctionErrorRegistry,
         env::{CodegenState, EnumRegistry, Env},
     },
@@ -14,8 +14,9 @@ use super::{
     shared::binding_for_name,
     tasks::{compile_await, compile_expr_statement, compile_return, compile_spawn},
 };
+use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
-use crate::types::{OutputString as String, Set as HashSet};
+use crate::types::Set as HashSet;
 
 pub(crate) fn register_enum(def: &EnumDef, enums: &mut EnumRegistry) -> Result<()> {
     if enums.contains_key(&def.name) {
@@ -56,46 +57,26 @@ pub(crate) fn compile_statement(
     return_type: Option<&Type>,
     inside_function: bool,
     tail_position: bool,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<()> {
-    match statement {
-        Statement::Enum(_) => {}
-        Statement::Trait(_) | Statement::Impl(_) => {}
-        Statement::Function(def) => compile_function(
-            def,
-            globals,
-            functions,
-            impls,
-            enums,
-            function_errors,
-            state,
-            out,
-        )?,
-        Statement::Alias { name, value } => compile_alias(
-            name,
-            value,
-            env,
-            functions,
-            impls,
-            enums,
-            state,
-            inside_function,
-            out,
-        )?,
-        Statement::Let { name, expr } => compile_let(
-            name,
-            expr,
-            env,
-            functions,
-            impls,
-            enums,
-            state,
-            inside_function,
-            out,
-        )?,
-        Statement::Spawn { name, call } => {
-            let binding = compile_spawn(
-                call,
+    let previous_origin = out.set_origin(Some(statement.line));
+    let result = (|| -> Result<()> {
+        match &statement.kind {
+            StatementKind::Enum(_) => {}
+            StatementKind::Trait(_) | StatementKind::Impl(_) => {}
+            StatementKind::Function(def) => compile_function(
+                def,
+                globals,
+                functions,
+                impls,
+                enums,
+                function_errors,
+                state,
+                out,
+            )?,
+            StatementKind::Alias { name, value } => compile_alias(
+                name,
+                value,
                 env,
                 functions,
                 impls,
@@ -103,60 +84,21 @@ pub(crate) fn compile_statement(
                 state,
                 inside_function,
                 out,
-            )?;
-            env.insert(name.clone(), binding);
-        }
-        Statement::Await { name, task } => {
-            let binding = compile_await(task, env, out)?;
-            env.insert(name.clone(), binding_for_name(name, binding.ty));
-            if let super::super::env::Storage::Primitive(value) = binding.storage {
-                out.push_str(name);
-                out.push('=');
-                out.push_str(&value);
-                out.push('\n');
-            }
-        }
-        Statement::Print(expr) => push_print(
-            expr,
-            env,
-            functions,
-            impls,
-            enums,
-            state,
-            inside_function,
-            out,
-        )?,
-        Statement::Shell(expr) => compile_shell(
-            expr,
-            env,
-            functions,
-            impls,
-            enums,
-            state,
-            inside_function,
-            false,
-            out,
-        )?,
-        Statement::TryShell(expr) => compile_shell(
-            expr,
-            env,
-            functions,
-            impls,
-            enums,
-            state,
-            inside_function,
-            true,
-            out,
-        )?,
-        Statement::Raise(expr) => {
-            compile_raise(expr, env, functions, impls, enums, inside_function, out)?
-        }
-        Statement::Expr(expr) => {
-            if tail_position {
-                compile_return(expr, env, functions, impls, enums, state, return_type, out)?;
-            } else {
-                compile_expr_statement(
-                    expr,
+            )?,
+            StatementKind::Let { name, expr } => compile_let(
+                name,
+                expr,
+                env,
+                functions,
+                impls,
+                enums,
+                state,
+                inside_function,
+                out,
+            )?,
+            StatementKind::Spawn { name, call } => {
+                let binding = compile_spawn(
+                    call,
                     env,
                     functions,
                     impls,
@@ -165,50 +107,114 @@ pub(crate) fn compile_statement(
                     inside_function,
                     out,
                 )?;
+                env.insert(name.clone(), binding);
             }
+            StatementKind::Await { name, task } => {
+                let binding = compile_await(task, env, out)?;
+                env.insert(name.clone(), binding_for_name(name, binding.ty));
+                if let super::super::env::Storage::Primitive(value) = binding.storage {
+                    out.push_str(name);
+                    out.push('=');
+                    out.push_str(&value);
+                    out.push('\n');
+                }
+            }
+            StatementKind::Print(expr) => push_print(
+                expr,
+                env,
+                functions,
+                impls,
+                enums,
+                state,
+                inside_function,
+                out,
+            )?,
+            StatementKind::Shell(expr) => compile_shell(
+                expr,
+                env,
+                functions,
+                impls,
+                enums,
+                state,
+                inside_function,
+                false,
+                out,
+            )?,
+            StatementKind::TryShell(expr) => compile_shell(
+                expr,
+                env,
+                functions,
+                impls,
+                enums,
+                state,
+                inside_function,
+                true,
+                out,
+            )?,
+            StatementKind::Raise(expr) => {
+                compile_raise(expr, env, functions, impls, enums, inside_function, out)?
+            }
+            StatementKind::Expr(expr) => {
+                if tail_position {
+                    compile_return(expr, env, functions, impls, enums, state, return_type, out)?;
+                } else {
+                    compile_expr_statement(
+                        expr,
+                        env,
+                        functions,
+                        impls,
+                        enums,
+                        state,
+                        inside_function,
+                        out,
+                    )?;
+                }
+            }
+            StatementKind::Call(call) => compile_call(
+                call,
+                env,
+                functions,
+                impls,
+                enums,
+                state,
+                inside_function,
+                out,
+            )?,
+            StatementKind::TryCall(call) => compile_try_call(
+                call,
+                env,
+                functions,
+                impls,
+                enums,
+                state,
+                inside_function,
+                out,
+            )?,
+            StatementKind::Return(expr) => {
+                compile_return(expr, env, functions, impls, enums, state, return_type, out)?
+            }
+            StatementKind::Match {
+                expr,
+                arms,
+                returns_value,
+            } => compile_match(
+                expr,
+                arms,
+                *returns_value,
+                env,
+                globals,
+                functions,
+                impls,
+                enums,
+                function_errors,
+                state,
+                return_type,
+                inside_function,
+                out,
+            )?,
         }
-        Statement::Call(call) => compile_call(
-            call,
-            env,
-            functions,
-            impls,
-            enums,
-            state,
-            inside_function,
-            out,
-        )?,
-        Statement::TryCall(call) => compile_try_call(
-            call,
-            env,
-            functions,
-            impls,
-            enums,
-            state,
-            inside_function,
-            out,
-        )?,
-        Statement::Return(expr) => {
-            compile_return(expr, env, functions, impls, enums, state, return_type, out)?
-        }
-        Statement::Match {
-            expr,
-            arms,
-            returns_value,
-        } => compile_match(
-            expr,
-            arms,
-            *returns_value,
-            env,
-            globals,
-            functions,
-            impls,
-            enums,
-            function_errors,
-            state,
-            return_type,
-            inside_function,
-            out,
-        )?,
-    }
-    Ok(())
+        Ok(())
+    })();
+    out.set_origin(previous_origin);
+    result
 }

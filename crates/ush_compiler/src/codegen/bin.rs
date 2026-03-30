@@ -11,7 +11,11 @@ use super::{
     functions::FunctionRegistry,
     infer,
 };
-use crate::{traits::TraitImplRegistry, types::HeapVec as Vec, types::OutputString as String};
+use crate::{
+    sourcemap::OutputBuffer,
+    traits::TraitImplRegistry,
+    types::{HeapVec as Vec, OutputString as String},
+};
 
 pub(crate) fn completion_candidates(def: &FunctionDef) -> Vec<String> {
     let mut values = Vec::new();
@@ -25,7 +29,7 @@ pub(crate) fn completion_candidates(def: &FunctionDef) -> Vec<String> {
 }
 
 pub(crate) fn push_bin_entry(
-    out: &mut String,
+    out: &mut OutputBuffer,
     def: &FunctionDef,
     globals: &Env,
     functions: &FunctionRegistry,
@@ -95,7 +99,7 @@ pub(crate) fn push_bin_entry(
     Ok(())
 }
 
-fn push_named_case(out: &mut String, param: &crate::ast::FunctionParam) -> Result<()> {
+fn push_named_case(out: &mut OutputBuffer, param: &crate::ast::FunctionParam) -> Result<()> {
     let long = format!("--{}", param.name);
     match param.ty {
         Type::Bool => {
@@ -161,7 +165,7 @@ fn requires_value(param: &crate::ast::FunctionParam) -> bool {
     param.default.is_none() && !matches!(param.ty, Type::Bool)
 }
 
-fn assign_value(out: &mut String, param: &crate::ast::FunctionParam, value: &str) {
+fn assign_value(out: &mut OutputBuffer, param: &crate::ast::FunctionParam, value: &str) {
     out.push_str(&cli_var(&param.name));
     out.push('=');
     out.push_str(value);
@@ -170,7 +174,7 @@ fn assign_value(out: &mut String, param: &crate::ast::FunctionParam, value: &str
     out.push_str("='1'");
 }
 
-fn push_case_pattern(out: &mut String, value: &str) {
+fn push_case_pattern(out: &mut OutputBuffer, value: &str) {
     out.push_str("      '");
     out.push_str(value);
     out.push('\'');

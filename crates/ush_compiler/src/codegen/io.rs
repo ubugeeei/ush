@@ -1,7 +1,7 @@
 use anyhow::{Result, bail};
 
+use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
-use crate::types::OutputString as String;
 
 use super::{
     super::{
@@ -19,7 +19,7 @@ pub(crate) fn push_print(
     enums: &EnumRegistry,
     state: &mut CodegenState,
     inside_function: bool,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<()> {
     let rendered = compile_runtime_primitive_expr(
         expr,
@@ -46,7 +46,7 @@ pub(crate) fn compile_shell(
     state: &mut CodegenState,
     inside_function: bool,
     propagate: bool,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<()> {
     if infer(expr, env, functions, impls, enums)? != Type::String {
         bail!("shell statements must evaluate to string");
@@ -86,7 +86,7 @@ pub(crate) fn compile_raise(
     impls: &TraitImplRegistry,
     enums: &EnumRegistry,
     inside_function: bool,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<()> {
     let Type::Adt(name) = infer(expr, env, functions, impls, enums)? else {
         bail!("raise expects an error ADT value");

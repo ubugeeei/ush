@@ -1281,6 +1281,8 @@ dependencies = [
  "anyhow",
  "clap",
  "libc",
+ "serde",
+ "serde_json",
  "tempfile",
  "ush_compiler",
  "ush_config",

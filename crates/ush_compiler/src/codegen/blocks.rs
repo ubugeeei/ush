@@ -12,11 +12,11 @@ use super::{
     compile_runtime_primitive_expr,
     functions::FunctionRegistry,
     infer,
-    shared::{binding_for_name, push_block, push_line},
+    shared::{binding_for_name, push_line, push_output},
     statement::compile_statement,
 };
+use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
-use crate::types::OutputString as String;
 
 pub(crate) fn compile_let(
     name: &str,
@@ -27,7 +27,7 @@ pub(crate) fn compile_let(
     enums: &EnumRegistry,
     state: &mut CodegenState,
     inside_function: bool,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<()> {
     let ty = infer(expr, env, functions, impls, enums)?;
     match &ty {
@@ -78,7 +78,7 @@ pub(crate) fn compile_match(
     state: &mut CodegenState,
     return_type: Option<&Type>,
     inside_function: bool,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<()> {
     if arms.is_empty() {
         bail!("match must have at least one arm");
@@ -115,7 +115,7 @@ pub(crate) fn compile_match(
             return_type,
             inside_function,
         )?;
-        push_block(out, &body, 2);
+        push_output(out, &body, 2);
     }
     out.push_str("fi\n");
     Ok(())
@@ -133,8 +133,8 @@ fn compile_one(
     state: &mut CodegenState,
     return_type: Option<&Type>,
     inside_function: bool,
-) -> Result<String> {
-    let mut buffer = String::new();
+) -> Result<OutputBuffer> {
+    let mut buffer = OutputBuffer::default();
     compile_statement(
         statement,
         env,

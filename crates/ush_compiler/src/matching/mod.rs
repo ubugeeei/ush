@@ -9,6 +9,7 @@ use super::{
     codegen::infer,
     env::{Binding, CodegenState, EnumRegistry, Env, Storage, expect_adt},
 };
+use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
 
 use crate::types::{AstVec as Vec, OutputString as String};
@@ -29,7 +30,7 @@ pub(crate) fn materialize_expr(
     enums: &EnumRegistry,
     state: &mut CodegenState,
     inside_function: bool,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<Binding> {
     let ty = infer(expr, env, functions, impls, enums)?;
     match ty.clone() {
@@ -83,7 +84,7 @@ pub(crate) fn emit_value_to_target(
     enums: &EnumRegistry,
     state: &mut CodegenState,
     inside_function: bool,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<()> {
     match expected {
         Type::String | Type::Int | Type::Bool | Type::Unit => {

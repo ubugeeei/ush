@@ -1,12 +1,14 @@
 mod cli;
 mod script_docs;
 
+use std::path::Path;
 use std::process;
 
 use anyhow::{Context, Result};
 use clap::Parser;
+use serde::Serialize;
 
-use ush_compiler::UshCompiler;
+use ush_compiler::{SourceMap, UshCompiler};
 use ush_config::UshConfig;
 use ush_shell::{Shell, ShellOptions, run_posix_script};
 use ush_tooling::{check_file, format_source};
@@ -23,8 +25,12 @@ fn main() -> Result<()> {
 
     if let Some(action) = &cli.action {
         match action {
-            Action::Compile { input, output } => {
-                compile_action(input, output.as_deref())?;
+            Action::Compile {
+                input,
+                output,
+                sourcemap,
+            } => {
+                compile_action(input, output.as_deref(), sourcemap.as_deref())?;
                 return Ok(());
             }
             Action::Format {
@@ -68,13 +74,16 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn compile_action(input: &std::path::Path, output: Option<&std::path::Path>) -> Result<()> {
-    let compiled = UshCompiler::default().compile_file(input)?;
+fn compile_action(input: &Path, output: Option<&Path>, sourcemap: Option<&Path>) -> Result<()> {
+    let compiled = UshCompiler::default().compile_file_with_sourcemap(input)?;
     if let Some(output) = output {
-        std::fs::write(output, compiled)
+        std::fs::write(output, &compiled.shell)
             .with_context(|| format!("failed to write {}", output.display()))?;
     } else {
-        print!("{compiled}");
+        print!("{}", compiled.shell);
+    }
+    if let Some(sourcemap) = sourcemap {
+        write_sourcemap_file(sourcemap, input, output, &compiled.sourcemap)?;
     }
     Ok(())
 }
@@ -113,4 +122,42 @@ fn check_action(input: &std::path::Path) -> Result<i32> {
         );
     }
     Ok(1)
+}
+
+#[derive(Serialize)]
+struct JsonSourceMap {
+    version: u32,
+    source: String,
+    generated: Option<String>,
+    lines: Vec<JsonSourceMapLine>,
+}
+
+#[derive(Serialize)]
+struct JsonSourceMapLine {
+    generated_line: usize,
+    source_line: Option<usize>,
+}
+
+fn write_sourcemap_file(
+    path: &Path,
+    input: &Path,
+    output: Option<&Path>,
+    sourcemap: &SourceMap,
+) -> Result<()> {
+    let payload = JsonSourceMap {
+        version: 1,
+        source: input.display().to_string(),
+        generated: output.map(|item| item.display().to_string()),
+        lines: sourcemap
+            .lines
+            .iter()
+            .map(|line| JsonSourceMapLine {
+                generated_line: line.generated_line,
+                source_line: line.source_line,
+            })
+            .collect(),
+    };
+    let json = serde_json::to_string_pretty(&payload).context("failed to serialize sourcemap")?;
+    std::fs::write(path, format!("{json}\n"))
+        .with_context(|| format!("failed to write {}", path.display()))
 }

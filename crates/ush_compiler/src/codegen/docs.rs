@@ -1,9 +1,11 @@
 use alloc::collections::BTreeSet;
 
-use crate::{ScriptDocs, types::OutputString as String, util::shell_quote};
+use crate::{
+    ScriptDocs, sourcemap::OutputBuffer, types::OutputString as String, util::shell_quote,
+};
 
 pub(crate) fn push_doc_support(
-    out: &mut String,
+    out: &mut OutputBuffer,
     docs: &ScriptDocs,
     script_name: &str,
     extra_completion: &[String],
@@ -29,7 +31,7 @@ pub(crate) fn push_doc_support(
     out.push_str("esac\n\n");
 }
 
-fn push_simple_doc_function(out: &mut String, name: &str, body: &str) {
+fn push_simple_doc_function(out: &mut OutputBuffer, name: &str, body: &str) {
     out.push_str(name);
     out.push_str("() {\n");
     out.push_str("  cat <<'__USH_DOC__'\n");
@@ -41,7 +43,7 @@ fn push_simple_doc_function(out: &mut String, name: &str, body: &str) {
     out.push_str("}\n\n");
 }
 
-fn push_man_function(out: &mut String, docs: &ScriptDocs, script_name: &str) {
+fn push_man_function(out: &mut OutputBuffer, docs: &ScriptDocs, script_name: &str) {
     out.push_str("__ush_print_man() {\n");
     out.push_str("  case \"${1:-}\" in\n");
     push_here_doc_case(out, "", &docs.render_man(script_name, None), "MAIN");
@@ -61,7 +63,7 @@ fn push_man_function(out: &mut String, docs: &ScriptDocs, script_name: &str) {
     out.push_str("}\n\n");
 }
 
-fn push_here_doc_case(out: &mut String, key: &str, body: &str, marker: &str) {
+fn push_here_doc_case(out: &mut OutputBuffer, key: &str, body: &str, marker: &str) {
     let label = sanitize_marker(marker);
     out.push_str("    ");
     out.push_str(&shell_quote(key));
@@ -79,7 +81,7 @@ fn push_here_doc_case(out: &mut String, key: &str, body: &str, marker: &str) {
     out.push_str("      ;;\n");
 }
 
-fn push_complete_function(out: &mut String, docs: &ScriptDocs, extra_completion: &[String]) {
+fn push_complete_function(out: &mut OutputBuffer, docs: &ScriptDocs, extra_completion: &[String]) {
     let mut values = BTreeSet::new();
     for item in docs.completion_candidates() {
         values.insert(item);

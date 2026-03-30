@@ -5,7 +5,7 @@ use anyhow::{Context, Result, anyhow, bail};
 use super::{
     super::{
         ast::{
-            Attribute, EnumDef, FunctionDef, Statement, TraitDef, TraitImpl, VariantDef,
+            Attribute, EnumDef, FunctionDef, StatementKind, TraitDef, TraitImpl, VariantDef,
             VariantFields,
         },
         util::{parse_brace_body, parse_paren_body, parse_type, split_top_level_whitespace},
@@ -18,12 +18,13 @@ use super::{
 use crate::types::{AstString as String, HeapVec as Vec};
 
 pub(super) fn parse_declaration(
+    line_no: usize,
     trimmed: &str,
     lines: &[SourceLine<'_>],
     cursor: &mut usize,
     attrs: &[Attribute],
     _tail_position: bool,
-) -> Result<Option<Statement>> {
+) -> Result<Option<StatementKind>> {
     if let Some(rest) = trimmed.strip_prefix("type ") {
         return Ok(Some(parse_type_def(rest, lines, cursor)?));
     }
@@ -37,7 +38,7 @@ pub(super) fn parse_declaration(
         return Ok(Some(parse_impl(rest, lines, cursor)?));
     }
     if let Some(rest) = trimmed.strip_prefix("fn ") {
-        return Ok(Some(parse_function(rest, lines, cursor, attrs)?));
+        return Ok(Some(parse_function(line_no, rest, lines, cursor, attrs)?));
     }
     Ok(None)
 }
@@ -47,7 +48,7 @@ pub(super) fn parse_match(
     lines: &[SourceLine<'_>],
     cursor: &mut usize,
     returns_value: bool,
-) -> Result<Statement> {
+) -> Result<StatementKind> {
     let subject = subject
         .strip_suffix('{')
         .ok_or_else(|| anyhow!("expected `{{` after match subject"))?
@@ -71,7 +72,7 @@ pub(super) fn parse_match(
         arms.push((
             parse_pattern(pattern.trim())?,
             Box::new(
-                super::statement::parse_inline_body(statement.trim(), returns_value)
+                super::statement::parse_inline_body(*line_no, statement.trim(), returns_value)
                     .with_context(|| format!("line {line_no}: invalid match arm body"))?,
             ),
         ));
@@ -79,14 +80,14 @@ pub(super) fn parse_match(
     }
     let terminated = finish_block(lines, cursor, "match expression")?;
     let returns_value = returns_value && !terminated;
-    Ok(Statement::Match {
+    Ok(StatementKind::Match {
         expr: parse_expr(subject)?,
         arms,
         returns_value,
     })
 }
 
-fn parse_enum(header: &str, lines: &[SourceLine<'_>], cursor: &mut usize) -> Result<Statement> {
+fn parse_enum(header: &str, lines: &[SourceLine<'_>], cursor: &mut usize) -> Result<StatementKind> {
     let name = header
         .strip_suffix('{')
         .ok_or_else(|| anyhow!("expected `{{` after enum name"))?
@@ -107,10 +108,14 @@ fn parse_enum(header: &str, lines: &[SourceLine<'_>], cursor: &mut usize) -> Res
         *cursor += 1;
     }
     let _ = finish_block(lines, cursor, "enum definition")?;
-    Ok(Statement::Enum(EnumDef { name, variants }))
+    Ok(StatementKind::Enum(EnumDef { name, variants }))
 }
 
-fn parse_type_def(header: &str, lines: &[SourceLine<'_>], cursor: &mut usize) -> Result<Statement> {
+fn parse_type_def(
+    header: &str,
+    lines: &[SourceLine<'_>],
+    cursor: &mut usize,
+) -> Result<StatementKind> {
     let name = header
         .strip_suffix('{')
         .ok_or_else(|| anyhow!("expected `{{` after type name"))?
@@ -131,7 +136,7 @@ fn parse_type_def(header: &str, lines: &[SourceLine<'_>], cursor: &mut usize) ->
         *cursor += 1;
     }
     let _ = finish_block(lines, cursor, "type definition")?;
-    Ok(Statement::Enum(EnumDef {
+    Ok(StatementKind::Enum(EnumDef {
         name: name.clone(),
         variants: vec![VariantDef {
             name,
@@ -142,34 +147,39 @@ fn parse_type_def(header: &str, lines: &[SourceLine<'_>], cursor: &mut usize) ->
     }))
 }
 
-fn parse_trait(header: &str, lines: &[SourceLine<'_>], cursor: &mut usize) -> Result<Statement> {
+fn parse_trait(
+    header: &str,
+    lines: &[SourceLine<'_>],
+    cursor: &mut usize,
+) -> Result<StatementKind> {
     let name = parse_name(&parse_empty_item(
         header,
         lines,
         cursor,
         "trait declaration",
     )?)?;
-    Ok(Statement::Trait(TraitDef { name }))
+    Ok(StatementKind::Trait(TraitDef { name }))
 }
 
-fn parse_impl(header: &str, lines: &[SourceLine<'_>], cursor: &mut usize) -> Result<Statement> {
+fn parse_impl(header: &str, lines: &[SourceLine<'_>], cursor: &mut usize) -> Result<StatementKind> {
     let source = parse_empty_item(header, lines, cursor, "trait impl")?;
     let parts = split_top_level_whitespace(source.as_str());
     if parts.len() != 3 || parts[1] != "for" {
         bail!("expected `impl Trait for Type {{}}`");
     }
-    Ok(Statement::Impl(TraitImpl {
+    Ok(StatementKind::Impl(TraitImpl {
         trait_name: parse_name(parts[0])?,
         ty: parse_type(parts[2]).ok_or_else(|| anyhow!("invalid type: {}", parts[2]))?,
     }))
 }
 
 fn parse_function(
+    _line_no: usize,
     header: &str,
     lines: &[SourceLine<'_>],
     cursor: &mut usize,
     attrs: &[Attribute],
-) -> Result<Statement> {
+) -> Result<StatementKind> {
     let head = header
         .strip_suffix('{')
         .ok_or_else(|| anyhow!("expected `{{` after function signature"))?
@@ -178,7 +188,7 @@ fn parse_function(
     *cursor += 1;
     let body = super::statement::parse_block(lines, cursor, false, return_type.is_some())?;
     let _ = finish_block(lines, cursor, "function body")?;
-    Ok(Statement::Function(FunctionDef {
+    Ok(StatementKind::Function(FunctionDef {
         attrs: attrs.to_vec(),
         name,
         params,

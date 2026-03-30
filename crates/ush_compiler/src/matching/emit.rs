@@ -5,8 +5,9 @@ use super::super::{
     codegen::FunctionRegistry,
     env::{Binding, CodegenState, EnumRegistry, Env, Storage, lookup_variant},
 };
+use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
-use crate::types::{AstString as NameString, OutputString as String};
+use crate::types::AstString as NameString;
 
 use super::emit_value_to_target;
 
@@ -20,7 +21,7 @@ pub(super) fn emit_variant(
     enums: &EnumRegistry,
     state: &mut CodegenState,
     inside_function: bool,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<()> {
     if variant.enum_name != expected_enum {
         bail!("expected {expected_enum}, found {}", variant.enum_name);
@@ -88,7 +89,7 @@ pub(super) fn emit_copy(
     binding: &Binding,
     enums: &EnumRegistry,
     state: &mut CodegenState,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<()> {
     let Storage::Adt(source) = &binding.storage else {
         bail!("cannot copy primitive into ADT target");
@@ -139,7 +140,7 @@ fn copy_field(
     ty: &Type,
     enums: &EnumRegistry,
     state: &mut CodegenState,
-    out: &mut String,
+    out: &mut OutputBuffer,
 ) -> Result<()> {
     match ty {
         Type::String | Type::Int | Type::Bool | Type::Unit => {

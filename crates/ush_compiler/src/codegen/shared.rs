@@ -2,7 +2,7 @@ use super::super::{
     ast::Type,
     env::{Binding, Storage},
 };
-use crate::types::{AstString as NameString, OutputString as String};
+use crate::{sourcemap::OutputBuffer, types::AstString as NameString};
 
 pub(crate) fn binding_for_name(name: &str, ty: Type) -> Binding {
     let storage = match ty {
@@ -15,13 +15,11 @@ pub(crate) fn binding_for_name(name: &str, ty: Type) -> Binding {
     Binding { ty, storage }
 }
 
-pub(crate) fn push_block(out: &mut String, block: &str, indent: usize) {
-    for line in block.lines() {
-        push_line(out, line, indent);
-    }
+pub(crate) fn push_output(out: &mut OutputBuffer, nested: &OutputBuffer, indent: usize) {
+    out.append_buffer(nested, indent);
 }
 
-pub(crate) fn push_line(out: &mut String, line: &str, indent: usize) {
+pub(crate) fn push_line(out: &mut OutputBuffer, line: &str, indent: usize) {
     out.push_str(&" ".repeat(indent));
     out.push_str(line);
     out.push('\n');

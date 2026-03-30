@@ -7,7 +7,7 @@ use anyhow::{Result, anyhow, bail};
 use crate::traits::TraitImplRegistry;
 use crate::types::{AstString as String, Map as HashMap};
 use crate::{
-    ast::{FunctionDef, Statement, Type},
+    ast::{FunctionDef, Statement, StatementKind, Type},
     codegen::{FunctionRegistry, infer},
     env::{Binding, EnumRegistry, Env, Storage},
     errors::{ErrorSet, ErrorType},
@@ -30,7 +30,7 @@ pub(crate) fn analyze_function_errors(
 ) -> Result<FunctionErrorRegistry> {
     let mut registry = FunctionErrorRegistry::default();
     for statement in program {
-        if let Statement::Function(def) = statement {
+        if let StatementKind::Function(def) = &statement.kind {
             registry.insert(def.name.clone(), exposed_errors(def, &ErrorSet::default()));
         }
     }
@@ -38,7 +38,7 @@ pub(crate) fn analyze_function_errors(
     for _ in 0..=registry.len() {
         let mut changed = false;
         for statement in program {
-            let Statement::Function(def) = statement else {
+            let StatementKind::Function(def) = &statement.kind else {
                 continue;
             };
             let inferred = analyze_function(def, globals, functions, impls, enums, &registry)?;
@@ -54,7 +54,7 @@ pub(crate) fn analyze_function_errors(
     }
 
     for statement in program {
-        let Statement::Function(def) = statement else {
+        let StatementKind::Function(def) = &statement.kind else {
             continue;
         };
         let inferred = analyze_function(def, globals, functions, impls, enums, &registry)?;
@@ -125,20 +125,21 @@ fn statement_errors(
     enums: &EnumRegistry,
     function_errors: &FunctionErrorRegistry,
 ) -> Result<ErrorSet> {
-    match statement {
-        Statement::Enum(_) | Statement::Trait(_) | Statement::Impl(_) | Statement::Function(_) => {
-            Ok(ErrorSet::default())
-        }
-        Statement::Alias { value, .. } => {
+    match &statement.kind {
+        StatementKind::Enum(_)
+        | StatementKind::Trait(_)
+        | StatementKind::Impl(_)
+        | StatementKind::Function(_) => Ok(ErrorSet::default()),
+        StatementKind::Alias { value, .. } => {
             expr_errors(value, env, functions, impls, enums, function_errors)
         }
-        Statement::Let { name, expr } => {
+        StatementKind::Let { name, expr } => {
             let errors = expr_errors(expr, env, functions, impls, enums, function_errors)?;
             let ty = infer(expr, env, functions, impls, enums)?;
             env.insert(name.clone(), binding_for_type(name, ty));
             Ok(errors)
         }
-        Statement::Spawn { name, call } => {
+        StatementKind::Spawn { name, call } => {
             let errors = call_arg_errors(call, env, functions, impls, enums, function_errors)?;
             let def = functions
                 .get(&call.name)
@@ -157,7 +158,7 @@ fn statement_errors(
             );
             Ok(errors)
         }
-        Statement::Await { name, task } => {
+        StatementKind::Await { name, task } => {
             let binding = env
                 .get(task)
                 .ok_or_else(|| anyhow!("unknown task: {task}"))?;
@@ -168,23 +169,23 @@ fn statement_errors(
             env.insert(name.clone(), binding_for_type(name, *inner.clone()));
             Ok(errors)
         }
-        Statement::Print(expr) | Statement::Expr(expr) | Statement::Return(expr) => {
+        StatementKind::Print(expr) | StatementKind::Expr(expr) | StatementKind::Return(expr) => {
             expr_errors(expr, env, functions, impls, enums, function_errors)
         }
-        Statement::Shell(expr) | Statement::TryShell(expr) => {
+        StatementKind::Shell(expr) | StatementKind::TryShell(expr) => {
             let mut errors = expr_errors(expr, env, functions, impls, enums, function_errors)?;
             errors.insert(ErrorType::Unknown);
             Ok(errors)
         }
-        Statement::Call(call) | Statement::TryCall(call) => {
+        StatementKind::Call(call) | StatementKind::TryCall(call) => {
             call_errors(call, env, functions, impls, enums, function_errors)
         }
-        Statement::Raise(expr) => {
+        StatementKind::Raise(expr) => {
             let mut errors = expr_errors(expr, env, functions, impls, enums, function_errors)?;
             errors.insert(raised_error(expr, env, functions, impls, enums)?);
             Ok(errors)
         }
-        Statement::Match { expr, arms, .. } => {
+        StatementKind::Match { expr, arms, .. } => {
             let mut errors = expr_errors(expr, env, functions, impls, enums, function_errors)?;
             let subject = match infer(expr, env, functions, impls, enums)? {
                 Type::Adt(name) => Binding {

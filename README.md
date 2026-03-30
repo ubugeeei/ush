@@ -247,7 +247,7 @@ Current highlights:
 - `$ command ...` for inline shell execution and `shell expr` for dynamic command strings
 - `async` / `.await`
 - `bin(...)` entrypoints for generated CLI tools
-- `#|` doc comments for generated `--help`, `--man`, and completion text
+- `#|` doc comments for generated `--help`, `--man`, and completion text, including std-like sections such as notes, warnings, errors, and see-also links
 
 Useful commands:
 

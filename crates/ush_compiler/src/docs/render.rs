@@ -22,9 +22,32 @@ pub(super) fn render_help(docs: &ScriptDocs, script_name: &str) -> String {
     if !docs.details.is_empty() {
         push_blank(&mut out);
         push_line(&mut out, "Description:");
-        for line in &docs.details {
-            push_line(&mut out, &format!("  {line}"));
-        }
+        push_indented_lines(&mut out, &docs.details, "  ");
+    }
+    if !docs.notes.is_empty() {
+        push_blank(&mut out);
+        push_line(&mut out, "Notes:");
+        push_bullets(&mut out, &docs.notes, "  ");
+    }
+    if !docs.warnings.is_empty() {
+        push_blank(&mut out);
+        push_line(&mut out, "Warnings:");
+        push_bullets(&mut out, &docs.warnings, "  ");
+    }
+    if !docs.errors.is_empty() {
+        push_blank(&mut out);
+        push_line(&mut out, "Errors:");
+        push_bullets(&mut out, &docs.errors, "  ");
+    }
+    if !docs.examples.is_empty() {
+        push_blank(&mut out);
+        push_line(&mut out, "Examples:");
+        push_indented_lines(&mut out, &docs.examples, "  ");
+    }
+    if !docs.see_also.is_empty() {
+        push_blank(&mut out);
+        push_line(&mut out, "See also:");
+        push_bullets(&mut out, &docs.see_also, "  ");
     }
     if !docs.items.is_empty() {
         push_blank(&mut out);
@@ -33,6 +56,12 @@ pub(super) fn render_help(docs: &ScriptDocs, script_name: &str) -> String {
             push_line(&mut out, &format!("  {}", item.signature));
             if let Some(summary) = &item.summary {
                 push_line(&mut out, &format!("      {summary}"));
+            }
+            if !item.errors.is_empty() {
+                push_line(
+                    &mut out,
+                    &format!("      errors: {}", item.errors.join(", ")),
+                );
             }
         }
     }
@@ -68,19 +97,19 @@ pub(super) fn render_man(docs: &ScriptDocs, script_name: &str, item: Option<&str
         if let Some(summary) = &docs.summary {
             push_line(&mut out, summary);
         }
-        for line in &docs.details {
-            push_line(&mut out, line);
-        }
+        push_lines(&mut out, &docs.details);
+    }
+    push_list_section(&mut out, "NOTES", &docs.notes);
+    push_list_section(&mut out, "WARNINGS", &docs.warnings);
+    push_list_section(&mut out, "ERRORS", &docs.errors);
+    if !docs.examples.is_empty() {
+        push_section(&mut out, "EXAMPLES");
+        push_lines(&mut out, &docs.examples);
     }
     push_items(&mut out, "FUNCTIONS", docs, DocItemKind::Function);
     push_items(&mut out, "ENUMS", docs, DocItemKind::Enum);
     push_items(&mut out, "TRAITS", docs, DocItemKind::Trait);
-    if !docs.examples.is_empty() {
-        push_section(&mut out, "EXAMPLES");
-        for line in &docs.examples {
-            push_line(&mut out, line);
-        }
-    }
+    push_list_section(&mut out, "SEE ALSO", &docs.see_also);
     out
 }
 
@@ -116,9 +145,7 @@ fn render_item_man(script_name: &str, item: &DocItem) -> String {
         if let Some(summary) = &item.summary {
             push_line(&mut out, summary);
         }
-        for line in &item.details {
-            push_line(&mut out, line);
-        }
+        push_lines(&mut out, &item.details);
     }
     if !item.params.is_empty() {
         push_section(&mut out, "PARAMETERS");
@@ -130,12 +157,14 @@ fn render_item_man(script_name: &str, item: &DocItem) -> String {
         push_section(&mut out, "RETURNS");
         push_line(&mut out, returns);
     }
+    push_list_section(&mut out, "NOTES", &item.notes);
+    push_list_section(&mut out, "WARNINGS", &item.warnings);
+    push_list_section(&mut out, "ERRORS", &item.errors);
     if !item.examples.is_empty() {
         push_section(&mut out, "EXAMPLES");
-        for line in &item.examples {
-            push_line(&mut out, line);
-        }
+        push_lines(&mut out, &item.examples);
     }
+    push_list_section(&mut out, "SEE ALSO", &item.see_also);
     out
 }
 
@@ -151,6 +180,45 @@ fn push_items(out: &mut String, heading: &str, docs: &ScriptDocs, kind: DocItemK
         if let Some(summary) = &item.summary {
             push_line(out, &format!("  {summary}"));
         }
+        if !item.errors.is_empty() {
+            push_line(out, &format!("  errors: {}", item.errors.join(", ")));
+        }
+    }
+}
+
+fn push_indented_lines(out: &mut String, lines: &[String], indent: &str) {
+    for line in lines {
+        if line.is_empty() {
+            push_blank(out);
+        } else {
+            push_line(out, &format!("{indent}{line}"));
+        }
+    }
+}
+
+fn push_lines(out: &mut String, lines: &[String]) {
+    for line in lines {
+        if line.is_empty() {
+            push_blank(out);
+        } else {
+            push_line(out, line);
+        }
+    }
+}
+
+fn push_bullets(out: &mut String, lines: &[String], indent: &str) {
+    for line in lines {
+        push_line(out, &format!("{indent}- {line}"));
+    }
+}
+
+fn push_list_section(out: &mut String, heading: &str, lines: &[String]) {
+    if lines.is_empty() {
+        return;
+    }
+    push_section(out, heading);
+    for line in lines {
+        push_line(out, line);
     }
 }
 

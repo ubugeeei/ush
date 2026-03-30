@@ -82,7 +82,11 @@ fn empty_item(kind: DocItemKind, name: &str, signature: String) -> DocItem {
         details: Vec::new(),
         params: Vec::new(),
         returns: None,
+        notes: Vec::new(),
+        warnings: Vec::new(),
+        errors: Vec::new(),
         examples: Vec::new(),
+        see_also: Vec::new(),
     }
 }
 
@@ -91,7 +95,11 @@ fn apply_script_docs(pending: &mut Vec<String>, docs: &mut ScriptDocs) {
     docs.summary = block.summary;
     docs.details = block.details;
     docs.usage = block.usage;
+    docs.notes = block.notes;
+    docs.warnings = block.warnings;
+    docs.errors = block.errors;
     docs.examples = block.examples;
+    docs.see_also = block.see_also;
     pending.clear();
 }
 
@@ -101,7 +109,11 @@ fn apply_item_docs(pending: &mut Vec<String>, mut item: DocItem, docs: &mut Scri
     item.details = block.details;
     item.params = block.params;
     item.returns = block.returns;
+    item.notes = block.notes;
+    item.warnings = block.warnings;
+    item.errors = block.errors;
     item.examples = block.examples;
+    item.see_also = block.see_also;
     docs.items.push(item);
     pending.clear();
 }
@@ -115,6 +127,16 @@ fn parse_block(lines: &[String]) -> ParsedBlock {
             block.usage = Some(rest.trim().into());
         } else if let Some(rest) = line.strip_prefix("@return ") {
             block.returns = Some(rest.trim().into());
+        } else if let Some(rest) = line.strip_prefix("@note ") {
+            push_tagged_line(&mut block.notes, rest);
+        } else if let Some(rest) = line.strip_prefix("@warning ") {
+            push_tagged_line(&mut block.warnings, rest);
+        } else if let Some(rest) = line.strip_prefix("@error ") {
+            push_tagged_line(&mut block.errors, rest);
+        } else if let Some(rest) = line.strip_prefix("@raises ") {
+            push_tagged_line(&mut block.errors, rest);
+        } else if let Some(rest) = line.strip_prefix("@see ") {
+            push_tagged_line(&mut block.see_also, rest);
         } else if let Some(rest) = line.strip_prefix("@example ") {
             block.examples.push(rest.trim().into());
         } else if let Some(rest) = line.strip_prefix("@param ") {
@@ -127,16 +149,45 @@ fn parse_block(lines: &[String]) -> ParsedBlock {
                     description: description.into(),
                 });
             }
-        } else if !line.is_empty() {
+        } else {
             prose.push(line.clone());
         }
     }
 
+    prose = normalize_lines(prose);
     if let Some((head, tail)) = prose.split_first() {
         block.summary = Some(head.clone());
         block.details = tail.to_vec();
     }
     block
+}
+
+fn push_tagged_line(out: &mut Vec<String>, value: &str) {
+    let trimmed = value.trim();
+    if !trimmed.is_empty() {
+        out.push(trimmed.into());
+    }
+}
+
+fn normalize_lines(lines: Vec<String>) -> Vec<String> {
+    let mut normalized = Vec::new();
+    let mut pending_blank = false;
+
+    for line in lines {
+        if line.is_empty() {
+            if !normalized.is_empty() {
+                pending_blank = true;
+            }
+            continue;
+        }
+        if pending_blank {
+            normalized.push(String::new());
+            pending_blank = false;
+        }
+        normalized.push(line);
+    }
+
+    normalized
 }
 
 fn update_depth(mut depth: usize, line: &str) -> usize {
@@ -166,5 +217,9 @@ struct ParsedBlock {
     usage: Option<String>,
     params: Vec<DocParam>,
     returns: Option<String>,
+    notes: Vec<String>,
+    warnings: Vec<String>,
+    errors: Vec<String>,
     examples: Vec<String>,
+    see_also: Vec<String>,
 }

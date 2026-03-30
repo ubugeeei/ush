@@ -8,7 +8,11 @@ pub struct ScriptDocs {
     summary: Option<String>,
     details: Vec<String>,
     usage: Option<String>,
+    notes: Vec<String>,
+    warnings: Vec<String>,
+    errors: Vec<String>,
     examples: Vec<String>,
+    see_also: Vec<String>,
     items: Vec<DocItem>,
 }
 
@@ -21,7 +25,11 @@ pub struct DocItem {
     details: Vec<String>,
     params: Vec<DocParam>,
     returns: Option<String>,
+    notes: Vec<String>,
+    warnings: Vec<String>,
+    errors: Vec<String>,
     examples: Vec<String>,
+    see_also: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -46,7 +54,11 @@ impl ScriptDocs {
         self.summary.is_none()
             && self.details.is_empty()
             && self.usage.is_none()
+            && self.notes.is_empty()
+            && self.warnings.is_empty()
+            && self.errors.is_empty()
             && self.examples.is_empty()
+            && self.see_also.is_empty()
             && self.items.is_empty()
     }
 

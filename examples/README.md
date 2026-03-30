@@ -41,7 +41,7 @@ cargo run -p ush -- compile examples/hello.ush
 
 - `bin.ush`: minimal generated CLI entrypoint
 - `bin_defaults.ush`: defaults, aliases, and bool flags
-- `docs.ush`: `#|` comments with generated `--help`, `--man`, and `--complete`
+- `docs.ush`: `#|` comments with std-like generated `--help`, `--man`, and `--complete`
 
 ## Shell Integration
 

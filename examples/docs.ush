@@ -1,25 +1,41 @@
 #| Documented ush example.
-#| Shows generated help, man output, and completion candidates.
+#|
+#| Shows generated help, man output, and completion candidates in a more
+#| std/rustdoc-like style, with a short summary line followed by longer
+#| explanation paragraphs and explicit section tags.
 #| @usage docs.ush --man greet
+#| @note `--help` stays compact, while `--man` expands the full doc shape.
+#| @warning Generated docs are still an evolving language feature.
+#| @see docs/README.md
 #| @example docs.ush --help
 #| @example docs.ush --man greet
 #| @example docs.ush --complete gr
 
 #| Greet a user and return a message.
+#|
+#| This function is intentionally tiny, but the docs block is written to show
+#| how source comments can carry a summary, detail paragraphs, and structured
+#| sections similar to what you would expect from standard library docs.
 #| @param name user name to greet
 #| @return greeting text
+#| @note Safe for plain user-facing names and shell-generated strings.
+#| @warning Escape the result before embedding it into HTML.
+#| @error This function does not raise typed `.ush` errors today.
+#| @see Status
 #| @example greet "ush"
 fn greet(name: String) -> String {
   return "hello " + name
 }
 
 #| Tagged greeting status.
+#| @note A small enum to show item-level docs beyond functions.
 enum Status {
   Ready,
   Done(String),
 }
 
 #| Marker trait for documented entities.
+#| @see greet
 trait Documented {
 }
 

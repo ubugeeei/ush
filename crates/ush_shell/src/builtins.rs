@@ -78,6 +78,7 @@ fn help_text() -> String {
         "",
         "interactive shortcuts:",
         "  Up/Down history, Option-Up/Down prefix search, Home/End line edge",
+        "  Ctrl-Shift-Up/Down and Ctrl-Alt-Shift-Up/Down extend selection to line edges",
         "",
         "structured helpers:",
         "  len, length, lines, json, xml, html, map(...), filter(...), any(...)",

@@ -17,6 +17,12 @@ pub fn configure_editor(
     editor: &mut Editor<UshHelper, DefaultHistory>,
     selection: SelectionHandle,
 ) {
+    for event in selection_delete_events() {
+        editor.bind_sequence(
+            event,
+            EventHandler::Conditional(Box::new(SelectionDeleteHandler(selection.clone()))),
+        );
+    }
     for spec in binding_specs() {
         editor.bind_sequence(
             spec.event,
@@ -75,6 +81,17 @@ impl ConditionalEventHandler for ClearSelectionHandler {
     }
 }
 
+struct SelectionDeleteHandler(SelectionHandle);
+
+impl ConditionalEventHandler for SelectionDeleteHandler {
+    fn handle(&self, evt: &Event, _: RepeatCount, _: bool, ctx: &EventContext) -> Option<Cmd> {
+        let range = self.0.range()?;
+        let cmd = selection_delete_command(evt, ctx.line(), ctx.pos(), range)?;
+        self.0.clear();
+        Some(cmd)
+    }
+}
+
 fn selection_edit_command(evt: &Event, delete: SelectionDelete) -> Option<Cmd> {
     match evt.get(0) {
         Some(KeyEvent(KeyCode::Char(ch), mods))
@@ -99,11 +116,51 @@ fn selection_edit_command(evt: &Event, delete: SelectionDelete) -> Option<Cmd> {
     }
 }
 
+fn selection_delete_command(
+    evt: &Event,
+    line: &str,
+    pos: usize,
+    range: (usize, usize),
+) -> Option<Cmd> {
+    if !is_delete_event(evt) {
+        return None;
+    }
+    let (start, end) = range;
+    let prefix = line.get(..start)?;
+    let suffix = line.get(end..)?;
+    Some(match pos {
+        value if value == end => Cmd::Replace(Movement::BeginningOfLine, Some(prefix.to_string())),
+        value if value == start => Cmd::Replace(Movement::EndOfLine, Some(suffix.to_string())),
+        _ => Cmd::Replace(Movement::WholeLine, Some(format!("{prefix}{suffix}"))),
+    })
+}
+
+fn selection_delete_events() -> [Event; 6] {
+    [
+        Event::from(KeyEvent(KeyCode::Backspace, Modifiers::NONE)),
+        Event::from(KeyEvent(KeyCode::Delete, Modifiers::NONE)),
+        Event::from(KeyEvent(KeyCode::Char('H'), Modifiers::CTRL)),
+        Event::from(KeyEvent(KeyCode::Char('h'), Modifiers::CTRL)),
+        Event::from(KeyEvent(KeyCode::Char('D'), Modifiers::CTRL)),
+        Event::from(KeyEvent(KeyCode::Char('d'), Modifiers::CTRL)),
+    ]
+}
+
 fn should_keep_selection(evt: &Event) -> bool {
     matches!(
         evt.get(0),
         Some(KeyEvent(KeyCode::UnknownEscSeq | KeyCode::Null, _))
     )
+}
+
+fn is_delete_event(evt: &Event) -> bool {
+    match evt.get(0) {
+        Some(KeyEvent(KeyCode::Backspace | KeyCode::Delete, _)) => true,
+        Some(KeyEvent(KeyCode::Char('H' | 'h' | 'D' | 'd'), mods)) => {
+            mods.contains(Modifiers::CTRL) && !mods.contains(Modifiers::ALT)
+        }
+        _ => false,
+    }
 }
 
 fn delete_movement(delete: SelectionDelete) -> Movement {

@@ -31,6 +31,30 @@ pub(super) fn binding_specs() -> Vec<BindingSpec> {
         command(KeyCode::Up, Modifiers::CTRL, Cmd::BeginningOfHistory),
         command(KeyCode::Down, Modifiers::CTRL, Cmd::EndOfHistory),
         select(
+            KeyCode::Up,
+            Modifiers::CTRL_SHIFT,
+            SelectionMove::LineStart,
+            Cmd::Move(Movement::BeginningOfLine),
+        ),
+        select(
+            KeyCode::Down,
+            Modifiers::CTRL_SHIFT,
+            SelectionMove::LineEnd,
+            Cmd::Move(Movement::EndOfLine),
+        ),
+        select(
+            KeyCode::Up,
+            Modifiers::CTRL_ALT_SHIFT,
+            SelectionMove::LineStart,
+            Cmd::Move(Movement::BeginningOfLine),
+        ),
+        select(
+            KeyCode::Down,
+            Modifiers::CTRL_ALT_SHIFT,
+            SelectionMove::LineEnd,
+            Cmd::Move(Movement::EndOfLine),
+        ),
+        select(
             KeyCode::Left,
             Modifiers::SHIFT,
             SelectionMove::CharLeft,

@@ -143,9 +143,12 @@ The REPL is tuned around `rustyline`'s Emacs mode with extra bindings for shell-
 - `Option-Left` / `Option-Right`: word-wise cursor movement
 - `Option-Shift-Left` / `Option-Shift-Right`: extend selection word-by-word
 - `Ctrl-Left` / `Ctrl-Right`: word-wise movement on terminals that send control-arrow escapes
+- `Ctrl-Shift-Up` / `Ctrl-Shift-Down`: select to the line start/end on terminals that map document-edge shortcuts there
 - `Ctrl-Alt-Shift-Left` / `Ctrl-Alt-Shift-Right`: extend selection across big shell tokens
+- `Ctrl-Alt-Shift-Up` / `Ctrl-Alt-Shift-Down`: extra line-edge selection aliases for macOS terminal mappings
 - `Home` / `End`: jump to line start/end, and `Shift-Home` / `Shift-End` selects to the edge
 - `Cmd-Left` / `Cmd-Right`: works when your terminal maps them to `Home` / `End`
+- `Cmd-Shift-Left` / `Cmd-Shift-Right`: works when your terminal maps them to `Shift-Home` / `Shift-End`, and `Cmd-Shift-Up` / `Cmd-Shift-Down` often land on the control-based aliases above
 
 When a selection is active, typing replaces it and `Backspace` / `Delete` removes it, so keyboard-only editing feels closer to a native text field even inside the terminal.
 

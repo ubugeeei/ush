@@ -11,6 +11,7 @@ use super::{
     path::{looks_like_call_target, parse_call_target, parse_identifier},
     returns::parse_function_return,
 };
+use crate::scan::{ScanState, advance};
 use crate::types::{AstString as String, HeapVec as Vec};
 
 pub(super) fn parse_function_header(
@@ -145,26 +146,28 @@ pub(super) fn parse_await_task(source: &str) -> Result<Option<String>> {
 
 fn split_paren_form(source: &str) -> Option<(&str, &str, &str)> {
     let open = source.find('(')?;
-    let bytes = source.as_bytes();
-    let (mut single, mut double, mut depth) = (false, false, 0usize);
+    let mut state = ScanState::default();
+    let mut index = open;
 
-    for (index, byte) in bytes.iter().enumerate().skip(open) {
-        match *byte {
-            b'\'' if !double => single = !single,
-            b'"' if !single => double = !double,
-            b'(' if !single && !double => depth += 1,
-            b')' if !single && !double => {
-                depth = depth.saturating_sub(1);
-                if depth == 0 {
-                    return Some((
-                        source[..open].trim(),
-                        source[open + 1..index].trim(),
-                        source[index + 1..].trim(),
-                    ));
-                }
-            }
-            _ => {}
+    while index < source.len() {
+        if !state.in_string() && source.as_bytes()[index] == b'(' {
+            state.paren += 1;
+            index += 1;
+            continue;
         }
+        if !state.in_string() && source.as_bytes()[index] == b')' {
+            state.paren = state.paren.saturating_sub(1);
+            if state.paren == 0 {
+                return Some((
+                    source[..open].trim(),
+                    source[open + 1..index].trim(),
+                    source[index + 1..].trim(),
+                ));
+            }
+            index += 1;
+            continue;
+        }
+        index = advance(source, index, &mut state);
     }
     None
 }

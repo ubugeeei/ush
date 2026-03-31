@@ -2,8 +2,16 @@ pub fn format_source(source: &str) -> String {
     let mut out = String::new();
     let mut indent = 0usize;
     let mut last_blank = false;
+    let mut in_multiline = false;
 
     for raw in source.lines() {
+        if in_multiline || triple_quote_toggles(raw) > 0 {
+            out.push_str(raw);
+            out.push('\n');
+            in_multiline ^= triple_quote_toggles(raw) % 2 == 1;
+            last_blank = false;
+            continue;
+        }
         let line = raw.trim();
         if line.is_empty() {
             if !last_blank && !out.is_empty() {
@@ -23,6 +31,16 @@ pub fn format_source(source: &str) -> String {
     }
 
     out
+}
+
+fn triple_quote_toggles(line: &str) -> usize {
+    let mut count = 0usize;
+    let mut index = 0usize;
+    while let Some(offset) = line[index..].find("\"\"\"") {
+        count += 1;
+        index += offset + 3;
+    }
+    count
 }
 
 fn normalize_line(line: &str) -> String {
@@ -97,5 +115,14 @@ mod tests {
     fn collapses_repeated_blank_lines() {
         let formatted = format_source("print \"a\"\n\n\nprint \"b\"\n");
         assert_eq!(formatted, "print \"a\"\n\nprint \"b\"\n");
+    }
+
+    #[test]
+    fn preserves_multiline_string_blocks() {
+        let formatted = format_source("let page = \"\"\"\n  <div>\n    ok\n  </div>\n\"\"\"\n");
+        assert_eq!(
+            formatted,
+            "let page = \"\"\"\n  <div>\n    ok\n  </div>\n\"\"\"\n"
+        );
     }
 }

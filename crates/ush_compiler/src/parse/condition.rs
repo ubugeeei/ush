@@ -4,6 +4,7 @@ use super::{
     super::ast::Condition,
     expr::{parse_expr, parse_pattern},
 };
+use crate::scan::{ScanState, advance};
 use crate::types::HeapVec as Vec;
 
 pub(super) fn parse_condition(source: &str) -> Result<Condition> {
@@ -56,39 +57,16 @@ fn parse_optional_binding(source: &str) -> Result<Option<Condition>> {
 fn split_logic<'a>(source: &'a str, token: &str) -> Option<Vec<&'a str>> {
     let mut parts = Vec::new();
     let mut start = 0usize;
-    let mut single = false;
-    let mut double = false;
-    let mut paren = 0usize;
-    let mut brace = 0usize;
-    let mut bracket = 0usize;
-    let bytes = source.as_bytes();
-
+    let mut state = ScanState::default();
     let mut index = 0usize;
-    while index + token.len() <= bytes.len() {
-        match bytes[index] {
-            b'\'' if !double => single = !single,
-            b'"' if !single => double = !double,
-            b'(' if !single && !double => paren += 1,
-            b')' if !single && !double && paren > 0 => paren -= 1,
-            b'{' if !single && !double => brace += 1,
-            b'}' if !single && !double && brace > 0 => brace -= 1,
-            b'[' if !single && !double => bracket += 1,
-            b']' if !single && !double && bracket > 0 => bracket -= 1,
-            _ => {}
-        }
-        if !single
-            && !double
-            && paren == 0
-            && brace == 0
-            && bracket == 0
-            && source[index..].starts_with(token)
-        {
+    while index + token.len() <= source.len() {
+        if state.top_level() && source[index..].starts_with(token) {
             parts.push(source[start..index].trim());
             start = index + token.len();
             index += token.len();
             continue;
         }
-        index += 1;
+        index = advance(source, index, &mut state);
     }
     if parts.is_empty() {
         return None;
@@ -98,35 +76,21 @@ fn split_logic<'a>(source: &'a str, token: &str) -> Option<Vec<&'a str>> {
 }
 
 fn split_binding(source: &str) -> Option<(&str, &str)> {
-    let mut single = false;
-    let mut double = false;
-    let mut paren = 0usize;
-    let mut brace = 0usize;
-    let mut bracket = 0usize;
+    let mut state = ScanState::default();
     let bytes = source.as_bytes();
+    let mut index = 0usize;
 
-    for index in 0..bytes.len() {
-        match bytes[index] {
-            b'\'' if !double => single = !single,
-            b'"' if !single => double = !double,
-            b'(' if !single && !double => paren += 1,
-            b')' if !single && !double && paren > 0 => paren -= 1,
-            b'{' if !single && !double => brace += 1,
-            b'}' if !single && !double && brace > 0 => brace -= 1,
-            b'[' if !single && !double => bracket += 1,
-            b']' if !single && !double && bracket > 0 => bracket -= 1,
-            b'=' if !single && !double && paren == 0 && brace == 0 && bracket == 0 => {
-                let prev = index.checked_sub(1).and_then(|idx| bytes.get(idx)).copied();
-                let next = bytes.get(index + 1).copied();
-                if matches!(prev, Some(b'=') | Some(b'!') | Some(b'<') | Some(b'>'))
-                    || matches!(next, Some(b'='))
-                {
-                    continue;
-                }
+    while index < bytes.len() {
+        if state.top_level() && bytes[index] == b'=' {
+            let prev = index.checked_sub(1).and_then(|it| bytes.get(it)).copied();
+            let next = bytes.get(index + 1).copied();
+            if !matches!(prev, Some(b'=') | Some(b'!') | Some(b'<') | Some(b'>'))
+                && !matches!(next, Some(b'='))
+            {
                 return Some((source[..index].trim(), source[index + 1..].trim()));
             }
-            _ => {}
         }
+        index = advance(source, index, &mut state);
     }
     None
 }

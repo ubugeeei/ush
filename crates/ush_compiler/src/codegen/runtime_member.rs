@@ -65,6 +65,8 @@ pub(super) fn hoist_method_capture(
         impls,
         enums,
         state,
+        propagate,
+        inside_function,
         out,
     )?;
     let temp = state.temp_var("value");

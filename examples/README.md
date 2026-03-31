@@ -24,8 +24,9 @@ and adding `;` keeps that expression as a statement instead.
 - `unit.ush`: omitted `-> ()`, tail `()`, and `== ()`
 - `named_args.ush`: labeled arguments and `#[default(...)]`
 - `literal_match.ush`: literal `match` arms
+- `multiline_string.ush`: `""" ... """` strings with common-indent dedent
 - `primitives.ush`: integer addition plus `Eq` and `Ord` comparisons
-- `std_modules.ush`: `std::env`, path refs via `std::path::{from_cwd, from_source, resolve}`, `std::fs`, `std::command`, and `std::string`
+- `std_modules.ush`: `std::env`, `from_cwd` / `from_source` path refs, plus method-style `path.resolve()`, `path.exists()`, `path.read_text()`, `std::fs`, `std::command`, and `std::string`
 - `control_flow.ush`: `if` tail values, `for in`, ranges, `while`, `loop`, and `if let ... && ...`
 
 ## ADT and Pattern Matching

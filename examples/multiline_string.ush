@@ -1,0 +1,8 @@
+let article = """
+  <article>
+    hello
+  </article>
+"""
+
+print article
+print $ article.starts_with("<article>")

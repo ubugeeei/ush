@@ -1,6 +1,6 @@
 use std::env::{get_or, set}
 use std::fs::{read_text, tmpfile, write_text}
-use std::path::{basename, dirname, exists, from_source, join, resolve}
+use std::path::{from_source, join}
 use std::command::{capture, exists as command_exists}
 use std::string::{replace, trim_suffix}
 
@@ -9,17 +9,17 @@ set "USH_EXAMPLE" "module-ready"
 let file = tmpfile()
 let nested = join "/tmp" "ush"
 let example_root = from_source "."
-let example_config = join example_root "config.pkl"
-let resolved_config = resolve example_config
+let example_config = example_root.join("config.pkl")
+let resolved_config = example_config.resolve()
 write_text file "from-fs"
 
 print $ get_or "USH_EXAMPLE" "fallback"
-print $ dirname nested
-print $ exists file
-print $ exists example_config
-print $ basename resolved_config
+print $ nested.dirname()
+print $ file.exists()
+print $ example_config.exists()
+print $ resolved_config.basename()
 print $ replace "hello.txt" ".txt" ".ush"
 print $ trim_suffix "module.ush" ".ush"
-print $ read_text file
+print $ file.read_text()
 print $ command_exists "sh"
 print $ capture "printf '%s\n' from-command"

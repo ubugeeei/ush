@@ -17,18 +17,31 @@ enum KeywordContext {
 
 pub fn semantic_tokens(source: &str) -> Vec<SemanticToken> {
     let mut out = Vec::new();
+    let mut in_multiline = false;
     for (line_no, line) in source.lines().enumerate() {
-        tokenize_line(line_no as u32, line, &mut out);
+        in_multiline = tokenize_line(line_no as u32, line, &mut out, in_multiline);
     }
     out
 }
 
-fn tokenize_line(line_no: u32, line: &str, out: &mut Vec<SemanticToken>) {
+fn tokenize_line(
+    line_no: u32,
+    line: &str,
+    out: &mut Vec<SemanticToken>,
+    mut in_multiline: bool,
+) -> bool {
     let bytes = line.as_bytes();
     let mut index = 0usize;
     let mut context = NoKeyword;
 
     while index < bytes.len() {
+        if in_multiline {
+            let end = triple_string_end(line, index);
+            push(out, line_no, index, end - index, SemanticTokenKind::String);
+            index = end;
+            in_multiline = end == line.len();
+            continue;
+        }
         let ch = bytes[index] as char;
         if ch.is_ascii_whitespace() {
             index += 1;
@@ -56,6 +69,14 @@ fn tokenize_line(line_no: u32, line: &str, out: &mut Vec<SemanticToken>) {
                 SemanticTokenKind::Comment,
             );
             break;
+        }
+        if line[index..].starts_with("\"\"\"") {
+            let end = triple_string_end(line, index);
+            push(out, line_no, index, end - index, SemanticTokenKind::String);
+            index = end;
+            in_multiline = end == line.len();
+            context = NoKeyword;
+            continue;
         }
         if matches!(ch, '"' | '\'') {
             let end = string_end(line, index);
@@ -115,6 +136,7 @@ fn tokenize_line(line_no: u32, line: &str, out: &mut Vec<SemanticToken>) {
         index = end;
         context = NoKeyword;
     }
+    in_multiline
 }
 
 fn classify_ident(ident: &str, context: KeywordContext, next: Option<char>) -> SemanticTokenKind {
@@ -165,6 +187,12 @@ fn string_end(line: &str, start: usize) -> usize {
         escaped = false;
     }
     line.len()
+}
+
+fn triple_string_end(line: &str, start: usize) -> usize {
+    line[start + 3..]
+        .find("\"\"\"")
+        .map_or(line.len(), |offset| start + offset + 6)
 }
 
 fn variable_end(line: &str, start: usize) -> usize {

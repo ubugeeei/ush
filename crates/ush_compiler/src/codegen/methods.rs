@@ -7,14 +7,16 @@ use super::{
         matching::materialize_expr,
     },
     FunctionRegistry,
+    builtin_methods::{capture_builtin_method, infer_builtin_method},
     calls::ensure_value_type,
     compile_runtime_primitive_expr, infer,
     method_fields::struct_field,
     methods_support::{bind_method_args, compile_method_body, resolve_method_args},
+    runtime_support::{FailureMode, hoist_expr},
 };
 use crate::sourcemap::OutputBuffer;
 use crate::traits::{TraitImplRegistry, ensure_trait, lookup_method};
-use crate::types::OutputString as String;
+use crate::types::{HeapVec as Vec, OutputString as String};
 
 pub(crate) fn infer_field_expr(
     base: &Expr,
@@ -37,6 +39,9 @@ pub(crate) fn infer_method_call(
     enums: &EnumRegistry,
 ) -> Result<Type> {
     let receiver_ty = infer(&call.receiver, env, functions, impls, enums)?;
+    if let Some(ty) = infer_builtin_method(call, env, functions, impls, enums)? {
+        return Ok(ty);
+    }
     let def = lookup_method(&receiver_ty, &call.method, impls)?;
     let args = resolve_method_args(call, def)?;
     for (param, arg) in def.params.iter().zip(args) {
@@ -92,7 +97,19 @@ pub(crate) fn compile_display_expr(
             inside_function,
             out,
         ),
-        _ => compile_method_capture(expr, "fmt", &[], env, functions, impls, enums, state, out),
+        _ => compile_method_capture(
+            expr,
+            "fmt",
+            &[],
+            env,
+            functions,
+            impls,
+            enums,
+            state,
+            false,
+            inside_function,
+            out,
+        ),
     }
 }
 
@@ -105,24 +122,78 @@ pub(crate) fn compile_method_capture(
     impls: &TraitImplRegistry,
     enums: &EnumRegistry,
     state: &mut CodegenState,
+    propagate: bool,
+    inside_function: bool,
     out: &mut OutputBuffer,
 ) -> Result<String> {
-    let receiver_ty = infer(receiver, env, functions, impls, enums)?;
+    let mode = if propagate {
+        FailureMode::Propagate { inside_function }
+    } else {
+        FailureMode::Abort
+    };
+    let mut runtime_env = env.clone();
+    let receiver = hoist_expr(
+        receiver,
+        &mut runtime_env,
+        functions,
+        impls,
+        enums,
+        state,
+        mode,
+        inside_function,
+        out,
+    )?;
+    let args = args
+        .iter()
+        .map(|arg| {
+            hoist_expr(
+                arg,
+                &mut runtime_env,
+                functions,
+                impls,
+                enums,
+                state,
+                mode,
+                inside_function,
+                out,
+            )
+        })
+        .collect::<Result<Vec<_>>>()?;
+    if let Some(rendered) = capture_builtin_method(
+        &receiver,
+        method,
+        &args,
+        &runtime_env,
+        functions,
+        impls,
+        enums,
+    )? {
+        return Ok(rendered);
+    }
+    let receiver_ty = infer(&receiver, &runtime_env, functions, impls, enums)?;
     let def = lookup_method(&receiver_ty, method, impls)?;
     let return_type = def
         .return_type
         .clone()
         .ok_or_else(|| anyhow!("method `{method}` does not return a value"))?;
     ensure_value_type(&return_type)?;
-    let receiver_binding =
-        materialize_expr(receiver, env, functions, impls, enums, state, true, out)?;
-    let mut method_env = env.clone();
+    let receiver_binding = materialize_expr(
+        &receiver,
+        &runtime_env,
+        functions,
+        impls,
+        enums,
+        state,
+        inside_function,
+        out,
+    )?;
+    let mut method_env = runtime_env.clone();
     method_env.insert("self".into(), receiver_binding);
     bind_method_args(
-        args,
+        &args,
         def,
         &mut method_env,
-        env,
+        &runtime_env,
         functions,
         impls,
         enums,

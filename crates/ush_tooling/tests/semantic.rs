@@ -33,3 +33,18 @@ fn tokenizes_inline_shell_prefix_as_operator() {
     assert_eq!(tokens[0].kind, SemanticTokenKind::Operator);
     assert_eq!(tokens[1].kind, SemanticTokenKind::Function);
 }
+
+#[test]
+fn tokenizes_multiline_strings_across_lines() {
+    let tokens = semantic_tokens("let page = \"\"\"\n  <div>\n\"\"\"\n");
+    assert!(
+        tokens
+            .iter()
+            .any(|token| token.kind == SemanticTokenKind::String && token.line == 0)
+    );
+    assert!(
+        tokens
+            .iter()
+            .any(|token| token.kind == SemanticTokenKind::String && token.line == 1)
+    );
+}

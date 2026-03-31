@@ -71,19 +71,18 @@ fn ush_scripts_support_source_relative_path_refs() {
     fs::write(
         &script,
         r#"
-        use std::fs::read_text
-        use std::path::{basename, dirname, exists, from_cwd, from_source, join, resolve}
+        use std::path::{from_cwd, from_source}
         let source_root = from_source "."
-        let source_file = join source_root "notes.txt"
+        let source_file = source_root.join("notes.txt")
         let cwd_file = from_cwd "notes.txt"
-        let source_parent = dirname source_file
-        let source_copy = join source_parent "notes.txt"
-        let cwd_abs = resolve cwd_file
-        print $ read_text source_copy
-        print $ read_text cwd_file
-        print $ exists source_file
-        print $ basename cwd_abs
-        print $ exists cwd_abs
+        let source_parent = source_file.dirname()
+        let source_copy = source_parent.join("notes.txt")
+        let cwd_abs = cwd_file.resolve()
+        print $ source_copy.read_text()
+        print $ cwd_file.read_text()
+        print $ source_file.exists()
+        print $ cwd_abs.basename()
+        print $ cwd_abs.exists()
         "#,
     )
     .expect("write script");

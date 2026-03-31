@@ -4,6 +4,8 @@ use memchr::{memchr, memmem, memrchr};
 use phf::phf_map;
 
 use super::ast::Type;
+use crate::scan::{ScanState, advance};
+use crate::string_literal;
 use crate::types::{AstString as String, AstVec as Vec, OutputString};
 
 #[derive(Clone, Copy)]
@@ -22,22 +24,19 @@ static PRIMITIVE_TYPES: phf::Map<&'static str, PrimitiveType> = phf_map! {
 pub(crate) fn split_top_level(source: &str, separator: char) -> Vec<&str> {
     let mut result = Vec::new();
     let mut start = 0usize;
-    let (mut single, mut double, mut paren, mut brace) = (false, false, 0usize, 0usize);
+    let mut state = ScanState::default();
+    let mut index = 0usize;
 
-    for (index, ch) in source.char_indices() {
-        match ch {
-            '\'' if !double => single = !single,
-            '"' if !single => double = !double,
-            '(' if !single && !double => paren += 1,
-            ')' if !single && !double && paren > 0 => paren -= 1,
-            '{' if !single && !double => brace += 1,
-            '}' if !single && !double && brace > 0 => brace -= 1,
-            _ if ch == separator && !single && !double && paren == 0 && brace == 0 => {
-                result.push(source[start..index].trim());
-                start = index + ch.len_utf8();
-            }
-            _ => {}
+    while index < source.len() {
+        let ch = source[index..]
+            .chars()
+            .next()
+            .expect("split index must be valid");
+        if state.top_level() && ch == separator {
+            result.push(source[start..index].trim());
+            start = index + ch.len_utf8();
         }
+        index = advance(source, index, &mut state);
     }
 
     if start == 0 {
@@ -52,26 +51,24 @@ pub(crate) fn split_top_level(source: &str, separator: char) -> Vec<&str> {
 pub(crate) fn split_top_level_whitespace(source: &str) -> Vec<&str> {
     let mut result = Vec::new();
     let mut start = None;
-    let (mut single, mut double, mut paren, mut brace) = (false, false, 0usize, 0usize);
+    let mut state = ScanState::default();
+    let mut index = 0usize;
 
-    for (index, ch) in source.char_indices() {
+    while index < source.len() {
+        let ch = source[index..]
+            .chars()
+            .next()
+            .expect("split index must be valid");
         if !ch.is_whitespace() && start.is_none() {
             start = Some(index);
         }
-        match ch {
-            '\'' if !double => single = !single,
-            '"' if !single => double = !double,
-            '(' if !single && !double => paren += 1,
-            ')' if !single && !double && paren > 0 => paren -= 1,
-            '{' if !single && !double => brace += 1,
-            '}' if !single && !double && brace > 0 => brace -= 1,
-            _ if ch.is_whitespace() && !single && !double && paren == 0 && brace == 0 => {
-                if let Some(begin) = start.take() {
-                    result.push(source[begin..index].trim());
-                }
-            }
-            _ => {}
+        if ch.is_whitespace()
+            && state.top_level()
+            && let Some(begin) = start.take()
+        {
+            result.push(source[begin..index].trim());
         }
+        index = advance(source, index, &mut state);
     }
 
     if let Some(begin) = start {
@@ -81,42 +78,36 @@ pub(crate) fn split_top_level_whitespace(source: &str) -> Vec<&str> {
 }
 
 pub(crate) fn split_once_top_level(source: &str, separator: char) -> Option<(&str, &str)> {
-    let (mut single, mut double, mut paren, mut brace) = (false, false, 0usize, 0usize);
-    for (index, ch) in source.char_indices() {
-        match ch {
-            '\'' if !double => single = !single,
-            '"' if !single => double = !double,
-            '(' if !single && !double => paren += 1,
-            ')' if !single && !double && paren > 0 => paren -= 1,
-            '{' if !single && !double => brace += 1,
-            '}' if !single && !double && brace > 0 => brace -= 1,
-            _ if ch == separator && !single && !double && paren == 0 && brace == 0 => {
-                return Some((source[..index].trim(), source[index + 1..].trim()));
-            }
-            _ => {}
+    let mut state = ScanState::default();
+    let mut index = 0usize;
+    while index < source.len() {
+        let ch = source[index..]
+            .chars()
+            .next()
+            .expect("split index must be valid");
+        if state.top_level() && ch == separator {
+            return Some((source[..index].trim(), source[index + 1..].trim()));
         }
+        index = advance(source, index, &mut state);
     }
     None
 }
 
 pub(crate) fn strip_top_level_suffix(source: &str, suffix: char) -> Option<&str> {
     let trimmed = source.trim();
-    let (mut single, mut double, mut paren, mut brace) = (false, false, 0usize, 0usize);
+    let mut state = ScanState::default();
     let mut candidate = None;
+    let mut index = 0usize;
 
-    for (index, ch) in trimmed.char_indices() {
-        match ch {
-            '\'' if !double => single = !single,
-            '"' if !single => double = !double,
-            '(' if !single && !double => paren += 1,
-            ')' if !single && !double && paren > 0 => paren -= 1,
-            '{' if !single && !double => brace += 1,
-            '}' if !single && !double && brace > 0 => brace -= 1,
-            _ if ch == suffix && !single && !double && paren == 0 && brace == 0 => {
-                candidate = Some(index);
-            }
-            _ => {}
+    while index < trimmed.len() {
+        let ch = trimmed[index..]
+            .chars()
+            .next()
+            .expect("suffix index must be valid");
+        if state.top_level() && ch == suffix {
+            candidate = Some(index);
         }
+        index = advance(trimmed, index, &mut state);
     }
 
     let index = candidate?;
@@ -158,21 +149,23 @@ pub(crate) fn strip_wrapping_parens(source: &str) -> Option<&str> {
         return None;
     }
 
-    let bytes = trimmed.as_bytes();
-    let (mut single, mut double, mut depth) = (false, false, 0usize);
-    for (index, byte) in bytes.iter().enumerate() {
-        match *byte {
-            b'\'' if !double => single = !single,
-            b'"' if !single => double = !double,
-            b'(' if !single && !double => depth += 1,
-            b')' if !single && !double => {
-                depth = depth.saturating_sub(1);
-                if depth == 0 && index + 1 != trimmed.len() {
-                    return None;
-                }
-            }
-            _ => {}
+    let mut state = ScanState::default();
+    let mut index = 0usize;
+    while index < trimmed.len() {
+        if !state.in_string() && trimmed.as_bytes()[index] == b'(' {
+            state.paren += 1;
+            index += 1;
+            continue;
         }
+        if !state.in_string() && trimmed.as_bytes()[index] == b')' {
+            state.paren = state.paren.saturating_sub(1);
+            if state.paren == 0 && index + 1 != trimmed.len() {
+                return None;
+            }
+            index += 1;
+            continue;
+        }
+        index = advance(trimmed, index, &mut state);
     }
 
     Some(trimmed[1..trimmed.len() - 1].trim())
@@ -185,18 +178,7 @@ pub(crate) fn parse_brace_body(source: &str) -> Option<(&str, &str)> {
 }
 
 pub(crate) fn parse_string_literal(source: &str) -> Option<String> {
-    if source.len() < 2 {
-        return None;
-    }
-    let bytes = source.as_bytes();
-    let quote = *bytes.first()?;
-    if quote != b'\'' && quote != b'"' {
-        return None;
-    }
-    if bytes.last().copied()? != quote {
-        return None;
-    }
-    Some(source[1..source.len() - 1].into())
+    string_literal::parse_string_literal(source)
 }
 
 pub(crate) fn is_identifier(source: &str) -> bool {

@@ -246,7 +246,8 @@ match greeting {
 Current highlights:
 
 - `let`, `print`, `match`, typed `fn`, `enum`, `type`, marker `trait`, and Rust-like tail expressions
-- `std::env`, `std::path`, `std::fs`, `std::command`, and `std::string` helpers via fully-qualified calls or top-level `use`, including `from_cwd` / `from_source` path refs
+- `""" ... """` multiline strings with common-indent dedent
+- `std::env`, `std::path`, `std::fs`, `std::command`, and `std::string` helpers via fully-qualified calls or top-level `use`, plus method-style path/string flows like `path.resolve()`, `path.exists()`, `path.read_text()`, and `name.trim_suffix(".ush")`
 - `raise` plus typed error signatures like `Problem!String`, with Rust-like `?` propagation
 - `$ command ...` for inline shell execution and `shell expr` for dynamic command strings
 - `async` / `.await`

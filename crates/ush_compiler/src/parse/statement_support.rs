@@ -8,6 +8,7 @@ use super::{
     SourceLine,
     expr::parse_expr,
 };
+use crate::scan;
 
 pub(super) fn split_assignment(source: &str) -> Option<(&str, &str)> {
     let (name, expr) = split_once_top_level(source, '=')?;
@@ -108,24 +109,5 @@ fn next_is_else(lines: &[SourceLine<'_>], mut index: usize) -> bool {
 }
 
 fn brace_delta(line: &str) -> isize {
-    let (mut single, mut double, mut escaped) = (false, false, false);
-    let mut delta = 0isize;
-
-    for ch in line.chars() {
-        if escaped {
-            escaped = false;
-            continue;
-        }
-        match ch {
-            '#' if !single && !double => break,
-            '\\' if double => escaped = true,
-            '\'' if !double => single = !single,
-            '"' if !single => double = !double,
-            '{' if !single && !double => delta += 1,
-            '}' if !single && !double => delta -= 1,
-            _ => {}
-        }
-    }
-
-    delta
+    scan::brace_delta(line)
 }

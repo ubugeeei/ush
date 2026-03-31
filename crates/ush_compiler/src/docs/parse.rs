@@ -1,3 +1,4 @@
+use crate::scan;
 use crate::types::{HeapVec as Vec, OutputString as String};
 
 use super::{DocItem, DocItemKind, DocParam, ScriptDocs};
@@ -191,21 +192,11 @@ fn normalize_lines(lines: Vec<String>) -> Vec<String> {
 }
 
 fn update_depth(mut depth: usize, line: &str) -> usize {
-    let (mut single, mut double, mut escaped) = (false, false, false);
-    for ch in line.chars() {
-        if escaped {
-            escaped = false;
-            continue;
-        }
-        match ch {
-            '#' if !single && !double => break,
-            '\\' if double => escaped = true,
-            '\'' if !double => single = !single,
-            '"' if !single => double = !double,
-            '{' if !single && !double => depth += 1,
-            '}' if !single && !double && depth > 0 => depth -= 1,
-            _ => {}
-        }
+    let delta = scan::brace_delta(line);
+    if delta > 0 {
+        depth += delta as usize;
+    } else {
+        depth = depth.saturating_sub((-delta) as usize);
     }
     depth
 }

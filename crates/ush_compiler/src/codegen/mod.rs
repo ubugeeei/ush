@@ -1,6 +1,7 @@
 mod alias;
 mod bin;
 mod blocks;
+mod builtin_methods;
 mod call_support;
 mod calls;
 mod compare;

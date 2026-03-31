@@ -7,6 +7,7 @@ use super::{
     },
     expr::parse_expr,
 };
+use crate::scan::{ScanState, advance};
 use crate::types::HeapVec as Vec;
 
 pub(super) fn parse_attribute_line(source: &str) -> Result<Attribute> {
@@ -45,15 +46,13 @@ fn parse_attribute(source: &str) -> Result<Attribute> {
 }
 
 fn attribute_end(source: &str) -> Option<usize> {
-    let mut single = false;
-    let mut double = false;
-    for (index, ch) in source.char_indices().skip(2) {
-        match ch {
-            '\'' if !double => single = !single,
-            '"' if !single => double = !double,
-            ']' if !single && !double => return Some(index + 1),
-            _ => {}
+    let mut state = ScanState::default();
+    let mut index = 2usize;
+    while index < source.len() {
+        if state.top_level() && source.as_bytes()[index] == b']' {
+            return Some(index + 1);
         }
+        index = advance(source, index, &mut state);
     }
     None
 }

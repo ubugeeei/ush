@@ -142,18 +142,18 @@ fn path_refs_support_source_relative_and_cwd_relative_flows() {
         &script,
         r#"
         use std::fs::read_text
-        use std::path::{basename, dirname, exists, from_cwd, from_source, join, resolve}
+        use std::path::{from_cwd, from_source}
         let source_root = from_source "."
-        let source_file = join source_root "notes.txt"
+        let source_file = source_root.join("notes.txt")
         let cwd_file = from_cwd "notes.txt"
-        let source_parent = dirname source_file
-        let source_copy = join source_parent "notes.txt"
-        let cwd_abs = resolve cwd_file
-        print $ read_text source_copy
-        print $ read_text cwd_file
-        print $ exists source_file
-        print $ basename cwd_abs
-        print $ exists cwd_abs
+        let source_parent = source_file.dirname()
+        let source_copy = source_parent.join("notes.txt")
+        let cwd_abs = cwd_file.resolve()
+        print $ source_copy.read_text()
+        print $ cwd_file.read_text()
+        print $ source_file.exists()
+        print $ cwd_abs.basename()
+        print $ cwd_abs.exists()
         "#,
     )
     .expect("write script");
@@ -179,4 +179,23 @@ fn path_refs_support_source_relative_and_cwd_relative_flows() {
         String::from_utf8_lossy(&output.stdout),
         "source\ncwd\ntrue\nnotes.txt\ntrue\n"
     );
+}
+
+#[test]
+fn path_methods_can_mutate_and_read_files() {
+    let output = run_program(
+        r#"
+        use std::path::tmpfile
+        let path = tmpfile()
+        path.write_text("alpha")
+        path.append_text(":beta")
+        print $ path.read_text()
+        print $ path.sha256() != ""
+        print $ path.mime_type().starts_with("text/")
+        path.remove()
+        print $ path.exists()
+      "#,
+    );
+
+    assert_eq!(output, "alpha:beta\ntrue\ntrue\nfalse\n");
 }

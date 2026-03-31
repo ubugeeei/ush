@@ -1276,10 +1276,11 @@ checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
 
 [[package]]
 name = "ush"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "clap",
+ "glob",
  "libc",
  "serde",
  "serde_json",
@@ -1292,7 +1293,7 @@ dependencies = [
 
 [[package]]
 name = "ush_compiler"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "bumpalo",
@@ -1307,7 +1308,7 @@ dependencies = [
 
 [[package]]
 name = "ush_config"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "directories",
@@ -1319,7 +1320,7 @@ dependencies = [
 
 [[package]]
 name = "ush_lsp"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "lsp-server",
@@ -1330,7 +1331,7 @@ dependencies = [
 
 [[package]]
 name = "ush_shell"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1349,7 +1350,7 @@ dependencies = [
 
 [[package]]
 name = "ush_tooling"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "ush_compiler",

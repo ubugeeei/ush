@@ -20,7 +20,37 @@ pub(super) fn expr_errors(
 ) -> Result<ErrorSet> {
     let mut errors = ErrorSet::default();
     match expr {
-        Expr::String(_) | Expr::Int(_) | Expr::Bool(_) | Expr::Unit | Expr::Var(_) => {}
+        Expr::String(_) | Expr::Int(_) | Expr::Bool(_) | Expr::Unit | Expr::Var(_) | Expr::AsyncBlock(_) => {}
+        Expr::Tuple(items) | Expr::List(items) => {
+            for item in items {
+                errors.extend(&expr_errors(
+                    item,
+                    env,
+                    functions,
+                    impls,
+                    enums,
+                    function_errors,
+                )?);
+            }
+        }
+        Expr::Range { start, end } => {
+            errors.extend(&expr_errors(
+                start,
+                env,
+                functions,
+                impls,
+                enums,
+                function_errors,
+            )?);
+            errors.extend(&expr_errors(
+                end,
+                env,
+                functions,
+                impls,
+                enums,
+                function_errors,
+            )?);
+        }
         Expr::Add(parts) => {
             for part in parts {
                 errors.extend(&expr_errors(
@@ -155,6 +185,7 @@ pub(super) fn raised_error(
 pub(super) fn binding_for_type(name: &str, ty: Type) -> Binding {
     let storage = match &ty {
         Type::Adt(_) => Storage::Adt(name.into()),
+        Type::Tuple(_) | Type::List(_) => Storage::Aggregate(name.into()),
         Type::String | Type::Int | Type::Bool | Type::Unit => Storage::Primitive(name.into()),
         Type::Task(_) => Storage::Task(name.into()),
     };

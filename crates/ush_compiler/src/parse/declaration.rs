@@ -13,7 +13,7 @@ use super::{
     SourceLine,
     declaration_support::{finish_block, parse_name},
     expr::{parse_expr, parse_named_type_list, parse_pattern, parse_type_list},
-    signature, use_decl,
+    inline, signature, use_decl,
 };
 use crate::types::{AstString as String, HeapVec as Vec};
 
@@ -75,7 +75,7 @@ pub(super) fn parse_match(
         arms.push((
             parse_pattern(pattern.trim())?,
             Box::new(
-                super::statement::parse_inline_body(*line_no, statement.trim(), returns_value)
+                inline::parse_inline_body(*line_no, statement.trim(), returns_value)
                     .with_context(|| format!("line {line_no}: invalid match arm body"))?,
             ),
         ));

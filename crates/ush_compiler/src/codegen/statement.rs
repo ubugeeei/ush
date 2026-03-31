@@ -1,8 +1,8 @@
-use anyhow::{Result, bail};
+use anyhow::Result;
 
 use super::{
     super::{
-        ast::{EnumDef, Statement, StatementKind, Type, VariantFields},
+        ast::{Statement, StatementKind, Type},
         effects::FunctionErrorRegistry,
         env::{CodegenState, EnumRegistry, Env},
     },
@@ -12,38 +12,11 @@ use super::{
     functions::{FunctionRegistry, compile_function},
     io::{compile_raise, compile_shell, push_print},
     shared::binding_for_name,
+    statement_control::compile_control_statement,
     tasks::{compile_await, compile_expr_statement, compile_return, compile_spawn},
 };
 use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
-use crate::types::Set as HashSet;
-
-pub(crate) fn register_enum(def: &EnumDef, enums: &mut EnumRegistry) -> Result<()> {
-    if enums.contains_key(&def.name) {
-        bail!("duplicate enum: {}", def.name);
-    }
-    let mut variants = HashSet::with_hasher(Default::default());
-    for variant in &def.variants {
-        if !variants.insert(variant.name.clone()) {
-            bail!("duplicate variant: {}::{}", def.name, variant.name);
-        }
-        if let VariantFields::Struct(fields) = &variant.fields {
-            let mut names = HashSet::with_hasher(Default::default());
-            for field in fields {
-                if !names.insert(field.name.clone()) {
-                    bail!(
-                        "duplicate field: {}::{}::{}",
-                        def.name,
-                        variant.name,
-                        field.name
-                    );
-                }
-            }
-        }
-    }
-    enums.insert(def.name.clone(), def.clone());
-    Ok(())
-}
 
 pub(crate) fn compile_statement(
     statement: &Statement,
@@ -61,6 +34,22 @@ pub(crate) fn compile_statement(
 ) -> Result<()> {
     let previous_origin = out.set_origin(Some(statement.line));
     let result = (|| -> Result<()> {
+        if let Some(control) = compile_control_statement(
+            &statement.kind,
+            env,
+            globals,
+            functions,
+            impls,
+            enums,
+            function_errors,
+            state,
+            return_type,
+            inside_function,
+            out,
+        ) {
+            control?;
+            return Ok(());
+        }
         match &statement.kind {
             StatementKind::Use(_) => {}
             StatementKind::Enum(_) => {}
@@ -90,9 +79,11 @@ pub(crate) fn compile_statement(
                 name,
                 expr,
                 env,
+                globals,
                 functions,
                 impls,
                 enums,
+                function_errors,
                 state,
                 inside_function,
                 out,
@@ -213,6 +204,12 @@ pub(crate) fn compile_statement(
                 inside_function,
                 out,
             )?,
+            StatementKind::If { .. }
+            | StatementKind::While { .. }
+            | StatementKind::For { .. }
+            | StatementKind::Loop { .. }
+            | StatementKind::Break
+            | StatementKind::Continue => unreachable!(),
         }
         Ok(())
     })();

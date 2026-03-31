@@ -7,6 +7,7 @@ use crate::{sourcemap::OutputBuffer, types::AstString as NameString};
 pub(crate) fn binding_for_name(name: &str, ty: Type) -> Binding {
     let storage = match ty {
         Type::Adt(_) => Storage::Adt(NameString::from(name)),
+        Type::Tuple(_) | Type::List(_) => Storage::Aggregate(NameString::from(name)),
         Type::String | Type::Int | Type::Bool | Type::Unit => {
             Storage::Primitive(NameString::from(name))
         }

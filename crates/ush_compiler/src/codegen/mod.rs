@@ -3,7 +3,10 @@ mod bin;
 mod blocks;
 mod calls;
 mod compare;
+mod control;
+mod control_support;
 mod docs;
+mod enum_registry;
 mod functions;
 mod io;
 mod primitive;
@@ -11,7 +14,9 @@ mod render;
 mod runtime_expr;
 mod shared;
 mod statement;
+mod statement_control;
 mod stdlib;
+mod task_block;
 mod tasks;
 
 use anyhow::Result;
@@ -28,6 +33,7 @@ use crate::traits::{TraitImplRegistry, TraitRegistry, register_trait, register_t
 pub(crate) use functions::FunctionRegistry;
 pub(crate) use primitive::{compile_primitive_expr, infer};
 pub(crate) use runtime_expr::{compile_runtime_primitive_expr, rendered_call_runtime};
+pub(crate) use task_block::infer_async_block_type;
 
 pub(crate) fn compile_program(
     program: &[Statement],
@@ -48,7 +54,7 @@ pub(crate) fn compile_program(
     for statement in program {
         match &statement.kind {
             StatementKind::Use(_) => {}
-            StatementKind::Enum(def) => statement::register_enum(def, &mut enums)?,
+            StatementKind::Enum(def) => enum_registry::register_enum(def, &mut enums)?,
             StatementKind::Trait(def) => register_trait(def, &mut traits)?,
             StatementKind::Impl(item) => register_trait_impl(item, &traits, &mut trait_impls)?,
             StatementKind::Function(def) => functions::register_function(def, &mut functions)?,

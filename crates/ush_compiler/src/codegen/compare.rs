@@ -55,6 +55,7 @@ pub(crate) fn compile_compare_expr(
         Type::Bool => bool_capture(bool_condition(op, lhs.as_str(), rhs.as_str())),
         Type::Unit => bool_capture(unit_condition(op)),
         Type::Adt(name) => bail!("comparison for ADT `{name}` is not implemented yet"),
+        Type::Tuple(_) | Type::List(_) => bail!("structured values cannot be compared yet"),
         Type::Task(_) => bail!("task handles cannot be compared"),
     })
 }

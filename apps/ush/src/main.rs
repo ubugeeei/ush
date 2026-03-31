@@ -1,5 +1,6 @@
 mod cli;
 mod script_docs;
+mod test_runner;
 
 use std::path::Path;
 use std::process;
@@ -39,6 +40,9 @@ fn main() -> Result<()> {
                 stdout,
             } => process::exit(format_action(input, *check, *stdout)?),
             Action::Check { input } => process::exit(check_action(input)?),
+            Action::Test { targets } => {
+                process::exit(test_runner::run(targets, cli.config.as_deref())?)
+            }
         }
     }
 

@@ -258,6 +258,8 @@ Useful commands:
 ```bash
 cargo run -p ush -- examples/hello.ush
 cargo run -p ush -- compile examples/hello.ush
+cargo run -p ush -- test
+cargo run -p ush -- test tests examples/hello.ush
 cargo run -p ush -- compile examples/hello.ush --sourcemap /tmp/hello.sh.map.json
 cargo run -p ush -- format examples/hello.ush --stdout
 cargo run -p ush -- check examples/hello.ush
@@ -290,7 +292,7 @@ curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | sh
 Pin a release version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | env USH_VERSION=v0.1.0 sh
+curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | env USH_VERSION=v0.2.0 sh
 ```
 
 Install into a custom prefix:
@@ -349,7 +351,7 @@ GitHub Actions provides two release paths:
 - Push a `v*` tag to run the release pipeline directly
 - Run `Cut Release` from the Actions tab to create and push a tag, then call the same release pipeline
 
-`Cut Release` asks for a version like `v0.1.0` and a target ref such as `main`.
+`Cut Release` asks for a version like `v0.2.0` and a target ref such as `main`.
 
 ## CI
 

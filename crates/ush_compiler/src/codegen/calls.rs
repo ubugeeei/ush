@@ -159,6 +159,9 @@ pub(crate) fn ensure_value_type(ty: &Type) -> Result<()> {
     match ty {
         Type::String | Type::Int | Type::Bool | Type::Unit => Ok(()),
         Type::Adt(name) => bail!("ADT values are not supported here yet: {name}"),
+        Type::Tuple(_) | Type::List(_) => {
+            bail!("structured list/tuple values are not supported in function signatures yet")
+        }
         Type::Task(_) => bail!("nested task types are not supported"),
     }
 }

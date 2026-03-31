@@ -13,6 +13,7 @@ pub(crate) struct Binding {
 pub(crate) enum Storage {
     Primitive(String),
     Adt(String),
+    Aggregate(String),
     Task(String),
 }
 

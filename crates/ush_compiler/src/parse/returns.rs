@@ -11,7 +11,7 @@ use crate::{
 
 pub(super) fn parse_function_return(source: &str) -> Result<(Option<Type>, Option<ErrorSet>)> {
     if source.is_empty() {
-        return Ok((None, None));
+        return Ok((Some(Type::Unit), None));
     }
     let ty = source
         .strip_prefix("->")

@@ -1,5 +1,6 @@
 mod emit;
 mod pattern;
+mod sequence;
 
 use anyhow::{Result, bail};
 
@@ -15,6 +16,7 @@ use crate::traits::TraitImplRegistry;
 use crate::types::{AstVec as Vec, OutputString as String};
 use emit::{emit_copy, emit_variant};
 use pattern::bind_pattern;
+use sequence::emit_sequence;
 
 pub(crate) struct PatternPlan {
     pub condition: String,
@@ -51,6 +53,25 @@ pub(crate) fn materialize_expr(
             Ok(Binding {
                 ty: Type::Adt(enum_name),
                 storage: Storage::Adt(prefix),
+            })
+        }
+        Type::Tuple(_) | Type::List(_) => {
+            let prefix = state.temp_var("match");
+            emit_value_to_target(
+                &prefix,
+                expr,
+                &ty,
+                env,
+                functions,
+                impls,
+                enums,
+                state,
+                inside_function,
+                out,
+            )?;
+            Ok(Binding {
+                ty,
+                storage: Storage::Aggregate(prefix),
             })
         }
         primitive => {
@@ -124,6 +145,18 @@ pub(crate) fn emit_value_to_target(
             }
             _ => bail!("expected ADT expression for {enum_name}"),
         },
+        Type::Tuple(_) | Type::List(_) => emit_sequence(
+            target,
+            expr,
+            expected,
+            env,
+            functions,
+            impls,
+            enums,
+            state,
+            inside_function,
+            out,
+        )?,
         Type::Task(_) => bail!("task handles cannot be materialized as match values"),
     }
     Ok(())

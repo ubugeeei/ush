@@ -14,6 +14,7 @@ use super::{
     infer,
     shared::{binding_for_name, push_line, push_output},
     statement::compile_statement,
+    task_block::compile_async_block,
 };
 use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
@@ -22,13 +23,31 @@ pub(crate) fn compile_let(
     name: &str,
     expr: &Expr,
     env: &mut Env,
+    globals: &Env,
     functions: &FunctionRegistry,
     impls: &TraitImplRegistry,
     enums: &EnumRegistry,
+    function_errors: &FunctionErrorRegistry,
     state: &mut CodegenState,
     inside_function: bool,
     out: &mut OutputBuffer,
 ) -> Result<()> {
+    if let Expr::AsyncBlock(body) = expr {
+        let binding = compile_async_block(
+            body,
+            env,
+            globals,
+            functions,
+            impls,
+            enums,
+            function_errors,
+            state,
+            out,
+        )?;
+        env.insert(name.into(), binding);
+        return Ok(());
+    }
+
     let ty = infer(expr, env, functions, impls, enums)?;
     match &ty {
         Type::String | Type::Int | Type::Bool | Type::Unit => {
@@ -59,7 +78,19 @@ pub(crate) fn compile_let(
             inside_function,
             out,
         )?,
-        Type::Task(_) => bail!("task expressions must be bound via `let name = async ...`"),
+        Type::Tuple(_) | Type::List(_) => emit_value_to_target(
+            name,
+            expr,
+            &ty,
+            env,
+            functions,
+            impls,
+            enums,
+            state,
+            inside_function,
+            out,
+        )?,
+        Type::Task(_) => bail!("task expressions must be bound before awaiting"),
     }
     env.insert(name.into(), binding_for_name(name, ty));
     Ok(())

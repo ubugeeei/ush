@@ -157,6 +157,16 @@ fn copy_field(
             state,
             out,
         )?,
+        Type::Tuple(_) | Type::List(_) => super::sequence::copy_sequence(
+            target,
+            &Binding {
+                ty: ty.clone(),
+                storage: Storage::Aggregate(NameString::from(source)),
+            },
+            enums,
+            state,
+            out,
+        )?,
         Type::Task(_) => bail!("task handles cannot be stored inside ADT values"),
     }
     Ok(())

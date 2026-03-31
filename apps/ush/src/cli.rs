@@ -56,4 +56,8 @@ pub enum Action {
     Check {
         input: PathBuf,
     },
+    Test {
+        #[arg(value_name = "TARGET")]
+        targets: Vec<String>,
+    },
 }

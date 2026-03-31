@@ -129,7 +129,7 @@ fn push_named_case(out: &mut OutputBuffer, param: &crate::ast::FunctionParam) ->
             assign_value(out, param, &format!("\"${{1#{}=}}\"", long));
             out.push_str("\n        ;;\n");
         }
-        Type::Unit | Type::Adt(_) | Type::Task(_) => {
+        Type::Unit | Type::Adt(_) | Type::Tuple(_) | Type::List(_) | Type::Task(_) => {
             bail!("bin parameters only support String, Int, and Bool")
         }
     }

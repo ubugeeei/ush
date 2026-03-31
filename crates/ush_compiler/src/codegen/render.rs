@@ -127,7 +127,11 @@ fn compile_string_fragment(
             "\"{}\"",
             capture_call(call, env, functions, impls, enums, &Type::String)?
         )),
+        Expr::AsyncBlock(_) => bail!("async blocks cannot be stringified implicitly"),
         Expr::Variant(_) => bail!("ADT values cannot be stringified implicitly"),
+        Expr::Tuple(_) | Expr::List(_) | Expr::Range { .. } => {
+            bail!("structured values cannot be stringified implicitly")
+        }
     }
 }
 
@@ -178,6 +182,7 @@ fn int_terms(
                     compile_int_expr(part, env, functions, impls, enums)?
                 ));
             }
+            Expr::AsyncBlock(_) => bail!("async blocks cannot be used in integer expressions"),
             _ => bail!("only integer addition is supported"),
         }
     }
@@ -188,6 +193,7 @@ fn primitive_var<'a>(binding: &'a Binding, name: &str) -> Result<&'a str> {
     match &binding.storage {
         Storage::Primitive(var) => Ok(var.as_str()),
         Storage::Adt(_) => bail!("`{name}` is not a primitive value"),
+        Storage::Aggregate(_) => bail!("`{name}` is a structured value"),
         Storage::Task(_) => bail!("`{name}` is a task handle"),
     }
 }

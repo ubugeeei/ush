@@ -35,6 +35,15 @@ pub(super) fn bind_pattern(
                 },
             );
         }
+        (Pattern::Binding(name), _, Storage::Aggregate(prefix)) => {
+            plan.env.insert(
+                name.clone(),
+                Binding {
+                    ty: subject.ty.clone(),
+                    storage: Storage::Aggregate(prefix.clone()),
+                },
+            );
+        }
         (Pattern::String(value), Type::String, Storage::Primitive(var)) => add_cond(
             plan,
             format!(
@@ -127,6 +136,10 @@ fn binding_for_child(ty: Type, name: String) -> Result<Binding> {
         Type::Adt(_) => Binding {
             ty,
             storage: Storage::Adt(NameString::from(name)),
+        },
+        Type::Tuple(_) | Type::List(_) => Binding {
+            ty,
+            storage: Storage::Aggregate(NameString::from(name)),
         },
         Type::Task(_) => bail!("task handles are not supported inside ADT patterns"),
     })

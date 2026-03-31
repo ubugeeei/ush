@@ -1,8 +1,11 @@
 mod attr;
 mod compare;
+mod condition;
+mod control;
 mod declaration;
 mod declaration_support;
 mod expr;
+mod inline;
 mod path;
 mod record;
 mod returns;

@@ -57,7 +57,9 @@ fn resolve_statement(
         | StatementKind::Enum(_)
         | StatementKind::Trait(_)
         | StatementKind::Impl(_)
-        | StatementKind::Await { .. } => {}
+        | StatementKind::Await { .. }
+        | StatementKind::Break
+        | StatementKind::Continue => {}
         StatementKind::Function(def) => resolve_function(def, imports),
         StatementKind::Alias { value, .. }
         | StatementKind::Let { expr: value, .. }
@@ -74,6 +76,34 @@ fn resolve_statement(
             resolve_expr(expr, imports);
             for (_, arm) in arms {
                 resolve_statement(arm, imports);
+            }
+        }
+        StatementKind::If { branch, .. } => {
+            resolve_condition(&mut branch.condition, imports);
+            for statement in &mut branch.then_body {
+                resolve_statement(statement, imports);
+            }
+            if let Some(body) = &mut branch.else_body {
+                for statement in body {
+                    resolve_statement(statement, imports);
+                }
+            }
+        }
+        StatementKind::While { condition, body } => {
+            resolve_condition(condition, imports);
+            for statement in body {
+                resolve_statement(statement, imports);
+            }
+        }
+        StatementKind::For { iterable, body, .. } => {
+            resolve_expr(iterable, imports);
+            for statement in body {
+                resolve_statement(statement, imports);
+            }
+        }
+        StatementKind::Loop { body } => {
+            for statement in body {
+                resolve_statement(statement, imports);
             }
         }
     }
@@ -109,6 +139,20 @@ fn resolve_expr(
         }
         Expr::Try(inner) => resolve_expr(inner, imports),
         Expr::Call(call) => resolve_call(call, imports),
+        Expr::Tuple(items) | Expr::List(items) => {
+            for item in items {
+                resolve_expr(item, imports);
+            }
+        }
+        Expr::Range { start, end } => {
+            resolve_expr(start, imports);
+            resolve_expr(end, imports);
+        }
+        Expr::AsyncBlock(body) => {
+            for statement in body {
+                resolve_statement(statement, imports);
+            }
+        }
         Expr::Variant(variant) => match &mut variant.fields {
             crate::ast::ExprFields::Unit => {}
             crate::ast::ExprFields::Tuple(items) => {
@@ -123,6 +167,21 @@ fn resolve_expr(
             }
         },
         Expr::String(_) | Expr::Int(_) | Expr::Bool(_) | Expr::Unit | Expr::Var(_) => {}
+    }
+}
+
+fn resolve_condition(
+    condition: &mut crate::ast::Condition,
+    imports: &HashMap<crate::types::AstString, crate::types::AstString>,
+) {
+    match condition {
+        crate::ast::Condition::Expr(expr) => resolve_expr(expr, imports),
+        crate::ast::Condition::Let { expr, .. } => resolve_expr(expr, imports),
+        crate::ast::Condition::And(items) | crate::ast::Condition::Or(items) => {
+            for item in items {
+                resolve_condition(item, imports);
+            }
+        }
     }
 }
 

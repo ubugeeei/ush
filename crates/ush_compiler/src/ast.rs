@@ -1,7 +1,12 @@
+mod control;
+mod ty;
+
 use alloc::boxed::Box;
 
 use crate::errors::ErrorSet;
 use crate::types::{AstString as String, HeapVec as Vec};
+pub(crate) use control::{Condition, IfBranch};
+pub(crate) use ty::{CompareOp, Type};
 
 #[derive(Debug, Clone)]
 pub(crate) struct Statement {
@@ -51,6 +56,24 @@ pub(crate) enum StatementKind {
         arms: Vec<(Pattern, Box<Statement>)>,
         returns_value: bool,
     },
+    If {
+        branch: IfBranch,
+        returns_value: bool,
+    },
+    While {
+        condition: Condition,
+        body: Vec<Statement>,
+    },
+    For {
+        name: String,
+        iterable: Expr,
+        body: Vec<Statement>,
+    },
+    Loop {
+        body: Vec<Statement>,
+    },
+    Break,
+    Continue,
 }
 
 #[derive(Debug, Clone)]
@@ -69,6 +92,13 @@ pub(crate) enum Expr {
     Try(Box<Expr>),
     Call(Call),
     Variant(VariantExpr),
+    Tuple(Vec<Expr>),
+    List(Vec<Expr>),
+    Range {
+        start: Box<Expr>,
+        end: Box<Expr>,
+    },
+    AsyncBlock(Vec<Statement>),
 }
 
 #[derive(Debug, Clone)]
@@ -81,6 +111,8 @@ pub(crate) enum Pattern {
     Unit,
     Variant(VariantPattern),
 }
+
+pub(crate) type MatchArm = (Pattern, Box<Statement>);
 
 #[derive(Debug, Clone)]
 pub(crate) struct EnumDef {
@@ -199,37 +231,4 @@ pub(crate) enum PatternFields {
 pub(crate) struct NamedPattern {
     pub name: String,
     pub pattern: Pattern,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) enum Type {
-    String,
-    Int,
-    Bool,
-    Unit,
-    Adt(String),
-    Task(Box<Type>),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum CompareOp {
-    Eq,
-    Ne,
-    Lt,
-    Le,
-    Gt,
-    Ge,
-}
-
-impl Type {
-    pub(crate) fn render(&self) -> String {
-        match self {
-            Self::String => "String".into(),
-            Self::Int => "Int".into(),
-            Self::Bool => "Bool".into(),
-            Self::Unit => "()".into(),
-            Self::Adt(name) => name.clone(),
-            Self::Task(inner) => format!("Task<{}>", inner.render()).into(),
-        }
-    }
 }

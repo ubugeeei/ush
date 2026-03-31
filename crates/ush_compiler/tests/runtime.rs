@@ -196,6 +196,24 @@ fn call_expressions_support_space_separated_arguments() {
 }
 
 #[test]
+fn omitted_unit_return_types_behave_like_explicit_unit() {
+    let output = run_program(
+        r#"
+        fn note(message: String) {
+          print message
+        }
+        let call_result = note "hello"
+        print call_result == ()
+        let task = async note "worker"
+        let awaited = task.await
+        print awaited == ()
+    "#,
+    );
+
+    assert_eq!(output, "true\nworker\ntrue\n");
+}
+
+#[test]
 fn dollar_operator_and_grouped_calls_work() {
     let output = run_program(
         r#"

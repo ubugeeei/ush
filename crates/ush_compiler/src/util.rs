@@ -215,6 +215,19 @@ pub(crate) fn parse_type(source: &str) -> Option<Type> {
     if matches!(trimmed, "()" | "Unit") {
         return Some(Type::Unit);
     }
+    if trimmed.starts_with('[') && trimmed.ends_with(']') {
+        return parse_type(&trimmed[1..trimmed.len() - 1]).map(|inner| Type::List(Box::new(inner)));
+    }
+    if let Some(inner) = tuple_type_body(trimmed) {
+        let parts = split_top_level(inner, ',');
+        if parts.len() > 1 {
+            return parts
+                .into_iter()
+                .map(parse_type)
+                .collect::<Option<Vec<_>>>()
+                .map(|items| Type::Tuple(items.into_iter().collect()));
+        }
+    }
     match PRIMITIVE_TYPES.get(trimmed).copied() {
         Some(PrimitiveType::String) => Some(Type::String),
         Some(PrimitiveType::Int) => Some(Type::Int),
@@ -229,4 +242,9 @@ pub(crate) fn shell_quote(value: &str) -> OutputString {
         return "''".to_string();
     }
     format!("'{}'", value.replace('\'', r#"'"'"'"#))
+}
+
+fn tuple_type_body(source: &str) -> Option<&str> {
+    let inner = parse_paren_body(source)?;
+    (inner.0.is_empty()).then_some(inner.1)
 }

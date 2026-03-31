@@ -92,20 +92,6 @@ fn function_argument_count_mismatches_are_rejected() {
 }
 
 #[test]
-fn async_bindings_require_declared_return_types() {
-    let error = compile_error(
-        r#"
-        fn worker(message: String) {
-          print message
-        }
-        let task = async worker("hello")
-    "#,
-    );
-
-    assert!(error.contains("async bindings require a return type"));
-}
-
-#[test]
 fn await_requires_a_task_handle() {
     let error = compile_error(
         r#"
@@ -126,20 +112,6 @@ fn return_outside_functions_is_rejected() {
     );
 
     assert!(error.contains("return is only valid inside functions"));
-}
-
-#[test]
-fn call_expressions_require_return_types() {
-    let error = compile_error(
-        r#"
-        fn greet(message: String) {
-          print message
-        }
-        let value = greet "hello"
-    "#,
-    );
-
-    assert!(error.contains("does not return a value"));
 }
 
 #[test]

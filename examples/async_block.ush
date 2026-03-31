@@ -1,0 +1,8 @@
+print "main"
+let task = async {
+  let prefix = "work"
+  prefix + "er"
+}
+print "after"
+let result = task.await
+print result

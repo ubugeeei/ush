@@ -74,7 +74,7 @@ pub(super) fn is_tail_position(lines: &[SourceLine<'_>], cursor: usize) -> bool 
         started = true;
         depth += brace_delta(trimmed);
         index += 1;
-        if depth <= 0 {
+        if depth <= 0 && !next_is_else(lines, index) {
             break;
         }
     }
@@ -93,6 +93,18 @@ pub(super) fn is_tail_position(lines: &[SourceLine<'_>], cursor: usize) -> bool 
     }
 
     true
+}
+
+fn next_is_else(lines: &[SourceLine<'_>], mut index: usize) -> bool {
+    while index < lines.len() {
+        let trimmed = lines[index].1.trim();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            index += 1;
+            continue;
+        }
+        return trimmed == "else {" || trimmed.starts_with("else if ");
+    }
+    false
 }
 
 fn brace_delta(line: &str) -> isize {

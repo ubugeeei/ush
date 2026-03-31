@@ -41,7 +41,7 @@ jobs:
           esac
 
           case "$version" in
-            *[!0-9A-Za-z.-]*)
+            *[!0-9A-Za-z.,-]*)
               echo "version contains unsupported characters: $version" >&2
               exit 1
               ;;

@@ -6,6 +6,7 @@ mod docs;
 mod effects;
 mod env;
 mod errors;
+mod imports;
 mod matching;
 mod parse;
 mod sourcemap;
@@ -52,7 +53,7 @@ impl UshCompiler {
     }
 
     fn compile_with_name(&self, source: &str, script_name: Option<&str>) -> Result<CompiledScript> {
-        let program = parse::parse_program(source)?;
+        let program = imports::resolve_program(parse::parse_program(source)?)?;
         let docs = ScriptDocs::parse(source);
         codegen::compile_program(&program, &docs, script_name)
     }

@@ -25,6 +25,7 @@ and adding `;` keeps that expression as a statement instead.
 - `named_args.ush`: labeled arguments and `#[default(...)]`
 - `literal_match.ush`: literal `match` arms
 - `primitives.ush`: integer addition plus `Eq` and `Ord` comparisons
+- `std_modules.ush`: `std::env`, `std::path`, `std::fs`, `std::command`, and `std::string` with `use`
 
 ## ADT and Pattern Matching
 

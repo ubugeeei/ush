@@ -3,11 +3,13 @@ mod compare;
 mod declaration;
 mod declaration_support;
 mod expr;
+mod path;
 mod record;
 mod returns;
 mod signature;
 mod statement;
 mod statement_support;
+mod use_decl;
 
 use anyhow::{Result, bail};
 use bumpalo::{Bump, collections::Vec as BumpVec};

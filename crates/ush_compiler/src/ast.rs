@@ -17,6 +17,7 @@ impl Statement {
 
 #[derive(Debug, Clone)]
 pub(crate) enum StatementKind {
+    Use(Vec<UseItem>),
     Enum(EnumDef),
     Trait(TraitDef),
     Impl(TraitImpl),
@@ -102,6 +103,12 @@ pub(crate) struct TraitImpl {
 pub(crate) struct Attribute {
     pub name: String,
     pub value: Option<Expr>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct UseItem {
+    pub path: String,
+    pub alias: String,
 }
 
 #[derive(Debug, Clone)]

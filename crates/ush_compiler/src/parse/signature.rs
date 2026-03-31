@@ -4,13 +4,11 @@ use super::{
     super::{
         ast::{Attribute, Call, CallArg, Expr, FunctionParam},
         errors::ErrorSet,
-        util::{
-            is_identifier, parse_type, split_once_top_level, split_top_level,
-            split_top_level_whitespace,
-        },
+        util::{parse_type, split_once_top_level, split_top_level, split_top_level_whitespace},
     },
     attr,
     expr::parse_expr,
+    path::{looks_like_call_target, parse_call_target, parse_identifier},
     returns::parse_function_return,
 };
 use crate::types::{AstString as String, HeapVec as Vec};
@@ -27,7 +25,7 @@ pub(super) fn parse_function_header(
         split_paren_form(header).ok_or_else(|| anyhow!("functions must use `fn name(args)`"))?;
     let (return_type, declared_errors) = parse_function_return(tail)?;
     Ok((
-        parse_name(name)?,
+        parse_identifier(name)?,
         parse_params(inner)?,
         return_type,
         declared_errors,
@@ -71,7 +69,7 @@ fn parse_call_inner(source: &str, asynchronous: bool, allow_bare_name: bool) -> 
 
 fn looks_like_call_inner(source: &str, allow_bare_name: bool) -> bool {
     split_paren_form(source)
-        .map(|(name, _, tail)| is_identifier(name) && tail.is_empty())
+        .map(|(name, _, tail)| looks_like_call_target(name) && tail.is_empty())
         .unwrap_or_else(|| {
             parse_call_parts(source, allow_bare_name)
                 .ok()
@@ -85,11 +83,11 @@ fn parse_call_parts(source: &str, allow_bare_name: bool) -> Result<Option<(Strin
         if !tail.is_empty() {
             bail!("invalid function call: {source}");
         }
-        return Ok(Some((parse_name(name)?, parse_args(inner)?)));
+        return Ok(Some((parse_call_target(name)?, parse_args(inner)?)));
     }
 
     let parts = split_top_level_whitespace(source.trim());
-    if parts.is_empty() || !is_identifier(parts[0]) {
+    if parts.is_empty() || !looks_like_call_target(parts[0]) {
         return Ok(None);
     }
     if parts.len() == 1 && !allow_bare_name {
@@ -101,7 +99,7 @@ fn parse_call_parts(source: &str, allow_bare_name: bool) -> Result<Option<(Strin
     } else {
         parse_call_tokens(&parts[1..])?
     };
-    Ok(Some((parts[0].into(), args)))
+    Ok(Some((parse_call_target(parts[0])?, args)))
 }
 
 fn parse_args(source: &str) -> Result<Vec<CallArg>> {
@@ -121,7 +119,7 @@ fn parse_params(source: &str) -> Result<Vec<FunctionParam>> {
             let (name, ty) = split_once_top_level(rest, ':')
                 .ok_or_else(|| anyhow!("invalid parameter: {part}"))?;
             Ok(FunctionParam {
-                name: parse_name(name)?,
+                name: parse_identifier(name)?,
                 ty: parse_type(ty).ok_or_else(|| anyhow!("invalid type: {ty}"))?,
                 default: attr_expr(&attrs, "default")?,
                 cli_alias: attr_string(&attrs, "alias")?,
@@ -133,10 +131,10 @@ fn parse_params(source: &str) -> Result<Vec<FunctionParam>> {
 pub(super) fn parse_await_task(source: &str) -> Result<Option<String>> {
     let trimmed = source.trim();
     if let Some(task) = trimmed.strip_suffix(".await") {
-        return Ok(Some(parse_name(task.trim())?));
+        return Ok(Some(parse_identifier(task.trim())?));
     }
     if let Some(task) = trimmed.strip_prefix("await ") {
-        return Ok(Some(parse_name(task.trim())?));
+        return Ok(Some(parse_identifier(task.trim())?));
     }
     Ok(None)
 }
@@ -167,15 +165,6 @@ fn split_paren_form(source: &str) -> Option<(&str, &str, &str)> {
     None
 }
 
-fn parse_name(source: &str) -> Result<String> {
-    let trimmed = source.trim();
-    if is_identifier(trimmed) {
-        Ok(trimmed.into())
-    } else {
-        bail!("invalid identifier: {trimmed}")
-    }
-}
-
 fn parse_call_tokens(parts: &[&str]) -> Result<Vec<CallArg>> {
     let mut args = Vec::new();
     let mut index = 0usize;
@@ -183,7 +172,7 @@ fn parse_call_tokens(parts: &[&str]) -> Result<Vec<CallArg>> {
         let current = parts[index];
         if let Some(label) = current.strip_suffix(':') {
             args.push(CallArg {
-                label: Some(parse_name(label)?),
+                label: Some(parse_identifier(label)?),
                 expr: parse_expr(
                     parts
                         .get(index + 1)
@@ -201,9 +190,9 @@ fn parse_call_tokens(parts: &[&str]) -> Result<Vec<CallArg>> {
 
 fn parse_call_arg(source: &str) -> Result<CallArg> {
     if let Some((name, expr)) = split_once_top_level(source, ':') {
-        if is_identifier(name) {
+        if super::path::looks_like_call_target(name) {
             return Ok(CallArg {
-                label: Some(parse_name(name)?),
+                label: Some(parse_identifier(name)?),
                 expr: parse_expr(expr)?,
             });
         }

@@ -13,7 +13,7 @@ use super::{
     SourceLine,
     declaration_support::{finish_block, parse_name},
     expr::{parse_expr, parse_named_type_list, parse_pattern, parse_type_list},
-    signature,
+    signature, use_decl,
 };
 use crate::types::{AstString as String, HeapVec as Vec};
 
@@ -36,6 +36,9 @@ pub(super) fn parse_declaration(
     }
     if let Some(rest) = trimmed.strip_prefix("impl ") {
         return Ok(Some(parse_impl(rest, lines, cursor)?));
+    }
+    if let Some(rest) = trimmed.strip_prefix("use ") {
+        return Ok(Some(use_decl::parse_use(rest)?));
     }
     if let Some(rest) = trimmed.strip_prefix("fn ") {
         return Ok(Some(parse_function(line_no, rest, lines, cursor, attrs)?));

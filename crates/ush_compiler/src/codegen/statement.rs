@@ -62,6 +62,7 @@ pub(crate) fn compile_statement(
     let previous_origin = out.set_origin(Some(statement.line));
     let result = (|| -> Result<()> {
         match &statement.kind {
+            StatementKind::Use(_) => {}
             StatementKind::Enum(_) => {}
             StatementKind::Trait(_) | StatementKind::Impl(_) => {}
             StatementKind::Function(def) => compile_function(

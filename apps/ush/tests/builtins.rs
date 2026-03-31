@@ -1,7 +1,10 @@
 use std::{
+    fs,
     io::Write,
     process::{Command, Stdio},
 };
+
+use tempfile::tempdir;
 
 fn ush() -> Command {
     Command::new(env!("CARGO_BIN_EXE_ush"))
@@ -98,4 +101,42 @@ fn interactive_builtins_honor_defaults_without_interaction() {
         .expect("run select");
     assert!(select.status.success());
     assert_eq!(String::from_utf8_lossy(&select.stdout), "blue\n");
+}
+
+#[test]
+fn fsam_summarizes_globbed_files_and_totals() {
+    let dir = tempdir().expect("tempdir");
+    fs::write(dir.path().join("a.txt"), "a\nb\n").expect("write");
+    fs::write(dir.path().join("b.txt"), "c\n").expect("write");
+
+    let output = ush()
+        .args(["-c", "fsam '*.txt'"])
+        .current_dir(dir.path())
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("lines\tbytes\tpath"));
+    assert!(stdout.contains("2\t4\ta.txt"));
+    assert!(stdout.contains("1\t2\tb.txt"));
+    assert!(stdout.contains("3\t6\tTOTAL (2 files)"));
+}
+
+#[test]
+fn fsam_uses_table_output_in_stylish_mode() {
+    let dir = tempdir().expect("tempdir");
+    fs::write(dir.path().join("app.rs"), "fn main() {}\n").expect("write");
+
+    let output = ush()
+        .args(["-s", "-c", "fsam '*.rs'"])
+        .current_dir(dir.path())
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("path"));
+    assert!(stdout.contains("lines"));
+    assert!(stdout.contains("TOTAL (1 files)"));
 }

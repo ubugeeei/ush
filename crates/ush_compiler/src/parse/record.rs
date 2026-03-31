@@ -27,7 +27,7 @@ pub(super) fn parse_named_type_list(source: &str) -> Result<Vec<NamedFieldType>>
 
 pub(super) fn parse_variant_expr(source: &str) -> Result<Option<VariantExpr>> {
     if let Some((head, inner)) = parse_paren_body(source) {
-        if let Some((enum_name, variant_name)) = split_path(head) {
+        if let Some((enum_name, variant_name)) = split_variant_path(head) {
             return Ok(Some(VariantExpr {
                 enum_name,
                 variant_name,
@@ -36,7 +36,7 @@ pub(super) fn parse_variant_expr(source: &str) -> Result<Option<VariantExpr>> {
         }
     }
     if let Some((head, inner)) = parse_brace_body(source) {
-        if let Some((enum_name, variant_name)) = split_path(head) {
+        if let Some((enum_name, variant_name)) = split_variant_path(head) {
             return Ok(Some(VariantExpr {
                 enum_name,
                 variant_name,
@@ -53,7 +53,7 @@ pub(super) fn parse_variant_expr(source: &str) -> Result<Option<VariantExpr>> {
         }
     }
     Ok(
-        split_path(source).map(|(enum_name, variant_name)| VariantExpr {
+        split_variant_path(source).map(|(enum_name, variant_name)| VariantExpr {
             enum_name,
             variant_name,
             fields: ExprFields::Unit,
@@ -63,7 +63,7 @@ pub(super) fn parse_variant_expr(source: &str) -> Result<Option<VariantExpr>> {
 
 pub(super) fn parse_variant_pattern(source: &str) -> Result<Option<VariantPattern>> {
     if let Some((head, inner)) = parse_paren_body(source) {
-        if let Some((enum_name, variant_name)) = split_path(head) {
+        if let Some((enum_name, variant_name)) = split_variant_path(head) {
             return Ok(Some(VariantPattern {
                 enum_name,
                 variant_name,
@@ -72,7 +72,7 @@ pub(super) fn parse_variant_pattern(source: &str) -> Result<Option<VariantPatter
         }
     }
     if let Some((head, inner)) = parse_brace_body(source) {
-        if let Some((enum_name, variant_name)) = split_path(head) {
+        if let Some((enum_name, variant_name)) = split_variant_path(head) {
             return Ok(Some(VariantPattern {
                 enum_name,
                 variant_name,
@@ -89,12 +89,17 @@ pub(super) fn parse_variant_pattern(source: &str) -> Result<Option<VariantPatter
         }
     }
     Ok(
-        split_path(source).map(|(enum_name, variant_name)| VariantPattern {
+        split_variant_path(source).map(|(enum_name, variant_name)| VariantPattern {
             enum_name,
             variant_name,
             fields: PatternFields::Unit,
         }),
     )
+}
+
+fn split_variant_path(source: &str) -> Option<(String, String)> {
+    let (enum_name, variant_name) = split_path(source)?;
+    (!variant_name.contains("::")).then_some((enum_name, variant_name))
 }
 
 fn parse_named_expr_list(source: &str) -> Result<Vec<NamedExpr>> {

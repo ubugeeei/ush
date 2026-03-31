@@ -1,5 +1,6 @@
 mod command;
 mod core;
+mod fsam;
 mod interactive;
 mod interactive_support;
 mod introspection;
@@ -28,6 +29,7 @@ impl Shell {
             "false" => Ok((ValueStream::Empty, 1)),
             "alias" => self.handle_alias(&args),
             "unalias" => self.handle_unalias(&args),
+            "fsam" => self.handle_fsam(&args),
             "history" => Ok((ValueStream::Text(self.read_history()), 0)),
             "export" => self.handle_export(&args),
             "unset" => self.handle_unset(&args),
@@ -59,6 +61,7 @@ fn help_text() -> String {
         "  true / false",
         "  alias name=value",
         "  unalias name",
+        "  fsam <glob|path>...    # file summary with lines/bytes and totals",
         "  export NAME=value",
         "  unset NAME",
         "  confirm [--default yes|no] [prompt ...]",

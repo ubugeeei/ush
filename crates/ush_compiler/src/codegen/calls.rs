@@ -8,6 +8,8 @@ use super::{
     compile_primitive_expr,
     functions::FunctionRegistry,
     infer, rendered_call_runtime,
+    shared::shell_function_name,
+    stdlib,
 };
 use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
@@ -33,6 +35,11 @@ pub(crate) fn compile_call(
         inside_function,
         out,
     )?;
+    if !call.asynchronous && stdlib::runs_in_parent(&call.name) {
+        out.push_str(&rendered);
+        out.push('\n');
+        return Ok(());
+    }
     out.push_str("( __ush_capture_return='0' __ush_return_path=''; ");
     out.push_str(&rendered);
     out.push_str(" )");
@@ -64,6 +71,17 @@ pub(crate) fn compile_try_call(
         inside_function,
         out,
     )?;
+    if !call.asynchronous && stdlib::runs_in_parent(&call.name) {
+        out.push_str(&rendered);
+        out.push_str(" || ");
+        out.push_str(if inside_function {
+            "return \"$?\""
+        } else {
+            "exit \"$?\""
+        });
+        out.push('\n');
+        return Ok(());
+    }
     out.push_str("( __ush_capture_return='0' __ush_return_path=''; ");
     out.push_str(&rendered);
     out.push_str(" )");
@@ -86,9 +104,9 @@ pub(crate) fn rendered_call(
 ) -> Result<String> {
     let def = function_for_call(&call.name, functions)?;
     let args = rendered_args(call, env, functions, impls, enums, def)?;
-    let target = format!("ush_fn_{}", call.name);
+    let target = shell_function_name(&call.name);
     Ok(if args.is_empty() {
-        target
+        target.to_string()
     } else {
         format!("{target} {}", args.join(" "))
     })

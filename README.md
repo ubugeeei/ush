@@ -35,6 +35,7 @@ Implemented today:
 - Generated `.ush` output stays within POSIX `sh` syntax and POSIX command usage
 - Prototype typed language features: `type { ... }`, enums, traits, marker `impl`, `match`, typed `fn`, Zig-style error signatures like `Problem!String`, and Rust-like `?` propagation
 - Rust-like tail expressions in value-returning functions, where the final expression returns and `;` keeps it as a statement
+- Rust-like `std::module::function` paths plus `use` imports for selected std helpers
 - Labeled function arguments plus parameter attributes such as `#[default(...)]` and `#[alias("n")]`
 - `alias name = "..."` declarations in `.ush`
 - `bin.ush` as a generated CLI entrypoint, with flags/defaults/completion derived from the `bin(...)` signature
@@ -43,6 +44,7 @@ Implemented today:
 - Installer patterns such as `curl -fsSL https://... | sh` are detected from the parsed pipeline and executed through POSIX `/bin/sh`
 - `.ush` inline shell escapes via `$ command ...`, alongside `shell expr` for dynamic command strings
 - Builtins: `:`, `.`, `cd`, `pwd`, `echo`, `true`, `false`, `alias`, `unalias`, `history`, `export`, `unset`, `confirm`, `input`, `select`, `env`, `command`, `which`, `type`, `test`, `[`, `help`, `source`, `rm`
+- Builtin utility: `fsam` for glob-based file summaries with per-file and total line counts
 - Safety prompt for dangerous `rm -rf` unless `--yes` or `USH_INTERACTION=false`
 - Stylish renderers for `pwd`, `ls`, `cat`, `ps`, and `kill`
 - Structured helpers: `len`, `lines`, `json`, `xml`, `html`, `map`, `each`, `filter`, `any`, `some`
@@ -243,7 +245,8 @@ match greeting {
 
 Current highlights:
 
- - `let`, `print`, `match`, typed `fn`, `enum`, `type`, marker `trait`, and Rust-like tail expressions
+- `let`, `print`, `match`, typed `fn`, `enum`, `type`, marker `trait`, and Rust-like tail expressions
+- `std::env`, `std::path`, `std::fs`, `std::command`, and `std::string` helpers via fully-qualified calls or top-level `use`
 - `raise` plus typed error signatures like `Problem!String`, with Rust-like `?` propagation
 - `$ command ...` for inline shell execution and `shell expr` for dynamic command strings
 - `async` / `.await`
@@ -259,6 +262,8 @@ cargo run -p ush -- compile examples/hello.ush --sourcemap /tmp/hello.sh.map.jso
 cargo run -p ush -- format examples/hello.ush --stdout
 cargo run -p ush -- check examples/hello.ush
 cargo run -p ush_lsp
+cargo run -p ush -- examples/std_modules.ush
+cargo run -p ush -- -c "fsam 'crates/ush_shell/src/**/*.rs'"
 ```
 
 Start here for more detail:

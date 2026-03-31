@@ -206,3 +206,29 @@ fn duplicate_parameter_aliases_are_rejected() {
 
     assert!(error.contains("duplicate parameter alias"));
 }
+
+#[test]
+fn duplicate_import_aliases_are_rejected() {
+    let error = compile_error(
+        r#"
+        use std::env::get as value
+        use std::path::cwd as value
+    "#,
+    );
+
+    assert!(error.contains("duplicate import alias"));
+}
+
+#[test]
+fn imports_cannot_shadow_local_functions() {
+    let error = compile_error(
+        r#"
+        fn get() -> String {
+          "local"
+        }
+        use std::env::get
+    "#,
+    );
+
+    assert!(error.contains("import alias conflicts with local function"));
+}

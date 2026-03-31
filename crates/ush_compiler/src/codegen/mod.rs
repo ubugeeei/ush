@@ -11,6 +11,7 @@ mod render;
 mod runtime_expr;
 mod shared;
 mod statement;
+mod stdlib;
 mod tasks;
 
 use anyhow::Result;
@@ -40,11 +41,13 @@ pub(crate) fn compile_program(
     let mut trait_impls = TraitImplRegistry::default();
     let mut state = CodegenState::default();
     let mut out = OutputBuffer::from_text(
-        "#!/bin/sh\nset -eu\n\n__ush_jobs=''\n__ush_task_seq='0'\n__ush_task_files=''\n\n",
+        "#!/bin/sh\nset -eu\n\n__ush_jobs=''\n__ush_task_seq='0'\n__ush_task_files=''\n__ush_tmp_seq='0'\n\n",
     );
+    stdlib::register_builtins(&mut functions)?;
 
     for statement in program {
         match &statement.kind {
+            StatementKind::Use(_) => {}
             StatementKind::Enum(def) => statement::register_enum(def, &mut enums)?,
             StatementKind::Trait(def) => register_trait(def, &mut traits)?,
             StatementKind::Impl(item) => register_trait_impl(item, &traits, &mut trait_impls)?,
@@ -65,6 +68,7 @@ pub(crate) fn compile_program(
         script_name.unwrap_or("script"),
         &extra_completion,
     );
+    stdlib::emit_builtins(&mut out);
 
     let globals = functions::analyze_globals(program, &functions, &trait_impls, &enums)?;
     let function_errors =

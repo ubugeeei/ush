@@ -24,3 +24,15 @@ pub(crate) fn push_line(out: &mut OutputBuffer, line: &str, indent: usize) {
     out.push_str(line);
     out.push('\n');
 }
+
+pub(crate) fn shell_function_name(name: &str) -> NameString {
+    let mut rendered = NameString::from("ush_fn_");
+    for ch in name.chars() {
+        if ch.is_ascii_alphanumeric() || ch == '_' {
+            rendered.push(ch);
+        } else {
+            rendered.push('_');
+        }
+    }
+    rendered
+}

@@ -126,7 +126,8 @@ fn statement_errors(
     function_errors: &FunctionErrorRegistry,
 ) -> Result<ErrorSet> {
     match &statement.kind {
-        StatementKind::Enum(_)
+        StatementKind::Use(_)
+        | StatementKind::Enum(_)
         | StatementKind::Trait(_)
         | StatementKind::Impl(_)
         | StatementKind::Function(_) => Ok(ErrorSet::default()),

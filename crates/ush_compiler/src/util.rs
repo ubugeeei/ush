@@ -131,6 +131,21 @@ pub(crate) fn split_path(source: &str) -> Option<(String, String)> {
     ))
 }
 
+pub(crate) fn is_path(source: &str) -> bool {
+    let mut count = 0usize;
+    for part in source.split("::") {
+        if !is_identifier(part) {
+            return false;
+        }
+        count += 1;
+    }
+    count > 1
+}
+
+pub(crate) fn path_tail(source: &str) -> Option<&str> {
+    source.rsplit("::").next()
+}
+
 pub(crate) fn parse_paren_body(source: &str) -> Option<(&str, &str)> {
     let open = memchr(b'(', source.as_bytes())?;
     let close = memrchr(b')', source.as_bytes())?;

@@ -51,7 +51,7 @@ Implemented today:
 - Environment-variable expansion, `~` expansion, and simple glob expansion
 - Criterion benchmark skeleton for parser/profiling work
 - GitHub Releases, `curl` installer, `nix`, and Docker packaging entry points
-- Emacs-style and macOS-friendly cursor bindings for word jumps, line jumps, and history search
+- Emacs-style and opt-in Vi-style REPL editing modes
 - `ush format` and `ush check` commands for formatter and typechecking passes
 - `ush_lsp` with document formatting, diagnostics, and semantic tokens for editor integration
 
@@ -126,6 +126,12 @@ Force stylish mode globally:
 export USH_STYLISH=true
 ```
 
+Opt into the Vi-style REPL keymap, which is useful in environments such as Codex Desktop where `Cmd` shortcuts may be intercepted before they reach the shell:
+
+```bash
+export USH_KEYMAP=vi
+```
+
 Disable interactive confirmations:
 
 ```bash
@@ -147,10 +153,12 @@ The REPL is tuned around `rustyline`'s Emacs mode with extra bindings for shell-
 - `Ctrl-Alt-Shift-Left` / `Ctrl-Alt-Shift-Right`: extend selection across big shell tokens
 - `Ctrl-Alt-Shift-Up` / `Ctrl-Alt-Shift-Down`: extra line-edge selection aliases for macOS terminal mappings
 - `Home` / `End`: jump to line start/end, and `Shift-Home` / `Shift-End` selects to the edge
-- `Cmd-Left` / `Cmd-Right`: works when your terminal maps them to `Home` / `End`
-- `Cmd-Shift-Left` / `Cmd-Shift-Right`: works when your terminal maps them to `Shift-Home` / `Shift-End`, and `Cmd-Shift-Up` / `Cmd-Shift-Down` often land on the control-based aliases above
+- `Cmd-Left` / `Cmd-Right`: jump to line start/end when the terminal forwards them as `Super` cursor keys; `ush` also requests enhanced keyboard reporting on supporting terminals
+- `Cmd-Shift-Left` / `Cmd-Shift-Right`: extend selection to the line edges when the terminal forwards `Super+Shift`, and `Cmd-Shift-Up` / `Cmd-Shift-Down` map to the same line-edge selection inside the single-line REPL
 
 When a selection is active, typing replaces it and `Backspace` / `Delete` removes it, so keyboard-only editing feels closer to a native text field even inside the terminal.
+
+If you opt into `USH_KEYMAP=vi` or `shell.keymap = "vi"`, `ush` switches the REPL to `rustyline`'s Vi editing mode instead. That is the recommended workaround for Codex Desktop, where `Cmd`-modified keys are often intercepted by the host app before the shell can read them.
 
 ## Structured Helpers
 
@@ -217,6 +225,7 @@ Example `config.pkl`:
     stylishDefault = true
     interaction = true
     historySize = 10000
+    keymap = "vi"
     prompt = "ush> "
   }
 

@@ -117,7 +117,39 @@ pub(super) fn binding_specs() -> Vec<BindingSpec> {
             BindingAction::Command(Cmd::EndOfHistory),
         ),
     ];
+    bindings.extend(super_arrow_bindings());
     bindings.extend(home_end_bindings());
+    bindings
+}
+
+fn super_arrow_bindings() -> Vec<BindingSpec> {
+    let mut bindings = Vec::new();
+    for code in [KeyCode::Left, KeyCode::Up] {
+        bindings.push(command(
+            code,
+            Modifiers::SUPER,
+            Cmd::Move(Movement::BeginningOfLine),
+        ));
+        bindings.push(select(
+            code,
+            Modifiers::SUPER_SHIFT,
+            SelectionMove::LineStart,
+            Cmd::Move(Movement::BeginningOfLine),
+        ));
+    }
+    for code in [KeyCode::Right, KeyCode::Down] {
+        bindings.push(command(
+            code,
+            Modifiers::SUPER,
+            Cmd::Move(Movement::EndOfLine),
+        ));
+        bindings.push(select(
+            code,
+            Modifiers::SUPER_SHIFT,
+            SelectionMove::LineEnd,
+            Cmd::Move(Movement::EndOfLine),
+        ));
+    }
     bindings
 }
 
@@ -128,6 +160,7 @@ fn home_end_bindings() -> Vec<BindingSpec> {
         Modifiers::ALT,
         Modifiers::CTRL,
         Modifiers::CTRL_ALT,
+        Modifiers::SUPER,
     ] {
         bindings.push(command(
             KeyCode::Home,
@@ -141,6 +174,7 @@ fn home_end_bindings() -> Vec<BindingSpec> {
         Modifiers::ALT_SHIFT,
         Modifiers::CTRL_SHIFT,
         Modifiers::CTRL_ALT_SHIFT,
+        Modifiers::SUPER_SHIFT,
     ] {
         bindings.push(select(
             KeyCode::Home,

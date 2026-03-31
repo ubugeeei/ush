@@ -1,6 +1,8 @@
+use std::env;
 use std::io::{self, Write};
 
 use anyhow::{Result, bail};
+use ush_config::ShellKeymap;
 
 use super::{ParsedLine, Shell, ValueStream, parser::Stage, process, repl};
 
@@ -55,6 +57,7 @@ impl Shell {
         let mut editor = repl::create_editor(
             &self.paths.history_file,
             self.config.shell.history_size,
+            resolved_keymap(self.config.shell.keymap),
             self.command_names(),
             self.env.keys().cloned().collect(),
         )?;
@@ -114,6 +117,21 @@ impl Shell {
     }
 }
 
+fn resolved_keymap(default: ShellKeymap) -> ShellKeymap {
+    env::var("USH_KEYMAP")
+        .ok()
+        .and_then(|value| parse_keymap(&value))
+        .unwrap_or(default)
+}
+
+fn parse_keymap(value: &str) -> Option<ShellKeymap> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "emacs" => Some(ShellKeymap::Emacs),
+        "vi" | "vim" => Some(ShellKeymap::Vi),
+        _ => None,
+    }
+}
+
 fn is_posix_shell_consumer(stage: &Stage, index: usize) -> bool {
     index > 0
         && matches!(
@@ -124,9 +142,11 @@ fn is_posix_shell_consumer(stage: &Stage, index: usize) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use ush_config::ShellKeymap;
+
     use crate::parser::{CommandSpec, Stage};
 
-    use super::is_posix_shell_consumer;
+    use super::{is_posix_shell_consumer, parse_keymap};
 
     #[test]
     fn detects_pipe_to_sh_from_ast_stage() {
@@ -139,5 +159,12 @@ mod tests {
 
         assert!(!is_posix_shell_consumer(&stage, 0));
         assert!(is_posix_shell_consumer(&stage, 1));
+    }
+
+    #[test]
+    fn parses_vi_keymap_aliases() {
+        assert_eq!(parse_keymap("vi"), Some(ShellKeymap::Vi));
+        assert_eq!(parse_keymap("vim"), Some(ShellKeymap::Vi));
+        assert_eq!(parse_keymap("emacs"), Some(ShellKeymap::Emacs));
     }
 }

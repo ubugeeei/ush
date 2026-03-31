@@ -21,6 +21,14 @@ pub struct UshConfig {
     pub aliases: BTreeMap<String, String>,
 }
 
+#[derive(Debug, Clone, Copy, Default, Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum ShellKeymap {
+    #[default]
+    Emacs,
+    Vi,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct ShellConfig {
     #[serde(default, alias = "stylishDefault")]
@@ -29,6 +37,8 @@ pub struct ShellConfig {
     pub interaction: bool,
     #[serde(default = "default_history_size", alias = "historySize")]
     pub history_size: usize,
+    #[serde(default, alias = "editMode")]
+    pub keymap: ShellKeymap,
     #[serde(default)]
     pub prompt: Option<String>,
     #[serde(skip)]
@@ -41,6 +51,7 @@ impl Default for ShellConfig {
             stylish_default: false,
             interaction: default_interaction(),
             history_size: default_history_size(),
+            keymap: ShellKeymap::default(),
             prompt: None,
             starship: None,
         }
@@ -154,4 +165,22 @@ fn load_pkl(path: &Path) -> Result<UshConfig> {
         "failed to evaluate {} with pkl; install `pkl` or provide config.json",
         path.display()
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ShellKeymap, UshConfig};
+
+    #[test]
+    fn defaults_to_emacs_keymap() {
+        assert_eq!(UshConfig::default().shell.keymap, ShellKeymap::Emacs);
+    }
+
+    #[test]
+    fn deserializes_vi_keymap_from_json() {
+        let config: UshConfig =
+            serde_json::from_str(r#"{ "shell": { "keymap": "vi" } }"#).expect("config");
+
+        assert_eq!(config.shell.keymap, ShellKeymap::Vi);
+    }
 }

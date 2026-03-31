@@ -62,6 +62,21 @@ fn includes_history_and_home_end_variants() {
         event: Event::from(KeyEvent(KeyCode::Down, Modifiers::CTRL_ALT_SHIFT)),
         action: BindingAction::Select(SelectionMove::LineEnd, Cmd::Move(Movement::EndOfLine),),
     }));
+    assert!(bindings.contains(&BindingSpec {
+        event: Event::from(KeyEvent(KeyCode::Left, Modifiers::SUPER)),
+        action: BindingAction::Command(Cmd::Move(Movement::BeginningOfLine)),
+    }));
+    assert!(bindings.contains(&BindingSpec {
+        event: Event::from(KeyEvent(KeyCode::Right, Modifiers::SUPER_SHIFT)),
+        action: BindingAction::Select(SelectionMove::LineEnd, Cmd::Move(Movement::EndOfLine),),
+    }));
+    assert!(bindings.contains(&BindingSpec {
+        event: Event::from(KeyEvent(KeyCode::Home, Modifiers::SUPER_SHIFT)),
+        action: BindingAction::Select(
+            SelectionMove::LineStart,
+            Cmd::Move(Movement::BeginningOfLine),
+        ),
+    }));
 }
 
 #[test]

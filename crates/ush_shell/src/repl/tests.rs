@@ -1,5 +1,6 @@
 use rustyline::{Context, completion::Completer, hint::Hinter, history::History};
 use tempfile::tempdir;
+use ush_config::ShellKeymap;
 
 use super::{UshHelper, create_editor};
 
@@ -10,6 +11,7 @@ fn history_hint_prefers_previous_entries() {
     let mut editor = create_editor(
         &history_file,
         10,
+        ShellKeymap::Emacs,
         vec!["echo".to_string()],
         vec!["PATH".to_string()],
     )
@@ -44,6 +46,7 @@ fn editor_respects_history_limit() {
     let mut editor = create_editor(
         &history_file,
         2,
+        ShellKeymap::Emacs,
         vec!["echo".to_string()],
         vec!["PATH".to_string()],
     )
@@ -54,4 +57,19 @@ fn editor_respects_history_limit() {
     editor.add_history_entry("echo three").expect("history");
 
     assert_eq!(editor.history().len(), 2);
+}
+
+#[test]
+fn vi_keymap_can_build_an_editor() {
+    let dir = tempdir().expect("tempdir");
+    let history_file = dir.path().join("history.txt");
+
+    let _ = create_editor(
+        &history_file,
+        10,
+        ShellKeymap::Vi,
+        vec!["echo".to_string()],
+        vec!["PATH".to_string()],
+    )
+    .expect("editor");
 }

@@ -20,6 +20,7 @@ use rustyline::{
     history::DefaultHistory,
     validate::{ValidationContext, ValidationResult, Validator},
 };
+use ush_config::ShellKeymap;
 
 use self::selection::SelectionHandle;
 
@@ -178,6 +179,7 @@ impl Validator for UshHelper {
 pub fn create_editor(
     history_file: &Path,
     history_size: usize,
+    keymap: ShellKeymap,
     commands: Vec<String>,
     env_names: Vec<String>,
 ) -> Result<Editor<UshHelper, DefaultHistory>> {
@@ -189,7 +191,7 @@ pub fn create_editor(
         .completion_show_all_if_ambiguous(false)
         .completion_prompt_limit(200)
         .keyseq_timeout(Some(300))
-        .edit_mode(EditMode::Emacs)
+        .edit_mode(edit_mode(keymap))
         .auto_add_history(true)
         .build();
     let helper = UshHelper::new(commands, env_names);
@@ -199,6 +201,13 @@ pub fn create_editor(
     bindings::configure_editor(&mut editor, selection);
     let _ = editor.load_history(history_file);
     Ok(editor)
+}
+
+fn edit_mode(keymap: ShellKeymap) -> EditMode {
+    match keymap {
+        ShellKeymap::Emacs => EditMode::Emacs,
+        ShellKeymap::Vi => EditMode::Vi,
+    }
 }
 
 pub fn classify_readline_error(error: ReadlineError) -> anyhow::Error {

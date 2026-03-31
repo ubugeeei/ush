@@ -73,3 +73,45 @@ fn trait_and_impl_declarations_compile_with_builtin_traits() {
 
     assert_eq!(output, "3\n");
 }
+
+#[test]
+fn display_trait_and_format_work_for_type_structs() {
+    let output = run_program(
+        r#"
+        type User {
+          name: String,
+          age: Int,
+        }
+        impl Display for User {
+          fn fmt(self) -> String {
+            self.name + ":" + self.age
+          }
+        }
+        let user = User { name: "ush", age: 7 }
+        print user
+        print format user
+    "#,
+    );
+
+    assert_eq!(output, "ush:7\nush:7\n");
+}
+
+#[test]
+fn inherent_methods_can_use_self_and_arguments() {
+    let output = run_program(
+        r#"
+        type User {
+          name: String,
+        }
+        impl User {
+          fn prefixed(self, prefix: String) -> String {
+            prefix + ":" + self.name
+          }
+        }
+        let user = User { name: "ush" }
+        print user.prefixed("id")
+    "#,
+    );
+
+    assert_eq!(output, "id:ush\n");
+}

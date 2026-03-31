@@ -57,6 +57,10 @@ pub(super) fn parse_dollar_call(source: &str, arg: super::super::ast::Expr) -> R
     Ok(call)
 }
 
+pub(super) fn parse_call_args(source: &str) -> Result<Vec<CallArg>> {
+    parse_args(source)
+}
+
 fn parse_call_inner(source: &str, asynchronous: bool, allow_bare_name: bool) -> Result<Call> {
     let (name, args) = parse_call_parts(source, allow_bare_name)?
         .ok_or_else(|| anyhow!("invalid function call: {source}"))?;

@@ -246,7 +246,7 @@ match greeting {
 Current highlights:
 
 - `let`, `print`, `match`, typed `fn`, `enum`, `type`, marker `trait`, and Rust-like tail expressions
-- `std::env`, `std::path`, `std::fs`, `std::command`, and `std::string` helpers via fully-qualified calls or top-level `use`
+- `std::env`, `std::path`, `std::fs`, `std::command`, and `std::string` helpers via fully-qualified calls or top-level `use`, including `from_cwd` / `from_source` path refs
 - `raise` plus typed error signatures like `Problem!String`, with Rust-like `?` propagation
 - `$ command ...` for inline shell execution and `shell expr` for dynamic command strings
 - `async` / `.await`
@@ -257,9 +257,10 @@ Useful commands:
 
 ```bash
 cargo run -p ush -- examples/hello.ush
+cargo run -p ush -- examples/control_flow.ush
 cargo run -p ush -- compile examples/hello.ush
 cargo run -p ush -- test
-cargo run -p ush -- test tests examples/hello.ush
+cargo run -p ush -- test examples/smoke_test.ush
 cargo run -p ush -- compile examples/hello.ush --sourcemap /tmp/hello.sh.map.json
 cargo run -p ush -- format examples/hello.ush --stdout
 cargo run -p ush -- check examples/hello.ush

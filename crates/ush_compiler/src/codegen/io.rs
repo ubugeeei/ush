@@ -9,6 +9,7 @@ use super::{
         env::{CodegenState, EnumRegistry, Env},
     },
     FunctionRegistry, compile_runtime_primitive_expr, infer,
+    methods::compile_display_expr,
 };
 
 pub(crate) fn push_print(
@@ -21,7 +22,7 @@ pub(crate) fn push_print(
     inside_function: bool,
     out: &mut OutputBuffer,
 ) -> Result<()> {
-    let rendered = compile_runtime_primitive_expr(
+    let rendered = compile_display_expr(
         expr,
         env,
         functions,

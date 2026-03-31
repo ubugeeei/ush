@@ -72,6 +72,7 @@ pub(crate) fn compile_bool_expr(
             "\"{}\"",
             capture_call(call, env, functions, impls, enums, &Type::Bool)?
         )),
+        Expr::Field { .. } | Expr::MethodCall(_) => bail!("unsupported boolean expression"),
         _ => bail!("unsupported boolean expression"),
     }
 }
@@ -93,6 +94,7 @@ pub(crate) fn compile_unit_expr(
             "\"{}\"",
             capture_call(call, env, functions, impls, enums, &Type::Unit)?
         )),
+        Expr::Field { .. } | Expr::MethodCall(_) => bail!("unsupported unit expression"),
         _ => bail!("unsupported unit expression"),
     }
 }
@@ -127,6 +129,9 @@ fn compile_string_fragment(
             "\"{}\"",
             capture_call(call, env, functions, impls, enums, &Type::String)?
         )),
+        Expr::Field { .. } | Expr::MethodCall(_) => {
+            bail!("unsupported string expression before runtime hoisting")
+        }
         Expr::AsyncBlock(_) => bail!("async blocks cannot be stringified implicitly"),
         Expr::Variant(_) => bail!("ADT values cannot be stringified implicitly"),
         Expr::Tuple(_) | Expr::List(_) | Expr::Range { .. } => {
@@ -175,6 +180,9 @@ fn int_terms(
                     enums,
                     &Type::Int,
                 )?);
+            }
+            Expr::Field { .. } | Expr::MethodCall(_) => {
+                bail!("unsupported integer expression before runtime hoisting")
             }
             Expr::Add(_) if infer(part, env, functions, impls, enums)? == Type::Int => {
                 compiled.push(format!(

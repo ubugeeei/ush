@@ -10,7 +10,9 @@ use crate::{
     matching::compile_pattern,
 };
 
-use super::super::{calls::call_return_type, functions::FunctionRegistry, infer, shared::binding_for_name};
+use super::super::{
+    calls::call_return_type, functions::FunctionRegistry, infer, shared::binding_for_name,
+};
 use super::support::{condition_env, iterable_item_type, mismatch};
 
 pub(crate) fn infer_async_block_type(
@@ -63,9 +65,10 @@ fn infer_statement_value(
         StatementKind::Expr(expr) | StatementKind::Return(expr) => {
             infer(expr, env, functions, impls, enums)
         }
-        StatementKind::If { branch, returns_value } if *returns_value => {
-            infer_if(branch, env, functions, impls, enums)
-        }
+        StatementKind::If {
+            branch,
+            returns_value,
+        } if *returns_value => infer_if(branch, env, functions, impls, enums),
         StatementKind::Match {
             expr,
             arms,
@@ -138,10 +141,15 @@ fn apply_statement_bindings(
         StatementKind::Spawn { name, call } => {
             let ty = call_return_type(&call.name, functions)?
                 .ok_or_else(|| anyhow!("async bindings require a return type: {}", call.name))?;
-            env.insert(name.clone(), binding_for_name(name, Type::Task(Box::new(ty))));
+            env.insert(
+                name.clone(),
+                binding_for_name(name, Type::Task(Box::new(ty))),
+            );
         }
         StatementKind::Await { name, task } => {
-            let binding = env.get(task).ok_or_else(|| anyhow!("unknown task: {task}"))?;
+            let binding = env
+                .get(task)
+                .ok_or_else(|| anyhow!("unknown task: {task}"))?;
             let Type::Task(inner) = &binding.ty else {
                 bail!("await expects a task handle: {task}");
             };
@@ -176,7 +184,8 @@ fn collect_return_types(
             }
         }
         StatementKind::Match { expr, arms, .. } => {
-            let subject = binding_for_name("__ush_match", infer(expr, env, functions, impls, enums)?);
+            let subject =
+                binding_for_name("__ush_match", infer(expr, env, functions, impls, enums)?);
             for (pattern, arm) in arms {
                 let arm_env = compile_pattern(pattern, &subject, env, enums)?.env;
                 collect_return_types(arm, &arm_env, functions, impls, enums, returns)?;

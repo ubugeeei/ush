@@ -73,7 +73,10 @@ fn collect_target(path: &Path, files: &mut BTreeSet<PathBuf>) -> Result<()> {
         files.insert(fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf()));
         return Ok(());
     }
-    bail!("ush test: expected a .ush file or directory: {}", path.display())
+    bail!(
+        "ush test: expected a .ush file or directory: {}",
+        path.display()
+    )
 }
 
 fn collect_ush_files(dir: &Path, files: &mut BTreeSet<PathBuf>) -> Result<()> {
@@ -100,10 +103,7 @@ fn command_for_script(exe: &Path, script: &Path, config: Option<&Path>) -> Comma
 }
 
 fn display_path<'a>(path: &'a Path, cwd: &'a Path) -> String {
-    path.strip_prefix(cwd)
-        .unwrap_or(path)
-        .display()
-        .to_string()
+    path.strip_prefix(cwd).unwrap_or(path).display().to_string()
 }
 
 fn print_stream(label: &str, bytes: &[u8]) {

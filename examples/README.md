@@ -21,11 +21,12 @@ and adding `;` keeps that expression as a statement instead.
 - `hello.ush`: minimal `let`, `print`, inline `$ command`, and `match`
 - `functional.ush`: `$` application and grouped calls
 - `zero_arg.ush`: zero-arg functions with `()`
-- `unit.ush`: unit return values, tail `()`, and `== ()`
+- `unit.ush`: omitted `-> ()`, tail `()`, and `== ()`
 - `named_args.ush`: labeled arguments and `#[default(...)]`
 - `literal_match.ush`: literal `match` arms
 - `primitives.ush`: integer addition plus `Eq` and `Ord` comparisons
-- `std_modules.ush`: `std::env`, `std::path`, `std::fs`, `std::command`, and `std::string` with `use`
+- `std_modules.ush`: `std::env`, path refs via `std::path::{from_cwd, from_source, resolve}`, `std::fs`, `std::command`, and `std::string`
+- `control_flow.ush`: `if` tail values, `for in`, ranges, `while`, `loop`, and `if let ... && ...`
 
 ## ADT and Pattern Matching
 
@@ -38,6 +39,7 @@ and adding `;` keeps that expression as a statement instead.
 ## Async and Tasks
 
 - `async.ush`: basic `async` plus postfixed `.await`
+- `async_block.ush`: block-based `async { ... }` tasks
 - `task_math.ush`: async `Int` return values
 - `task_fanout.ush`: multiple tasks awaited independently
 
@@ -46,6 +48,7 @@ and adding `;` keeps that expression as a statement instead.
 - `bin.ush`: minimal generated CLI entrypoint
 - `bin_defaults.ush`: defaults, aliases, and bool flags
 - `docs.ush`: `#|` comments with std-like generated `--help`, `--man`, and `--complete`
+- `smoke_test.ush`: a tiny passing script you can run with `ush test`
 
 ## Shell Integration
 
@@ -68,4 +71,5 @@ cargo run -p ush -- -c 'cat examples/sample.json | json'
 cargo run -p ush -- -c 'cat examples/sample.xml | xml'
 cargo run -p ush -- -c 'cat examples/sample.html | html'
 cargo run -p ush -- --config examples/config.pkl
+cargo run -p ush -- test examples/smoke_test.ush
 ```

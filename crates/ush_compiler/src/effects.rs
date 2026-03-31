@@ -1,5 +1,6 @@
 mod analyze;
 mod control;
+mod declared_errors;
 mod matching;
 mod support;
 
@@ -13,7 +14,7 @@ use crate::{
     errors::ErrorSet,
     types::{AstString as String, Map as HashMap},
 };
-use support::{exposed_errors, validate_function_errors};
+use declared_errors::{exposed_errors, validate_function_errors};
 
 pub(crate) type FunctionErrorRegistry = HashMap<String, ErrorSet>;
 type TaskErrorRegistry = HashMap<String, ErrorSet>;

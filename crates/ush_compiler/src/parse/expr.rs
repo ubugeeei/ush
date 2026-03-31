@@ -11,7 +11,11 @@ use super::super::{
 };
 use crate::types::HeapVec as Vec;
 
-use super::{compare::split_compare, record, signature};
+use super::{
+    compare::split_compare,
+    expr_support::{parse_member_chain, split_range},
+    record, signature,
+};
 
 pub(super) fn parse_expr(source: &str) -> Result<Expr> {
     if let Some((start, end)) = split_range(source) {
@@ -76,7 +80,7 @@ pub(super) fn parse_named_type_list(source: &str) -> Result<Vec<NamedFieldType>>
     record::parse_named_type_list(source)
 }
 
-fn parse_atom(source: &str) -> Result<Expr> {
+pub(super) fn parse_atom(source: &str) -> Result<Expr> {
     let trimmed = source.trim();
     if trimmed.is_empty() {
         bail!("empty expression");
@@ -115,6 +119,9 @@ fn parse_atom(source: &str) -> Result<Expr> {
     }
     if let Some(string) = parse_string_literal(trimmed) {
         return Ok(Expr::String(string));
+    }
+    if let Some(expr) = parse_member_chain(trimmed)? {
+        return Ok(expr);
     }
     if trimmed == "true" {
         return Ok(Expr::Bool(true));
@@ -160,39 +167,6 @@ fn parse_list<T>(source: &str, mut parse: impl FnMut(&str) -> Result<T>) -> Resu
         .filter(|part| !part.is_empty())
         .map(&mut parse)
         .collect()
-}
-
-fn split_range(source: &str) -> Option<(&str, &str)> {
-    let mut single = false;
-    let mut double = false;
-    let mut paren = 0usize;
-    let mut brace = 0usize;
-    let mut bracket = 0usize;
-    let bytes = source.as_bytes();
-
-    for index in 0..bytes.len().saturating_sub(1) {
-        match bytes[index] {
-            b'\'' if !double => single = !single,
-            b'"' if !single => double = !double,
-            b'(' if !single && !double => paren += 1,
-            b')' if !single && !double && paren > 0 => paren -= 1,
-            b'{' if !single && !double => brace += 1,
-            b'}' if !single && !double && brace > 0 => brace -= 1,
-            b'[' if !single && !double => bracket += 1,
-            b']' if !single && !double && bracket > 0 => bracket -= 1,
-            b'.' if !single
-                && !double
-                && paren == 0
-                && brace == 0
-                && bracket == 0
-                && bytes[index + 1] == b'.' =>
-            {
-                return Some((source[..index].trim(), source[index + 2..].trim()));
-            }
-            _ => {}
-        }
-    }
-    None
 }
 
 fn parse_variant_expr(source: &str) -> Result<Option<super::super::ast::VariantExpr>> {

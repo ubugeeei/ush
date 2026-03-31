@@ -1,4 +1,4 @@
-use alloc::string::ToString;
+use alloc::{boxed::Box, string::ToString};
 
 use memchr::{memchr, memmem, memrchr};
 use phf::phf_map;

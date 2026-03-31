@@ -126,3 +126,57 @@ fn std_command_helpers_capture_output_and_status() {
 
     assert_eq!(output, "true\nhello\nwarn\n7\ndone\n");
 }
+
+#[test]
+fn path_refs_support_source_relative_and_cwd_relative_flows() {
+    let dir = tempdir().expect("tempdir");
+    let source_dir = dir.path().join("source");
+    let run_dir = dir.path().join("run");
+    fs::create_dir_all(&source_dir).expect("create source dir");
+    fs::create_dir_all(&run_dir).expect("create run dir");
+    fs::write(source_dir.join("notes.txt"), "source\n").expect("write source file");
+    fs::write(run_dir.join("notes.txt"), "cwd\n").expect("write cwd file");
+
+    let script = source_dir.join("paths.ush");
+    fs::write(
+        &script,
+        r#"
+        use std::fs::read_text
+        use std::path::{basename, dirname, exists, from_cwd, from_source, join, resolve}
+        let source_root = from_source "."
+        let source_file = join source_root "notes.txt"
+        let cwd_file = from_cwd "notes.txt"
+        let source_parent = dirname source_file
+        let source_copy = join source_parent "notes.txt"
+        let cwd_abs = resolve cwd_file
+        print $ read_text source_copy
+        print $ read_text cwd_file
+        print $ exists source_file
+        print $ basename cwd_abs
+        print $ exists cwd_abs
+        "#,
+    )
+    .expect("write script");
+
+    let compiled = UshCompiler::default()
+        .compile_file(&script)
+        .expect("compile file");
+    let shell = dir.path().join("program.sh");
+    fs::write(&shell, compiled).expect("write shell");
+
+    let output = Command::new("/bin/sh")
+        .arg(&shell)
+        .current_dir(&run_dir)
+        .output()
+        .expect("run compiled script");
+
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "source\ncwd\ntrue\nnotes.txt\ntrue\n"
+    );
+}

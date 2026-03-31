@@ -1,3 +1,5 @@
+use alloc::boxed::Box;
+
 use anyhow::{Result, anyhow, bail};
 
 use super::super::{
@@ -7,6 +9,7 @@ use super::super::{
 use super::{
     compare::infer_compare,
     functions::FunctionRegistry,
+    methods::{infer_field_expr, infer_format_call, infer_method_call},
     render::{compile_bool_expr, compile_int_expr, compile_string_expr, compile_unit_expr},
     task_block::infer_async_block_type,
 };
@@ -29,12 +32,17 @@ pub(crate) fn infer(
             .get(name)
             .map(|binding| binding.ty.clone())
             .ok_or_else(|| anyhow!("unknown variable: {name}")),
+        Expr::Field { base, name } => infer_field_expr(base, name, env, functions, impls, enums),
         Expr::Try(inner) => infer(inner, env, functions, impls, enums),
         Expr::Add(parts) => infer_add(parts, env, functions, impls, enums),
         Expr::Compare { lhs, op, rhs } => {
             infer_compare(lhs, rhs, *op, env, functions, impls, enums)
         }
+        Expr::Call(call) if call.name == "format" => {
+            infer_format_call(call, env, functions, impls, enums)
+        }
         Expr::Call(call) => super::calls::call_expr_type(call, functions),
+        Expr::MethodCall(call) => infer_method_call(call, env, functions, impls, enums),
         Expr::Variant(variant) => infer_variant(variant, env, functions, impls, enums),
         Expr::Tuple(items) => items
             .iter()

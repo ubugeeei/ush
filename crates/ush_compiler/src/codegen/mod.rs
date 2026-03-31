@@ -1,6 +1,7 @@
 mod alias;
 mod bin;
 mod blocks;
+mod call_support;
 mod calls;
 mod compare;
 mod control;
@@ -9,9 +10,14 @@ mod docs;
 mod enum_registry;
 mod functions;
 mod io;
+mod method_fields;
+mod methods;
+mod methods_support;
 mod primitive;
 mod render;
 mod runtime_expr;
+mod runtime_member;
+mod runtime_support;
 mod shared;
 mod statement;
 mod statement_control;
@@ -29,6 +35,7 @@ use super::{
 use crate::ScriptDocs;
 use crate::sourcemap::{CompiledScript, OutputBuffer};
 use crate::traits::{TraitImplRegistry, TraitRegistry, register_trait, register_trait_impl};
+use crate::util::shell_quote;
 
 pub(crate) use functions::FunctionRegistry;
 pub(crate) use primitive::{compile_primitive_expr, infer};
@@ -39,6 +46,8 @@ pub(crate) fn compile_program(
     program: &[Statement],
     docs: &ScriptDocs,
     script_name: Option<&str>,
+    source_dir: Option<&str>,
+    source_path: Option<&str>,
 ) -> Result<CompiledScript> {
     let mut env = Env::default();
     let mut functions = functions::FunctionRegistry::default();
@@ -49,6 +58,12 @@ pub(crate) fn compile_program(
     let mut out = OutputBuffer::from_text(
         "#!/bin/sh\nset -eu\n\n__ush_jobs=''\n__ush_task_seq='0'\n__ush_task_files=''\n__ush_tmp_seq='0'\n\n",
     );
+    out.push_str("__ush_source_dir=");
+    out.push_str(&shell_quote(source_dir.unwrap_or("")));
+    out.push('\n');
+    out.push_str("__ush_source_path=");
+    out.push_str(&shell_quote(source_path.unwrap_or("")));
+    out.push_str("\n\n");
     stdlib::register_builtins(&mut functions)?;
 
     for statement in program {

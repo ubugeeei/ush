@@ -1,3 +1,5 @@
+use alloc::boxed::Box;
+
 use anyhow::{Result, anyhow, bail};
 
 use crate::traits::TraitImplRegistry;
@@ -74,7 +76,10 @@ fn statement_errors(
                 function_errors,
             )?;
             let ty = infer_async_block_type(body, env, functions, impls, enums)?;
-            env.insert(name.clone(), binding_for_type(name, Type::Task(Box::new(ty))));
+            env.insert(
+                name.clone(),
+                binding_for_type(name, Type::Task(Box::new(ty))),
+            );
             tasks.insert(name.clone(), deferred);
             Ok(ErrorSet::default())
         }

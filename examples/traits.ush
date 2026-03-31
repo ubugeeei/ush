@@ -10,7 +10,7 @@ impl Eq for () {}
 impl Ord for String {}
 impl Add for Int {}
 
-fn noop() -> () {
+fn noop() {
   ()
 }
 

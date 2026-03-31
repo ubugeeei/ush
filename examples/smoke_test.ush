@@ -1,0 +1,12 @@
+fn subject(name: String) -> String {
+  "hi " + name
+}
+
+let result = subject "ush"
+
+if result == "hi ush" {
+  print "ok"
+}
+else {
+  shell "false"
+}

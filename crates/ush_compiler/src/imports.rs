@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use anyhow::{Result, bail};
 
 use crate::{
@@ -56,10 +58,14 @@ fn resolve_statement(
         StatementKind::Use(_)
         | StatementKind::Enum(_)
         | StatementKind::Trait(_)
-        | StatementKind::Impl(_)
         | StatementKind::Await { .. }
         | StatementKind::Break
         | StatementKind::Continue => {}
+        StatementKind::Impl(item) => {
+            for method in &mut item.methods {
+                resolve_function(method, imports);
+            }
+        }
         StatementKind::Function(def) => resolve_function(def, imports),
         StatementKind::Alias { value, .. }
         | StatementKind::Let { expr: value, .. }
@@ -138,6 +144,13 @@ fn resolve_expr(
             resolve_expr(rhs, imports);
         }
         Expr::Try(inner) => resolve_expr(inner, imports),
+        Expr::Field { base, .. } => resolve_expr(base, imports),
+        Expr::MethodCall(call) => {
+            resolve_expr(&mut call.receiver, imports);
+            for arg in &mut call.args {
+                resolve_expr(&mut arg.expr, imports);
+            }
+        }
         Expr::Call(call) => resolve_call(call, imports),
         Expr::Tuple(items) | Expr::List(items) => {
             for item in items {

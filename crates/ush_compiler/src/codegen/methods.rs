@@ -1,0 +1,151 @@
+use anyhow::{Result, anyhow, bail};
+
+use super::{
+    super::{
+        ast::{Call, Expr, MethodCall, Type},
+        env::{CodegenState, EnumRegistry, Env},
+        matching::materialize_expr,
+    },
+    FunctionRegistry,
+    calls::ensure_value_type,
+    compile_runtime_primitive_expr, infer,
+    method_fields::struct_field,
+    methods_support::{bind_method_args, compile_method_body, resolve_method_args},
+};
+use crate::sourcemap::OutputBuffer;
+use crate::traits::{TraitImplRegistry, ensure_trait, lookup_method};
+use crate::types::OutputString as String;
+
+pub(crate) fn infer_field_expr(
+    base: &Expr,
+    name: &str,
+    env: &Env,
+    functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
+    enums: &EnumRegistry,
+) -> Result<Type> {
+    let base_ty = infer(base, env, functions, impls, enums)?;
+    let field = struct_field(&base_ty, name, enums)?;
+    Ok(field.ty.clone())
+}
+
+pub(crate) fn infer_method_call(
+    call: &MethodCall,
+    env: &Env,
+    functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
+    enums: &EnumRegistry,
+) -> Result<Type> {
+    let receiver_ty = infer(&call.receiver, env, functions, impls, enums)?;
+    let def = lookup_method(&receiver_ty, &call.method, impls)?;
+    let args = resolve_method_args(call, def)?;
+    for (param, arg) in def.params.iter().zip(args) {
+        let actual = infer(arg, env, functions, impls, enums)?;
+        if actual != param.ty {
+            bail!(
+                "type mismatch for `{}.{}`: expected {:?}, found {:?}",
+                receiver_ty.render(),
+                def.name,
+                param.ty,
+                actual
+            );
+        }
+    }
+    def.return_type
+        .clone()
+        .ok_or_else(|| anyhow!("method `{}` does not return a value", def.name))
+}
+
+pub(crate) fn infer_format_call(
+    call: &Call,
+    env: &Env,
+    functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
+    enums: &EnumRegistry,
+) -> Result<Type> {
+    let [arg] = resolve_format_args(call)?;
+    let ty = infer(arg, env, functions, impls, enums)?;
+    ensure_trait(&ty, "Display", impls)?;
+    Ok(Type::String)
+}
+
+pub(crate) fn compile_display_expr(
+    expr: &Expr,
+    env: &Env,
+    functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
+    enums: &EnumRegistry,
+    state: &mut CodegenState,
+    inside_function: bool,
+    out: &mut OutputBuffer,
+) -> Result<String> {
+    let ty = infer(expr, env, functions, impls, enums)?;
+    ensure_trait(&ty, "Display", impls)?;
+    match ty {
+        Type::String | Type::Int | Type::Bool | Type::Unit => compile_runtime_primitive_expr(
+            expr,
+            env,
+            functions,
+            impls,
+            enums,
+            state,
+            inside_function,
+            out,
+        ),
+        _ => compile_method_capture(expr, "fmt", &[], env, functions, impls, enums, state, out),
+    }
+}
+
+pub(crate) fn compile_method_capture(
+    receiver: &Expr,
+    method: &str,
+    args: &[Expr],
+    env: &Env,
+    functions: &FunctionRegistry,
+    impls: &TraitImplRegistry,
+    enums: &EnumRegistry,
+    state: &mut CodegenState,
+    out: &mut OutputBuffer,
+) -> Result<String> {
+    let receiver_ty = infer(receiver, env, functions, impls, enums)?;
+    let def = lookup_method(&receiver_ty, method, impls)?;
+    let return_type = def
+        .return_type
+        .clone()
+        .ok_or_else(|| anyhow!("method `{method}` does not return a value"))?;
+    ensure_value_type(&return_type)?;
+    let receiver_binding =
+        materialize_expr(receiver, env, functions, impls, enums, state, true, out)?;
+    let mut method_env = env.clone();
+    method_env.insert("self".into(), receiver_binding);
+    bind_method_args(
+        args,
+        def,
+        &mut method_env,
+        env,
+        functions,
+        impls,
+        enums,
+        state,
+        out,
+    )?;
+    let fn_name = state.temp_var("method");
+    out.push_str(&fn_name);
+    out.push_str("() {\n");
+    let body = compile_method_body(def, &mut method_env, env, functions, impls, enums, state)?;
+    out.push_str(&body);
+    out.push_str("}\n");
+    let temp = state.temp_var("value");
+    out.push_str(&temp);
+    out.push_str("=\"$(__ush_capture_return='1' __ush_return_path='' ");
+    out.push_str(&fn_name);
+    out.push_str(")\"\n");
+    Ok(format!("\"${{{temp}}}\""))
+}
+
+fn resolve_format_args(call: &Call) -> Result<[&Expr; 1]> {
+    match call.args.as_slice() {
+        [arg] if arg.label.is_none() => Ok([&arg.expr]),
+        _ => bail!("`format` expects exactly one positional argument"),
+    }
+}

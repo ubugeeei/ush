@@ -48,6 +48,7 @@ pub(super) fn builtin(
     FunctionDef {
         attrs: Vec::new(),
         name: name.into(),
+        receiver: None,
         params,
         return_type,
         declared_errors: None,

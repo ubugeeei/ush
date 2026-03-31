@@ -1,21 +1,18 @@
 use alloc::boxed::Box;
 
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow};
 
 use super::{
     super::{
-        ast::{
-            Attribute, EnumDef, FunctionDef, StatementKind, TraitDef, TraitImpl, VariantDef,
-            VariantFields,
-        },
-        util::{parse_brace_body, parse_paren_body, parse_type, split_top_level_whitespace},
+        ast::{Attribute, EnumDef, FunctionDef, StatementKind, VariantDef, VariantFields},
+        util::{parse_brace_body, parse_paren_body},
     },
     SourceLine,
     declaration_support::{finish_block, parse_name},
     expr::{parse_expr, parse_named_type_list, parse_pattern, parse_type_list},
-    inline, signature, use_decl,
+    impls, inline, signature, use_decl,
 };
-use crate::types::{AstString as String, HeapVec as Vec};
+use crate::types::HeapVec as Vec;
 
 pub(super) fn parse_declaration(
     line_no: usize,
@@ -32,10 +29,10 @@ pub(super) fn parse_declaration(
         return Ok(Some(parse_enum(rest, lines, cursor)?));
     }
     if let Some(rest) = trimmed.strip_prefix("trait ") {
-        return Ok(Some(parse_trait(rest, lines, cursor)?));
+        return Ok(Some(impls::parse_trait(rest, lines, cursor)?));
     }
     if let Some(rest) = trimmed.strip_prefix("impl ") {
-        return Ok(Some(parse_impl(rest, lines, cursor)?));
+        return Ok(Some(impls::parse_impl(rest, lines, cursor)?));
     }
     if let Some(rest) = trimmed.strip_prefix("use ") {
         return Ok(Some(use_decl::parse_use(rest)?));
@@ -150,32 +147,6 @@ fn parse_type_def(
     }))
 }
 
-fn parse_trait(
-    header: &str,
-    lines: &[SourceLine<'_>],
-    cursor: &mut usize,
-) -> Result<StatementKind> {
-    let name = parse_name(&parse_empty_item(
-        header,
-        lines,
-        cursor,
-        "trait declaration",
-    )?)?;
-    Ok(StatementKind::Trait(TraitDef { name }))
-}
-
-fn parse_impl(header: &str, lines: &[SourceLine<'_>], cursor: &mut usize) -> Result<StatementKind> {
-    let source = parse_empty_item(header, lines, cursor, "trait impl")?;
-    let parts = split_top_level_whitespace(source.as_str());
-    if parts.len() != 3 || parts[1] != "for" {
-        bail!("expected `impl Trait for Type {{}}`");
-    }
-    Ok(StatementKind::Impl(TraitImpl {
-        trait_name: parse_name(parts[0])?,
-        ty: parse_type(parts[2]).ok_or_else(|| anyhow!("invalid type: {}", parts[2]))?,
-    }))
-}
-
 fn parse_function(
     _line_no: usize,
     header: &str,
@@ -194,6 +165,7 @@ fn parse_function(
     Ok(StatementKind::Function(FunctionDef {
         attrs: attrs.to_vec(),
         name,
+        receiver: None,
         params,
         return_type,
         declared_errors,
@@ -218,24 +190,4 @@ fn parse_variant_def(source: &str) -> Result<VariantDef> {
         name: parse_name(source)?,
         fields: VariantFields::Unit,
     })
-}
-
-fn parse_empty_item(
-    header: &str,
-    lines: &[SourceLine<'_>],
-    cursor: &mut usize,
-    kind: &str,
-) -> Result<String> {
-    let trimmed = header.trim();
-    if let Some(inner) = trimmed.strip_suffix("{}") {
-        *cursor += 1;
-        return Ok(inner.trim().into());
-    }
-    let head = trimmed
-        .strip_suffix('{')
-        .ok_or_else(|| anyhow!("expected empty body for {kind}"))?
-        .trim();
-    *cursor += 1;
-    let _ = finish_block(lines, cursor, kind)?;
-    Ok(head.into())
 }

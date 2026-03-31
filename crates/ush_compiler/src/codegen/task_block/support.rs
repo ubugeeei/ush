@@ -8,10 +8,7 @@ use crate::{
 };
 
 use super::super::{
-    control_support::homogeneous_type,
-    functions::FunctionRegistry,
-    infer,
-    shared::binding_for_name,
+    control_support::homogeneous_type, functions::FunctionRegistry, infer, shared::binding_for_name,
 };
 
 pub(super) fn condition_env(
@@ -28,15 +25,13 @@ pub(super) fn condition_env(
             }
             Ok(env.clone())
         }
-        Condition::Let { pattern, expr } => Ok(
-            compile_pattern(
-                pattern,
-                &binding_for_name("__ush_cond", infer(expr, env, functions, impls, enums)?),
-                env,
-                enums,
-            )?
-            .env,
-        ),
+        Condition::Let { pattern, expr } => Ok(compile_pattern(
+            pattern,
+            &binding_for_name("__ush_cond", infer(expr, env, functions, impls, enums)?),
+            env,
+            enums,
+        )?
+        .env),
         Condition::And(items) => items.iter().try_fold(env.clone(), |scope, item| {
             condition_env(item, &scope, functions, impls, enums)
         }),

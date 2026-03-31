@@ -1,11 +1,16 @@
 mod control;
+mod items;
 mod ty;
 
 use alloc::boxed::Box;
 
-use crate::errors::ErrorSet;
 use crate::types::{AstString as String, HeapVec as Vec};
 pub(crate) use control::{Condition, IfBranch};
+pub(crate) use items::{
+    Attribute, Call, CallArg, EnumDef, ExprFields, FunctionDef, FunctionParam, MethodCall,
+    NamedExpr, NamedFieldType, NamedPattern, PatternFields, TraitDef, TraitImpl, UseItem,
+    VariantDef, VariantExpr, VariantFields, VariantPattern,
+};
 pub(crate) use ty::{CompareOp, Type};
 
 #[derive(Debug, Clone)]
@@ -91,6 +96,11 @@ pub(crate) enum Expr {
     },
     Try(Box<Expr>),
     Call(Call),
+    MethodCall(MethodCall),
+    Field {
+        base: Box<Expr>,
+        name: String,
+    },
     Variant(VariantExpr),
     Tuple(Vec<Expr>),
     List(Vec<Expr>),
@@ -113,122 +123,3 @@ pub(crate) enum Pattern {
 }
 
 pub(crate) type MatchArm = (Pattern, Box<Statement>);
-
-#[derive(Debug, Clone)]
-pub(crate) struct EnumDef {
-    pub name: String,
-    pub variants: Vec<VariantDef>,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct TraitDef {
-    pub name: String,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct TraitImpl {
-    pub trait_name: String,
-    pub ty: Type,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct Attribute {
-    pub name: String,
-    pub value: Option<Expr>,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct UseItem {
-    pub path: String,
-    pub alias: String,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct FunctionDef {
-    pub attrs: Vec<Attribute>,
-    pub name: String,
-    pub params: Vec<FunctionParam>,
-    pub return_type: Option<Type>,
-    pub declared_errors: Option<ErrorSet>,
-    pub body: Vec<Statement>,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct Call {
-    pub name: String,
-    pub args: Vec<CallArg>,
-    pub asynchronous: bool,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct FunctionParam {
-    pub name: String,
-    pub ty: Type,
-    pub default: Option<Expr>,
-    pub cli_alias: Option<String>,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct CallArg {
-    pub label: Option<String>,
-    pub expr: Expr,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct VariantDef {
-    pub name: String,
-    pub fields: VariantFields,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) enum VariantFields {
-    Unit,
-    Tuple(Vec<Type>),
-    Struct(Vec<NamedFieldType>),
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct NamedFieldType {
-    pub name: String,
-    pub ty: Type,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct VariantExpr {
-    pub enum_name: String,
-    pub variant_name: String,
-    pub fields: ExprFields,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) enum ExprFields {
-    Unit,
-    Tuple(Vec<Expr>),
-    Struct(Vec<NamedExpr>),
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct NamedExpr {
-    pub name: String,
-    pub expr: Expr,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct VariantPattern {
-    pub enum_name: String,
-    pub variant_name: String,
-    pub fields: PatternFields,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) enum PatternFields {
-    Unit,
-    Tuple(Vec<Pattern>),
-    Struct(Vec<NamedPattern>),
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct NamedPattern {
-    pub name: String,
-    pub pattern: Pattern,
-}

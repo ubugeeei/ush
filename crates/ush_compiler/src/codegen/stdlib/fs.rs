@@ -73,36 +73,56 @@ pub(super) fn definitions() -> Vec<FunctionDef> {
 }
 
 pub(super) fn emit(out: &mut OutputBuffer) {
-    emit_fn(out, "std::fs::read_text", "  cat \"$1\"\n");
+    emit_fn(
+        out,
+        "std::fs::read_text",
+        "  __ush_path=$(ush_fn_std__path__resolve \"$1\")\n  cat \"$__ush_path\"\n",
+    );
     emit_fn(
         out,
         "std::fs::write_text",
-        "  printf '%s' \"$2\" > \"$1\"\n",
+        "  __ush_path=$(ush_fn_std__path__resolve \"$1\")\n  printf '%s' \"$2\" > \"$__ush_path\"\n",
     );
     emit_fn(
         out,
         "std::fs::append_text",
-        "  printf '%s' \"$2\" >> \"$1\"\n",
+        "  __ush_path=$(ush_fn_std__path__resolve \"$1\")\n  printf '%s' \"$2\" >> \"$__ush_path\"\n",
     );
-    emit_fn(out, "std::fs::remove", "  rm -f \"$1\"\n");
-    emit_fn(out, "std::fs::move", "  mv \"$1\" \"$2\"\n");
-    emit_fn(out, "std::fs::copy", "  cp \"$1\" \"$2\"\n");
+    emit_fn(
+        out,
+        "std::fs::remove",
+        "  __ush_path=$(ush_fn_std__path__resolve \"$1\")\n  rm -f \"$__ush_path\"\n",
+    );
+    emit_fn(
+        out,
+        "std::fs::move",
+        "  __ush_from=$(ush_fn_std__path__resolve \"$1\")\n  __ush_to=$(ush_fn_std__path__resolve \"$2\")\n  mv \"$__ush_from\" \"$__ush_to\"\n",
+    );
+    emit_fn(
+        out,
+        "std::fs::copy",
+        "  __ush_from=$(ush_fn_std__path__resolve \"$1\")\n  __ush_to=$(ush_fn_std__path__resolve \"$2\")\n  cp \"$__ush_from\" \"$__ush_to\"\n",
+    );
     emit_fn(
         out,
         "std::fs::exists",
-        "  if [ -e \"$1\" ]; then printf '%s' 'true'; else printf '%s' 'false'; fi\n",
+        "  __ush_path=$(ush_fn_std__path__resolve \"$1\")\n  if [ -e \"$__ush_path\" ]; then printf '%s' 'true'; else printf '%s' 'false'; fi\n",
     );
     emit_fn(
         out,
         "std::fs::is_file",
-        "  if [ -f \"$1\" ]; then printf '%s' 'true'; else printf '%s' 'false'; fi\n",
+        "  __ush_path=$(ush_fn_std__path__resolve \"$1\")\n  if [ -f \"$__ush_path\" ]; then printf '%s' 'true'; else printf '%s' 'false'; fi\n",
     );
     emit_fn(
         out,
         "std::fs::is_dir",
-        "  if [ -d \"$1\" ]; then printf '%s' 'true'; else printf '%s' 'false'; fi\n",
+        "  __ush_path=$(ush_fn_std__path__resolve \"$1\")\n  if [ -d \"$__ush_path\" ]; then printf '%s' 'true'; else printf '%s' 'false'; fi\n",
     );
-    emit_fn(out, "std::fs::mkdir_p", "  mkdir -p \"$1\"\n");
+    emit_fn(
+        out,
+        "std::fs::mkdir_p",
+        "  __ush_path=$(ush_fn_std__path__resolve \"$1\")\n  mkdir -p \"$__ush_path\"\n",
+    );
     emit_fn(
         out,
         "std::fs::tmpfile",
@@ -111,12 +131,12 @@ pub(super) fn emit(out: &mut OutputBuffer) {
     emit_fn(
         out,
         "std::fs::sha256",
-        "  if command -v sha256sum >/dev/null 2>&1; then\n    sha256sum \"$1\" | awk '{print $1}'\n    return 0\n  fi\n  if command -v shasum >/dev/null 2>&1; then\n    shasum -a 256 \"$1\" | awk '{print $1}'\n    return 0\n  fi\n  if command -v openssl >/dev/null 2>&1; then\n    openssl dgst -sha256 \"$1\" | awk '{print $NF}'\n    return 0\n  fi\n  printf '%s\\n' 'ush std::fs::sha256: no hash tool available' >&2\n  return 1\n",
+        "  __ush_path=$(ush_fn_std__path__resolve \"$1\")\n  if command -v sha256sum >/dev/null 2>&1; then\n    sha256sum \"$__ush_path\" | awk '{print $1}'\n    return 0\n  fi\n  if command -v shasum >/dev/null 2>&1; then\n    shasum -a 256 \"$__ush_path\" | awk '{print $1}'\n    return 0\n  fi\n  if command -v openssl >/dev/null 2>&1; then\n    openssl dgst -sha256 \"$__ush_path\" | awk '{print $NF}'\n    return 0\n  fi\n  printf '%s\\n' 'ush std::fs::sha256: no hash tool available' >&2\n  return 1\n",
     );
     emit_fn(
         out,
         "std::fs::mime_type",
-        "  if ! command -v file >/dev/null 2>&1; then\n    printf '%s' 'application/octet-stream'\n    return 0\n  fi\n  if file -b --mime-type \"$1\" >/dev/null 2>&1; then\n    file -b --mime-type \"$1\"\n    return 0\n  fi\n  file -I \"$1\" | awk -F': ' '{print $2}' | awk -F';' '{print $1}'\n",
+        "  __ush_path=$(ush_fn_std__path__resolve \"$1\")\n  if ! command -v file >/dev/null 2>&1; then\n    printf '%s' 'application/octet-stream'\n    return 0\n  fi\n  if file -b --mime-type \"$__ush_path\" >/dev/null 2>&1; then\n    file -b --mime-type \"$__ush_path\"\n    return 0\n  fi\n  file -I \"$__ush_path\" | awk -F': ' '{print $2}' | awk -F';' '{print $1}'\n",
     );
 }
 

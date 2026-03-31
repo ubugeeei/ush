@@ -41,8 +41,10 @@ fn runnable_examples_exit_successfully() {
         ("adt.ush", &[]),
         ("alias.ush", &[]),
         ("async.ush", &[]),
+        ("async_block.ush", &[]),
         ("bin.ush", &["--name", "ush", "--verbose"]),
         ("bin_defaults.ush", &["--target", "prod", "--verbose"]),
+        ("control_flow.ush", &[]),
         ("docs.ush", &[]),
         ("functional.ush", &[]),
         ("hello.ush", &[]),
@@ -52,6 +54,8 @@ fn runnable_examples_exit_successfully() {
         ("primitives.ush", &[]),
         ("response.ush", &[]),
         ("shell_string.ush", &[]),
+        ("smoke_test.ush", &[]),
+        ("std_modules.ush", &[]),
         ("task_fanout.ush", &[]),
         ("task_math.ush", &[]),
         ("traits.ush", &[]),
@@ -87,8 +91,12 @@ fn example_catalog_mentions_new_scripts() {
     let catalog = fs::read_to_string(example_path("README.md")).expect("read catalog");
 
     for name in [
+        "async_block.ush",
+        "control_flow.ush",
         "named_args.ush",
         "response.ush",
+        "smoke_test.ush",
+        "std_modules.ush",
         "task_fanout.ush",
         "bin_defaults.ush",
         "sample.json",

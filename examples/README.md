@@ -64,6 +64,7 @@ and adding `;` keeps that expression as a statement instead.
 - `sample.json`: input for `| json`
 - `sample.xml`: input for `| xml`
 - `sample.html`: input for `| html`
+- `sample_lines.txt`: input for `| car`, `| cdr`, and `| flat(...)`
 
 Try the helper side like this:
 
@@ -71,6 +72,11 @@ Try the helper side like this:
 cargo run -p ush -- -c 'cat examples/sample.json | json'
 cargo run -p ush -- -c 'cat examples/sample.xml | xml'
 cargo run -p ush -- -c 'cat examples/sample.html | html'
+cargo run -p ush -- -c 'cat examples/sample_lines.txt | car'
+cargo run -p ush -- -c 'cat examples/sample_lines.txt | cdr'
+cargo run -p ush -- -c 'cat examples/sample_lines.txt | flat(\head, rest -> [head, "tail", rest])'
+cargo run -p ush -- -c 'cat examples/sample_lines.txt | fmap(\it -> upper(it))'
+cargo run -p ush -- -c 'printf "a\nb\n" | fzip(["1", "2"])'
 cargo run -p ush -- --config examples/config.pkl
 cargo run -p ush -- test examples/smoke_test.ush
 ```

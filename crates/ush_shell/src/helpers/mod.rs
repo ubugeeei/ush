@@ -1,14 +1,20 @@
 mod browser;
+mod flat_lambda;
 mod lambda;
 mod lambda_syntax;
+mod sequence;
 mod value;
+mod zip;
 
 use anyhow::Result;
 use serde_json::Value;
 
 pub use value::ValueStream;
 
+use self::flat_lambda::FlatTransform;
 use self::lambda::{Predicate, Transform, apply_transform, parse_lambda_helper};
+use self::sequence::{car, cdr, flat};
+use self::zip::{ZipSource, parse_zip_helper};
 
 #[derive(Debug, Clone)]
 pub struct HelperInvocation {
@@ -22,11 +28,15 @@ enum HelperKind {
     Json,
     Xml,
     Html,
+    Car,
+    Cdr,
     Map(Transform),
     Each(Transform),
     Filter(Predicate),
     Any(Predicate),
     Some(Predicate),
+    Flat(FlatTransform),
+    Zip(ZipSource),
 }
 
 impl HelperInvocation {
@@ -38,7 +48,9 @@ impl HelperInvocation {
             "json" => Some(Ok(HelperKind::Json)),
             "xml" => Some(Ok(HelperKind::Xml)),
             "html" => Some(Ok(HelperKind::Html)),
-            _ => parse_lambda_helper(trimmed),
+            "car" => Some(Ok(HelperKind::Car)),
+            "cdr" => Some(Ok(HelperKind::Cdr)),
+            _ => parse_zip_helper(trimmed).or_else(|| parse_lambda_helper(trimmed)),
         }?;
         Some(kind.map(|kind| Self { kind }))
     }
@@ -71,6 +83,8 @@ impl HelperInvocation {
                 browser::open_in_browser(&input)?;
                 Ok((ValueStream::Empty, 0))
             }
+            HelperKind::Car => Ok((car(input)?, 0)),
+            HelperKind::Cdr => Ok((cdr(input)?, 0)),
             HelperKind::Map(transform) | HelperKind::Each(transform) => {
                 let output = input
                     .into_lines()?
@@ -97,6 +111,8 @@ impl HelperInvocation {
                     if matched { 0 } else { 1 },
                 ))
             }
+            HelperKind::Flat(transform) => Ok((flat(input, transform)?, 0)),
+            HelperKind::Zip(source) => Ok((source.apply(input)?, 0)),
         }
     }
 }
@@ -178,5 +194,29 @@ mod tests {
             .execute(ValueStream::Text("a\nb\n".to_string()))
             .expect("execute");
         assert_eq!(output.to_text().expect("text"), "ok\nok\n");
+    }
+
+    #[test]
+    fn car_and_cdr_helpers_are_recognized() {
+        let car = HelperInvocation::parse("car")
+            .expect("helper")
+            .expect("parse");
+        let cdr = HelperInvocation::parse("cdr")
+            .expect("helper")
+            .expect("parse");
+        assert!(matches!(car.kind, super::HelperKind::Car));
+        assert!(matches!(cdr.kind, super::HelperKind::Cdr));
+    }
+
+    #[test]
+    fn fmap_and_ffmap_aliases_are_recognized() {
+        let fmap = HelperInvocation::parse(r#"fmap(\it -> upper(it))"#)
+            .expect("helper")
+            .expect("parse");
+        let ffmap = HelperInvocation::parse(r#"ffmap(\head, rest -> [head, rest])"#)
+            .expect("helper")
+            .expect("parse");
+        assert!(matches!(fmap.kind, super::HelperKind::Map(_)));
+        assert!(matches!(ffmap.kind, super::HelperKind::Flat(_)));
     }
 }

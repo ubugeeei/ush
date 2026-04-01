@@ -1,6 +1,7 @@
 use anyhow::{Result, anyhow, bail};
 
 use super::HelperKind;
+use super::flat_lambda::parse_flat_lambda;
 use super::lambda_syntax::{block_body, parse_call, parse_string_arg, parse_string_literal};
 
 #[derive(Debug, Clone)]
@@ -32,11 +33,12 @@ pub(super) fn parse_lambda_helper(raw: &str) -> Option<Result<HelperKind>> {
     let name = raw[..open].trim();
     let inner = raw[open + 1..close].trim();
     let kind = match name {
-        "map" => parse_transform_lambda(inner).map(HelperKind::Map),
+        "map" | "fmap" => parse_transform_lambda(inner).map(HelperKind::Map),
         "each" => parse_transform_lambda(inner).map(HelperKind::Each),
         "filter" => parse_predicate_lambda(inner).map(HelperKind::Filter),
         "any" => parse_predicate_lambda(inner).map(HelperKind::Any),
         "some" => parse_predicate_lambda(inner).map(HelperKind::Some),
+        "flat" | "ffmap" => parse_flat_lambda(inner).map(HelperKind::Flat),
         _ => return None,
     };
     Some(kind)

@@ -47,7 +47,7 @@ Implemented today:
 - Builtin utility: `sammary` for recursive file and type summaries across paths and globs, with lockfiles excluded by default
 - Safety prompt for dangerous `rm -rf` unless `--yes` or `USH_INTERACTION=false`
 - Stylish renderers for `pwd`, `ls`, `cat`, `ps`, and `kill`
-- Structured helpers: `len`, `lines`, `json`, `xml`, `html`, `map`, `each`, `filter`, `any`, `some`
+- Structured helpers: `len`, `lines`, `json`, `xml`, `html`, `car`, `cdr`, `map`, `fmap`, `flat`, `ffmap`, `fzip`, `each`, `filter`, `any`, `some`
 - Environment-variable expansion, `~` expansion, and simple glob expansion
 - Criterion benchmark skeleton for parser/profiling work
 - GitHub Releases, `curl` installer, `nix`, and Docker packaging entry points
@@ -173,7 +173,12 @@ If you opt into `USH_KEYMAP=vi` or `shell.keymap = "vi"`, `ush` switches the REP
 ```bash
 printf "alpha\nbeta\ngamma\n" | filter(\it -> contains(it, "a")) | len
 printf "hello\nworld\n" | map(\it -> upper(it))
+printf "hello\nworld\n" | fmap(\it -> upper(it))
 printf "hello\n" | map(\line -> { upper(line) })
+printf "alpha\nbeta\ngamma\n" | car
+printf "alpha\nbeta\ngamma\n" | cdr
+printf "alpha\nbeta\ngamma\n" | flat(\head, rest -> [head, "tail", rest])
+printf "alpha\nbeta\n" | fzip(["1", "2"])
 cat package.json | json | len
 cat feed.xml | xml
 curl -fsSL https://example.com | html
@@ -187,10 +192,16 @@ Currently supported helper forms:
 - `json`
 - `xml`
 - `html`
+- `car`
+- `cdr`
 - `map(\it -> upper(it))`
+- `fmap(\it -> upper(it))`
 - `map(\it -> lower(it))`
 - `map(\it -> trim(it))`
 - `map(\it -> replace(it, "from", "to"))`
+- `flat(\head, rest -> [head, rest])`
+- `ffmap(\head, rest -> [head, rest])`
+- `fzip(["left", "right"])`
 - `each(\it -> print(it))`
 - `filter(\it -> contains(it, "foo"))`
 - `filter(\it -> starts_with(it, "foo"))`
@@ -201,7 +212,11 @@ Currently supported helper forms:
 `html` writes the current stream into a temporary HTML file and opens it in your default browser.
 If `json` cannot parse the stream, `ush` falls back to this browser flow instead of failing immediately.
 `xml` pretty-prints valid XML and falls back to the same browser flow if the input is not valid XML.
-Helper lambdas also accept `\name -> expr`, `\name -> { expr }`, and zero-arg forms like `\-> { "ok" }`.
+`car` and `cdr` are Lisp-style head and tail helpers over the current line stream.
+`flat` is a small stream-level flat-map that binds `head` and `rest`, where `rest` splices the remaining lines into the output list.
+`fmap` and `ffmap` are functional aliases for `map` and `flat`.
+`fzip` zips the current line stream against a literal right-hand list or multiline string and emits tab-separated pairs.
+Helper lambdas also accept `\name -> expr`, `\name -> { expr }`, zero-arg forms like `\-> { "ok" }`, and two-arg `flat(\head, rest -> [...])`.
 
 ## Stylish Mode
 

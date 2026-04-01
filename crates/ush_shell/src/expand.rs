@@ -19,8 +19,8 @@ impl Shell {
         );
         commands.extend(
             [
-                "len", "length", "lines", "json", "xml", "html", "map", "filter", "each", "any",
-                "some",
+                "len", "length", "lines", "json", "xml", "html", "car", "cdr", "map", "fmap",
+                "flat", "ffmap", "fzip", "filter", "each", "any", "some",
             ]
             .into_iter()
             .map(str::to_string),

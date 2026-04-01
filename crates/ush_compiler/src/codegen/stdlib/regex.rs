@@ -58,6 +58,6 @@ pub(super) fn emit(out: &mut OutputBuffer) {
     emit_fn(
         out,
         "std::regex::capture",
-        "  if ! command -v perl >/dev/null 2>&1; then\n    printf '%s\\n' 'ush std::regex::capture: perl is required' >&2\n    return 1\n  fi\n  perl -e 'my ($value, $pattern, $index) = @ARGV; $index = int($index); exit 0 if $index < 1; if ($value =~ /$pattern/) { if (defined $-[$index] && $-[$index] >= 0) { print substr($value, $-[$index], $+[$index] - $-[$index]); } }' -- \"$1\" \"$2\" \"$3\"\n",
+        "  if ! command -v perl >/dev/null 2>&1; then\n    printf '%s\\n' 'ush std::regex::capture: perl is required' >&2\n    return 1\n  fi\n  LC_ALL=C LANG=C LC_CTYPE=C perl -e 'my ($value, $pattern, $index) = @ARGV; $index = int($index); exit 0 if $index < 1; if ($value =~ /$pattern/) { if (defined $-[$index] && $-[$index] >= 0) { print substr($value, $-[$index], $+[$index] - $-[$index]); } }' -- \"$1\" \"$2\" \"$3\"\n",
     );
 }

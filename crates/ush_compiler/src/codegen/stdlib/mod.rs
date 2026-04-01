@@ -1,7 +1,9 @@
 mod env;
 mod fs;
+mod http;
 mod path;
 mod process;
+mod regex;
 mod string;
 
 use anyhow::{Result, bail};
@@ -17,8 +19,10 @@ pub(super) fn register_builtins(functions: &mut FunctionRegistry) -> Result<()> 
     for def in env::definitions()
         .into_iter()
         .chain(fs::definitions())
+        .chain(http::definitions())
         .chain(path::definitions())
         .chain(process::definitions())
+        .chain(regex::definitions())
         .chain(string::definitions())
     {
         if functions.insert(def.name.clone(), def).is_some() {
@@ -31,8 +35,10 @@ pub(super) fn register_builtins(functions: &mut FunctionRegistry) -> Result<()> 
 pub(super) fn emit_builtins(out: &mut OutputBuffer) {
     env::emit(out);
     fs::emit(out);
+    http::emit(out);
     path::emit(out);
     process::emit(out);
+    regex::emit(out);
     string::emit(out);
 }
 

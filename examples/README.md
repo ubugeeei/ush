@@ -27,6 +27,7 @@ and adding `;` keeps that expression as a statement instead.
 - `multiline_string.ush`: `""" ... """` strings with common-indent dedent
 - `primitives.ush`: integer addition plus `Eq` and `Ord` comparisons
 - `std_modules.ush`: `std::env`, `from_cwd` / `from_source` path refs, plus method-style `path.resolve()`, `path.exists()`, `path.read_text()`, `std::fs`, `std::command`, and `std::string`
+- `http_regex.ush`: `std::http::{get, download}` plus `std::regex::{is_match, find, replace}` and String regex methods
 - `control_flow.ush`: `if` tail values, `for in`, ranges, `while`, `loop`, and `if let ... && ...`
 
 ## ADT and Pattern Matching

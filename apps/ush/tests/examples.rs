@@ -48,6 +48,7 @@ fn runnable_examples_exit_successfully() {
         ("docs.ush", &[]),
         ("functional.ush", &[]),
         ("hello.ush", &[]),
+        ("http_regex.ush", &[]),
         ("literal_match.ush", &[]),
         ("multiline_string.ush", &[]),
         ("named_args.ush", &[]),
@@ -94,6 +95,7 @@ fn example_catalog_mentions_new_scripts() {
     for name in [
         "async_block.ush",
         "control_flow.ush",
+        "http_regex.ush",
         "multiline_string.ush",
         "named_args.ush",
         "response.ush",

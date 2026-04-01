@@ -1,0 +1,25 @@
+== mapped shell ==
+G0449 -> S0001 | greeting='hello'
+             <= let greeting = "hello"
+G0450 -> S0002 | if {
+             <= if true {
+G0451 -> S0002 | [ 'true' = 'true' ]
+             <= if true {
+G0452 -> S0002 | }; then
+             <= if true {
+G0453 -> S0003 |   printf '%s\n' "${greeting}"
+             <=   print greeting
+G0454 -> S0002 | fi
+             <= if true {
+G0455 -> S0005 | printf '%s\n' warn >&2
+             <= shell "printf '%s\n' warn >&2"
+G0456 -> S0006 | printf '%s\n' "$(printf '%s' "${greeting}" '!')"
+             <= print greeting + "!"
+
+== runtime ==
+status: 0
+stdout:
+hello
+hello!
+stderr:
+warn

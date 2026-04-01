@@ -89,6 +89,62 @@ fn command_v_reports_existing_commands() {
 }
 
 #[test]
+fn stylish_command_v_renders_lookup_categories() {
+    let dir = tempdir().expect("tempdir");
+    let config_path = dir.path().join("config.json");
+    fs::write(
+        &config_path,
+        r#"{
+  "aliases": {
+    "ll": "ls -lah"
+  }
+}
+"#,
+    )
+    .expect("write config");
+
+    let output = ush()
+        .args([
+            "--config",
+            config_path.to_str().expect("utf8 path"),
+            "-s",
+            "-c",
+            "command -v ll echo sh",
+        ])
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("command -v"));
+    assert!(stdout.contains("3 targets"));
+    assert!(stdout.contains("[alias]"));
+    assert!(stdout.contains("[builtin]"));
+    assert!(stdout.contains("[external]"));
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
+}
+
+#[test]
+fn stylish_type_marks_missing_targets() {
+    let output = ush()
+        .args(["-s", "-c", "type echo definitely-not-a-real-command"])
+        .output()
+        .expect("run ush");
+
+    assert_eq!(output.status.code(), Some(1));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("type"));
+    assert!(stdout.contains("2 targets"));
+    assert!(stdout.contains("echo"));
+    assert!(stdout.contains("[builtin]"));
+    assert!(stdout.contains("[not found]"));
+    assert!(stdout.contains("definitely-not-a-real-command"));
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
+}
+
+#[test]
 fn bracket_test_builtin_returns_zero_for_true_expression() {
     let output = ush().args(["-c", "[ -d . ]"]).output().expect("run ush");
     assert!(output.status.success());

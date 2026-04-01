@@ -67,7 +67,7 @@ impl Shell {
             bail!("{name} requires at least one command name");
         }
 
-        if self.options.stylish && name == "which" {
+        if self.options.stylish && matches!(name, "which" | "type" | "command -v" | "command -V") {
             let mut rows = Vec::new();
             let mut status = 0;
             for arg in args {
@@ -77,7 +77,7 @@ impl Shell {
                 }
                 rows.push((arg.clone(), result));
             }
-            return Ok((ValueStream::Text(style::render_which(&rows)), status));
+            return Ok((ValueStream::Text(style::render_lookup(name, &rows)), status));
         }
 
         let (text, status) = describe_commands(&self.aliases, args, style);

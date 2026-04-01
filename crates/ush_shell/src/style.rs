@@ -175,7 +175,7 @@ pub fn render_aliases(aliases: &BTreeMap<String, String>) -> String {
     out
 }
 
-pub fn render_which(rows: &[(String, Option<CommandLookup>)]) -> String {
+pub fn render_lookup(command: &str, rows: &[(String, Option<CommandLookup>)]) -> String {
     let mut alias_count = 0usize;
     let mut builtin_count = 0usize;
     let mut external_count = 0usize;
@@ -194,7 +194,7 @@ pub fn render_which(rows: &[(String, Option<CommandLookup>)]) -> String {
     let _ = writeln!(
         out,
         "{} {}",
-        paint(BLUE_BOLD, "which"),
+        paint(BLUE_BOLD, command),
         dim(pluralize(rows.len(), "target", "targets"))
     );
 

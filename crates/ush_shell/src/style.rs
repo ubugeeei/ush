@@ -12,17 +12,9 @@ use chrono::{DateTime, Local};
 use crate::helpers::ValueStream;
 
 pub fn render_ls(cwd: &Path, args: &[String]) -> Result<Option<ValueStream>> {
-    let mut show_hidden = false;
-    let mut targets = Vec::new();
-
-    for arg in args {
-        match arg.as_str() {
-            "-a" | "--all" => show_hidden = true,
-            "-l" | "--long" => {}
-            _ if arg.starts_with('-') => return Ok(None),
-            _ => targets.push(arg.clone()),
-        }
-    }
+    let Some((hidden_mode, mut targets)) = parse_ls_args(args) else {
+        return Ok(None);
+    };
 
     if targets.is_empty() {
         targets.push(".".to_string());
@@ -31,14 +23,14 @@ pub fn render_ls(cwd: &Path, args: &[String]) -> Result<Option<ValueStream>> {
     let mut sections = Vec::new();
     for target in targets {
         let path = normalize_path(cwd, &target);
-        let mut entries = ls_entries(&path, show_hidden)
+        let mut entries = ls_entries(&path, hidden_mode)
             .with_context(|| format!("failed to read {}", path.display()))?;
         entries.sort_by(|left, right| left.0.cmp(&right.0));
 
         let mut summary = LsSummary::default();
         let mut body = String::new();
         for (file_name, entry_path) in entries {
-            let row = describe_ls_entry(&file_name, &entry_path, show_hidden)?;
+            let row = describe_ls_entry(&file_name, &entry_path, hidden_mode)?;
             summary.observe(row.kind);
             render_ls_row(&mut body, &row);
         }
@@ -48,17 +40,64 @@ pub fn render_ls(cwd: &Path, args: &[String]) -> Result<Option<ValueStream>> {
     Ok(Some(ValueStream::Text(sections.join("\n"))))
 }
 
-fn ls_entries(path: &Path, show_hidden: bool) -> Result<Vec<(String, PathBuf)>> {
+fn parse_ls_args(args: &[String]) -> Option<(HiddenMode, Vec<String>)> {
+    let mut hidden_mode = HiddenMode::Default;
+    let mut targets = Vec::new();
+    let mut force_paths = false;
+
+    for arg in args {
+        if force_paths {
+            targets.push(arg.clone());
+            continue;
+        }
+
+        match arg.as_str() {
+            "--" => force_paths = true,
+            "--all" => hidden_mode = hidden_mode.include(HiddenMode::All),
+            "--almost-all" => hidden_mode = hidden_mode.include(HiddenMode::AlmostAll),
+            "--long" | "--human-readable" | "--classify" | "--file-type" | "--color" => {}
+            _ if arg.starts_with("--color=") => {}
+            _ if arg.starts_with("--indicator-style=") => {
+                match arg.split_once('=').map(|(_, value)| value) {
+                    Some("classify" | "file-type" | "slash") => {}
+                    _ => return None,
+                }
+            }
+            _ if arg.starts_with('-') && arg.len() > 1 => {
+                parse_ls_short_flags(arg, &mut hidden_mode)?
+            }
+            _ => targets.push(arg.clone()),
+        }
+    }
+
+    Some((hidden_mode, targets))
+}
+
+fn parse_ls_short_flags(arg: &str, hidden_mode: &mut HiddenMode) -> Option<()> {
+    for flag in arg[1..].chars() {
+        match flag {
+            'a' => *hidden_mode = hidden_mode.include(HiddenMode::All),
+            'A' => *hidden_mode = hidden_mode.include(HiddenMode::AlmostAll),
+            '1' | 'C' | 'F' | 'G' | 'h' | 'l' | 'm' | 'p' | 'x' => {}
+            _ => return None,
+        }
+    }
+
+    Some(())
+}
+
+fn ls_entries(path: &Path, hidden_mode: HiddenMode) -> Result<Vec<(String, PathBuf)>> {
     if path.is_dir() {
         let mut entries = fs::read_dir(path)?
             .collect::<Result<Vec<_>, _>>()?
             .into_iter()
             .filter_map(|entry| {
                 let file_name = entry.file_name().to_string_lossy().to_string();
-                (!file_name.starts_with('.') || show_hidden).then_some((file_name, entry.path()))
+                (!file_name.starts_with('.') || hidden_mode.shows_hidden())
+                    .then_some((file_name, entry.path()))
             })
             .collect::<Vec<_>>();
-        if show_hidden {
+        if hidden_mode.shows_dot_entries() {
             entries.push((".".to_string(), path.to_path_buf()));
             entries.push((
                 "..".to_string(),
@@ -267,6 +306,32 @@ const YELLOW_BOLD: &str = "\u{1b}[1;33m";
 const MAGENTA_BOLD: &str = "\u{1b}[1;35m";
 const RED_BOLD: &str = "\u{1b}[1;31m";
 
+#[derive(Clone, Copy, Default)]
+enum HiddenMode {
+    #[default]
+    Default,
+    AlmostAll,
+    All,
+}
+
+impl HiddenMode {
+    fn include(self, other: Self) -> Self {
+        match (self, other) {
+            (Self::All, _) | (_, Self::All) => Self::All,
+            (Self::AlmostAll, _) | (_, Self::AlmostAll) => Self::AlmostAll,
+            _ => Self::Default,
+        }
+    }
+
+    fn shows_hidden(self) -> bool {
+        !matches!(self, Self::Default)
+    }
+
+    fn shows_dot_entries(self) -> bool {
+        matches!(self, Self::All)
+    }
+}
+
 #[derive(Clone, Copy)]
 enum EntryKind {
     Dir,
@@ -402,7 +467,7 @@ pub(crate) fn badge(value: impl Display, style: &str) -> String {
     format!("{style}[{value}]{RESET}")
 }
 
-fn describe_ls_entry(file_name: &str, entry_path: &Path, show_hidden: bool) -> Result<LsRow> {
+fn describe_ls_entry(file_name: &str, entry_path: &Path, hidden_mode: HiddenMode) -> Result<LsRow> {
     let metadata = fs::symlink_metadata(entry_path)?;
     let file_type = metadata.file_type();
     let modified = metadata
@@ -428,7 +493,7 @@ fn describe_ls_entry(file_name: &str, entry_path: &Path, show_hidden: bool) -> R
     let mut details = Vec::new();
     match kind {
         EntryKind::Dir => details.push(pluralize(
-            count_visible_children(entry_path, show_hidden)?,
+            count_visible_children(entry_path, hidden_mode)?,
             "item",
             "items",
         )),
@@ -449,12 +514,18 @@ fn describe_ls_entry(file_name: &str, entry_path: &Path, show_hidden: bool) -> R
     })
 }
 
-fn count_visible_children(path: &Path, show_hidden: bool) -> Result<usize> {
-    Ok(fs::read_dir(path)?
+fn count_visible_children(path: &Path, hidden_mode: HiddenMode) -> Result<usize> {
+    let mut count = fs::read_dir(path)?
         .collect::<std::result::Result<Vec<_>, _>>()?
         .into_iter()
-        .filter(|entry| show_hidden || !entry.file_name().to_string_lossy().starts_with('.'))
-        .count())
+        .filter(|entry| {
+            hidden_mode.shows_hidden() || !entry.file_name().to_string_lossy().starts_with('.')
+        })
+        .count();
+    if hidden_mode.shows_dot_entries() {
+        count += 2;
+    }
+    Ok(count)
 }
 
 fn render_ls_section(target: &str, summary: &LsSummary, body: &str) -> String {

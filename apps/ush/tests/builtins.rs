@@ -154,6 +154,54 @@ fn stylish_ls_a_includes_dot_entries_and_hidden_files() {
 }
 
 #[test]
+fn stylish_ls_combined_short_flags_keep_rich_output() {
+    let dir = tempdir().expect("tempdir");
+    fs::write(dir.path().join(".hidden"), "secret\n").expect("write");
+    fs::write(dir.path().join("visible"), "open\n").expect("write");
+
+    let output = ush()
+        .args(["-s", "-c", "ls -lah"])
+        .current_dir(dir.path())
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("ls"));
+    assert!(stdout.contains("4 entries"));
+    assert!(stdout.contains("./"));
+    assert!(stdout.contains("../"));
+    assert!(stdout.contains(".hidden"));
+    assert!(stdout.contains("visible"));
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
+}
+
+#[test]
+fn stylish_ls_almost_all_shows_hidden_without_dot_entries() {
+    let dir = tempdir().expect("tempdir");
+    fs::write(dir.path().join(".hidden"), "secret\n").expect("write");
+    fs::write(dir.path().join("visible"), "open\n").expect("write");
+
+    let output = ush()
+        .args(["-s", "-c", "ls -A"])
+        .current_dir(dir.path())
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("ls"));
+    assert!(stdout.contains("2 entries"));
+    assert!(stdout.contains(".hidden"));
+    assert!(stdout.contains("visible"));
+    assert!(!stdout.contains("./"));
+    assert!(!stdout.contains("../"));
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
+}
+
+#[test]
 fn stylish_ls_keeps_explicit_hidden_targets_visible_without_all_flag() {
     let dir = tempdir().expect("tempdir");
     fs::write(dir.path().join(".env"), "TOKEN=ush\n").expect("write");

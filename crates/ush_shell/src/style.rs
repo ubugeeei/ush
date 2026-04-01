@@ -148,6 +148,42 @@ pub fn render_cat(cwd: &Path, args: &[String], input: &ValueStream) -> Result<Op
     Ok(Some(ValueStream::Text(buffer)))
 }
 
+pub fn render_history(entries: &[String], limit: Option<usize>) -> String {
+    let shown = limit.unwrap_or(entries.len()).min(entries.len());
+    let start = entries.len().saturating_sub(shown);
+
+    let mut out = String::new();
+    let _ = writeln!(
+        out,
+        "{} {}",
+        paint(BLUE_BOLD, "history"),
+        dim(pluralize(entries.len(), "entry", "entries"))
+    );
+
+    let mut meta = Vec::new();
+    if shown < entries.len() {
+        meta.push(format!("showing latest {shown}"));
+    } else {
+        meta.push(format!("showing all {shown}"));
+    }
+    if let Some(last) = entries.last() {
+        meta.push(format!("latest {}", truncate_history_entry(last, 48)));
+    }
+    let _ = writeln!(out, "{}", dim(meta.join(", ")));
+
+    if shown == 0 {
+        let _ = writeln!(out, "{}", dim("(empty)"));
+        return out;
+    }
+
+    for (offset, entry) in entries[start..].iter().enumerate() {
+        let index = start + offset + 1;
+        let _ = writeln!(out, "{} {}", badge(index, CYAN_BOLD), paint(BOLD, entry));
+    }
+
+    out
+}
+
 pub fn render_ps(args: &[String]) -> Result<Option<ValueStream>> {
     if !args.is_empty() {
         return Ok(None);
@@ -966,6 +1002,18 @@ fn normalize_path(cwd: &Path, value: &str) -> PathBuf {
     } else {
         cwd.join(path)
     }
+}
+
+fn truncate_history_entry(entry: &str, max_chars: usize) -> String {
+    if entry.chars().count() <= max_chars {
+        return format!("`{entry}`");
+    }
+
+    let truncated = entry
+        .chars()
+        .take(max_chars.saturating_sub(1))
+        .collect::<String>();
+    format!("`{}...`", truncated.trim_end())
 }
 
 const RESET: &str = "\u{1b}[0m";

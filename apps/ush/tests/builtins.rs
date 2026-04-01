@@ -2,7 +2,7 @@ use std::{
     fs,
     io::Write,
     os::unix::fs::symlink,
-    path::Path,
+    path::{Path, PathBuf},
     process::{Command, Stdio},
 };
 
@@ -51,6 +51,21 @@ fn init_git_repo(dir: &Path) {
     fs::write(dir.join("tracked.txt"), "hello\n").expect("write tracked");
     run_git(dir, &["add", "tracked.txt"]);
     run_git(dir, &["commit", "-q", "-m", "initial commit"]);
+}
+
+fn history_file(home: &Path) -> PathBuf {
+    home.join("Library/Caches/dev.ubugeeei.ush/history.txt")
+}
+
+fn write_history(home: &Path, entries: &[&str]) {
+    let path = history_file(home);
+    fs::create_dir_all(path.parent().expect("history dir")).expect("create history dir");
+    let body = if entries.is_empty() {
+        String::new()
+    } else {
+        format!("{}\n", entries.join("\n"))
+    };
+    fs::write(path, body).expect("write history");
 }
 
 #[test]
@@ -349,6 +364,60 @@ fn stylish_grep_no_matches_preserves_exit_code() {
     assert!(stdout.contains("grep"));
     assert!(stdout.contains("foo"));
     assert!(stdout.contains("[no matches]"));
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
+}
+
+#[test]
+fn stylish_history_renders_numbered_entries() {
+    let home = tempdir().expect("tempdir");
+    write_history(
+        home.path(),
+        &["echo hello", "git status", "cargo test -p ush"],
+    );
+
+    let output = ush()
+        .args(["-s", "-c", "history"])
+        .env("HOME", home.path())
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("history"));
+    assert!(stdout.contains("3 entries"));
+    assert!(stdout.contains("[1]"));
+    assert!(stdout.contains("echo hello"));
+    assert!(stdout.contains("[3]"));
+    assert!(stdout.contains("cargo test -p ush"));
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
+}
+
+#[test]
+fn stylish_history_limit_shows_latest_entries() {
+    let home = tempdir().expect("tempdir");
+    write_history(
+        home.path(),
+        &["echo hello", "git status", "cargo test -p ush", "history 2"],
+    );
+
+    let output = ush()
+        .args(["-s", "-c", "history 2"])
+        .env("HOME", home.path())
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("history"));
+    assert!(stdout.contains("showing latest 2"));
+    assert!(stdout.contains("[3]"));
+    assert!(stdout.contains("cargo test -p ush"));
+    assert!(stdout.contains("[4]"));
+    assert!(stdout.contains("history 2"));
+    assert!(!stdout.contains("[1]"));
+    assert!(!stdout.contains("echo hello"));
     assert!(!stdout.contains("┌"));
     assert!(!stdout.contains("│"));
 }

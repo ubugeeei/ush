@@ -342,6 +342,7 @@ Start here for more detail:
 `install.sh` downloads the matching GitHub Releases archive and installs `ush` plus `ush_lsp`.
 By default it picks the first writable personal bin directory already on `PATH`.
 If none is available, it falls back to `~/.local/bin` and updates your shell rc automatically on POSIX shells.
+When `sha256sum` or `shasum` is available, it also verifies the archive against the release `sha256sums.txt`.
 Release archives are currently published for:
 
 - macOS `x86_64`
@@ -368,6 +369,12 @@ Skip automatic `PATH` updates:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | sh -s -- --no-modify-path
+```
+
+Override the checksum manifest URL:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | sh -s -- --checksum-url https://example.com/sha256sums.txt
 ```
 
 ### nix

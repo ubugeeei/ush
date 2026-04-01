@@ -6,6 +6,7 @@ VERSION="${USH_VERSION:-${UBSH_VERSION:-latest}}"
 PREFIX="${USH_PREFIX:-${UBSH_PREFIX:-$HOME/.local}}"
 BIN_DIR_INPUT="${USH_BIN_DIR:-${UBSH_BIN_DIR:-}}"
 DOWNLOAD_URL="${USH_DOWNLOAD_URL:-${UBSH_DOWNLOAD_URL:-}}"
+CHECKSUM_URL="${USH_CHECKSUM_URL:-${UBSH_CHECKSUM_URL:-}}"
 AUTO_PATH="${USH_AUTO_PATH:-${UBSH_AUTO_PATH:-1}}"
 TMPDIR="$(mktemp -d)"
 
@@ -17,13 +18,14 @@ trap cleanup EXIT INT TERM
 
 usage() {
   cat <<'EOF'
-usage: install.sh [--version VERSION] [--bin-dir DIR] [--prefix DIR] [--download-url URL] [--no-modify-path]
+usage: install.sh [--version VERSION] [--bin-dir DIR] [--prefix DIR] [--download-url URL] [--checksum-url URL] [--no-modify-path]
 
 options:
   --version VERSION     install a specific release tag such as v0.3.4
   --bin-dir DIR         install ush into DIR
   --prefix DIR          install ush into DIR/bin
   --download-url URL    override the release archive URL
+  --checksum-url URL    override the sha256sums.txt URL
   --no-modify-path      do not edit shell rc files
   -h, --help            show this help
 EOF
@@ -49,6 +51,11 @@ while [ "$#" -gt 0 ]; do
     --download-url)
       [ "$#" -ge 2 ] || { echo "install.sh: --download-url requires a value" >&2; exit 1; }
       DOWNLOAD_URL="$2"
+      shift 2
+      ;;
+    --checksum-url)
+      [ "$#" -ge 2 ] || { echo "install.sh: --checksum-url requires a value" >&2; exit 1; }
+      CHECKSUM_URL="$2"
       shift 2
       ;;
     --no-modify-path)
@@ -245,6 +252,87 @@ build_download_url() {
   printf 'https://github.com/%s/releases/download/%s/%s\n' "$repo" "$version" "$asset"
 }
 
+build_checksum_url() {
+  repo="$1"
+  version="$2"
+
+  if [ -n "$CHECKSUM_URL" ]; then
+    printf '%s\n' "$CHECKSUM_URL"
+    return
+  fi
+
+  if [ "$version" = "latest" ]; then
+    printf 'https://github.com/%s/releases/latest/download/sha256sums.txt\n' "$repo"
+    return
+  fi
+
+  printf 'https://github.com/%s/releases/download/%s/sha256sums.txt\n' "$repo" "$version"
+}
+
+sha256_tool() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    printf 'sha256sum\n'
+    return
+  fi
+
+  if command -v shasum >/dev/null 2>&1; then
+    printf 'shasum -a 256\n'
+    return
+  fi
+
+  printf '\n'
+}
+
+compute_sha256() {
+  tool="$(sha256_tool)"
+  [ -n "$tool" ] || return 1
+
+  case "$tool" in
+    sha256sum)
+      sha256sum "$1" | awk '{print $1}'
+      ;;
+    "shasum -a 256")
+      shasum -a 256 "$1" | awk '{print $1}'
+      ;;
+  esac
+}
+
+verify_archive() {
+  repo="$1"
+  version="$2"
+  asset="$3"
+  archive="$4"
+
+  tool="$(sha256_tool)"
+  if [ -z "$tool" ]; then
+    echo "install.sh: sha256sum or shasum not found; skipping checksum verification" >&2
+    return
+  fi
+
+  sums_url="$(build_checksum_url "$repo" "$version")"
+  sums_file="$TMPDIR/sha256sums.txt"
+
+  echo "install.sh: downloading $sums_url" >&2
+  fetch "$sums_url" "$sums_file"
+
+  line="$(grep "[[:space:]]$asset\$" "$sums_file" || true)"
+  if [ -z "$line" ]; then
+    echo "install.sh: could not find checksum for $asset" >&2
+    exit 1
+  fi
+
+  set -- $line
+  expected="$1"
+  actual="$(compute_sha256 "$archive")"
+
+  if [ "$actual" != "$expected" ]; then
+    echo "install.sh: checksum verification failed for $asset" >&2
+    exit 1
+  fi
+
+  echo "install.sh: verified checksum for $asset" >&2
+}
+
 if [ "${USH_BRANCH+x}" = "x" ] || [ "${UBSH_BRANCH+x}" = "x" ]; then
   echo "install.sh: USH_BRANCH/UBSH_BRANCH is no longer supported" >&2
   echo "install.sh: use USH_VERSION or build from source for branch installs" >&2
@@ -257,6 +345,7 @@ need_cmd install
 REPO="$(normalize_repo "$REPO_INPUT")"
 TARGET="$(detect_target)"
 BIN_DIR="$(pick_bin_dir)"
+ASSET="ush-$TARGET.tar.gz"
 URL="$(build_download_url "$REPO" "$VERSION" "$TARGET")"
 ARCHIVE="$TMPDIR/ush.tar.gz"
 UNPACK_DIR="$TMPDIR/unpack"
@@ -264,6 +353,7 @@ PACKAGE_DIR="$UNPACK_DIR/ush-$TARGET"
 
 echo "install.sh: downloading $URL" >&2
 fetch "$URL" "$ARCHIVE"
+verify_archive "$REPO" "$VERSION" "$ASSET" "$ARCHIVE"
 
 mkdir -p "$UNPACK_DIR"
 tar -xzf "$ARCHIVE" -C "$UNPACK_DIR"

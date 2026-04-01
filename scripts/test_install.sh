@@ -42,6 +42,23 @@ make_archive() {
   tar -czf "$tmpdir/ush.tar.gz" -C "$tmpdir" "ush-$target"
 }
 
+compute_sha256() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+    return
+  fi
+
+  shasum -a 256 "$1" | awk '{print $1}'
+}
+
+write_checksums() {
+  tmpdir="$1"
+  target="$2"
+  archive="$tmpdir/ush.tar.gz"
+  checksum="$(compute_sha256 "$archive")"
+  printf '%s  %s\n' "$checksum" "ush-$target.tar.gz" > "$tmpdir/sha256sums.txt"
+}
+
 assert_contains() {
   haystack="$1"
   needle="$2"
@@ -61,6 +78,7 @@ test_existing_path_dir() {
 
   target="$(detect_target)"
   make_archive "$tmpdir" "$target"
+  write_checksums "$tmpdir" "$target"
 
   home_dir="$tmpdir/home"
   mkdir -p "$home_dir/bin"
@@ -69,6 +87,7 @@ test_existing_path_dir() {
     PATH="$home_dir/bin:/usr/bin:/bin" \
     SHELL=/bin/zsh \
     USH_DOWNLOAD_URL="file://$tmpdir/ush.tar.gz" \
+    USH_CHECKSUM_URL="file://$tmpdir/sha256sums.txt" \
     sh "$INSTALL_SH" 2>&1
   )"
 
@@ -84,6 +103,7 @@ test_auto_path_update() {
 
   target="$(detect_target)"
   make_archive "$tmpdir" "$target"
+  write_checksums "$tmpdir" "$target"
 
   home_dir="$tmpdir/home"
   mkdir -p "$home_dir"
@@ -92,6 +112,7 @@ test_auto_path_update() {
     PATH="/usr/bin:/bin" \
     SHELL=/bin/zsh \
     USH_DOWNLOAD_URL="file://$tmpdir/ush.tar.gz" \
+    USH_CHECKSUM_URL="file://$tmpdir/sha256sums.txt" \
     sh "$INSTALL_SH" 2>&1
   )"
 
@@ -107,6 +128,7 @@ test_auto_path_disabled() {
 
   target="$(detect_target)"
   make_archive "$tmpdir" "$target"
+  write_checksums "$tmpdir" "$target"
 
   home_dir="$tmpdir/home"
   mkdir -p "$home_dir"
@@ -116,6 +138,7 @@ test_auto_path_disabled() {
     SHELL=/bin/zsh \
     USH_AUTO_PATH=0 \
     USH_DOWNLOAD_URL="file://$tmpdir/ush.tar.gz" \
+    USH_CHECKSUM_URL="file://$tmpdir/sha256sums.txt" \
     sh "$INSTALL_SH" 2>&1
   )"
 
@@ -130,6 +153,7 @@ test_cli_flags() {
 
   target="$(detect_target)"
   make_archive "$tmpdir" "$target"
+  write_checksums "$tmpdir" "$target"
 
   home_dir="$tmpdir/home"
   bin_dir="$home_dir/tools/bin"
@@ -141,7 +165,8 @@ test_cli_flags() {
     sh "$INSTALL_SH" \
       --bin-dir "$bin_dir" \
       --no-modify-path \
-      --download-url "file://$tmpdir/ush.tar.gz" 2>&1
+      --download-url "file://$tmpdir/ush.tar.gz" \
+      --checksum-url "file://$tmpdir/sha256sums.txt" 2>&1
   )"
 
   [ -x "$bin_dir/ush" ]

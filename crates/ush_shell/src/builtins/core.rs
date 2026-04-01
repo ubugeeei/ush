@@ -6,7 +6,7 @@ use std::{
 use anyhow::{Context, Result, anyhow, bail};
 
 use super::test_eval;
-use crate::{Shell, ValueStream, expand::strip_outer_quotes, process::ResolvedCommand};
+use crate::{Shell, ValueStream, expand::strip_outer_quotes, process::ResolvedCommand, style};
 
 impl Shell {
     pub(super) fn change_directory(&mut self, args: &[String]) -> Result<(ValueStream, i32)> {
@@ -27,7 +27,11 @@ impl Shell {
 
     pub(super) fn render_pwd(&self) -> String {
         if self.options.stylish {
-            format!("\u{1b}[1;34m{}\u{1b}[0m\n", self.cwd.display())
+            format!(
+                "{} {}\n",
+                style::paint("\u{1b}[1;34m", "cwd"),
+                style::paint("\u{1b}[1;36m", self.cwd.display())
+            )
         } else {
             format!("{}\n", self.cwd.display())
         }

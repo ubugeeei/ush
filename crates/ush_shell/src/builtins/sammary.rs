@@ -9,7 +9,7 @@ use std::{
 use anyhow::{Context, Result, bail};
 
 use self::report::{
-    SummaryRow, count_lines, is_lock_file, render_plain, render_table, summarize_types, type_name,
+    SummaryRow, count_lines, is_lock_file, render_plain, render_stylish, summarize_types, type_name,
 };
 use crate::{Shell, ValueStream};
 
@@ -30,7 +30,7 @@ impl Shell {
         let total_bytes = rows.iter().map(|row| row.bytes).sum::<u64>();
         let types = summarize_types(&rows);
         let text = if self.options.stylish {
-            render_table(&rows, &types, total_lines, total_bytes)
+            render_stylish(&rows, &types, total_lines, total_bytes)
         } else {
             render_plain(&rows, &types, total_lines, total_bytes)
         };

@@ -1,6 +1,8 @@
 use std::{
     fs,
     io::Write,
+    os::unix::fs::symlink,
+    path::Path,
     process::{Command, Stdio},
 };
 
@@ -25,6 +27,30 @@ fn run_with_stdin(args: &[&str], stdin: &str) -> std::process::Output {
         .write_all(stdin.as_bytes())
         .expect("write stdin");
     child.wait_with_output().expect("wait ush")
+}
+
+fn run_git(dir: &Path, args: &[&str]) {
+    let output = Command::new("git")
+        .args(args)
+        .current_dir(dir)
+        .output()
+        .expect("run git");
+    assert!(
+        output.status.success(),
+        "git {:?} failed\nstdout:\n{}\nstderr:\n{}",
+        args,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+fn init_git_repo(dir: &Path) {
+    run_git(dir, &["init", "-q"]);
+    run_git(dir, &["config", "user.name", "ush"]);
+    run_git(dir, &["config", "user.email", "ush@example.com"]);
+    fs::write(dir.join("tracked.txt"), "hello\n").expect("write tracked");
+    run_git(dir, &["add", "tracked.txt"]);
+    run_git(dir, &["commit", "-q", "-m", "initial commit"]);
 }
 
 #[test]
@@ -117,10 +143,14 @@ fn stylish_ls_a_includes_dot_entries_and_hidden_files() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("│ .       ┆"));
-    assert!(stdout.contains("│ ..      ┆"));
-    assert!(stdout.contains("│ .hidden ┆"));
-    assert!(stdout.contains("│ visible ┆"));
+    assert!(stdout.contains("ls"));
+    assert!(stdout.contains("4 entries"));
+    assert!(stdout.contains("./"));
+    assert!(stdout.contains("../"));
+    assert!(stdout.contains(".hidden"));
+    assert!(stdout.contains("visible"));
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
 }
 
 #[test]
@@ -135,5 +165,103 @@ fn stylish_ls_keeps_explicit_hidden_targets_visible_without_all_flag() {
         .expect("run ush");
 
     assert!(output.status.success());
-    assert!(String::from_utf8_lossy(&output.stdout).contains("│ .env ┆"));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("ls"));
+    assert!(stdout.contains(".env"));
+    assert!(stdout.contains("[file]"));
+    assert!(!stdout.contains("│"));
+}
+
+#[test]
+fn stylish_ls_handles_broken_symlinks() {
+    let dir = tempdir().expect("tempdir");
+    symlink("missing-target", dir.path().join("broken-link")).expect("symlink");
+
+    let output = ush()
+        .args(["-s", "-c", "ls"])
+        .current_dir(dir.path())
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("broken-link"));
+    assert!(stdout.contains("[link]"));
+    assert!(stdout.contains("-> missing-target"));
+}
+
+#[test]
+fn stylish_git_status_renders_rich_output() {
+    let dir = tempdir().expect("tempdir");
+    init_git_repo(dir.path());
+    run_git(dir.path(), &["checkout", "-q", "-b", "stylish-status"]);
+    fs::write(dir.path().join("tracked.txt"), "hello\nworld\n").expect("update tracked");
+    fs::write(dir.path().join("fresh.txt"), "new\n").expect("write untracked");
+
+    let output = ush()
+        .args(["-s", "-c", "git status"])
+        .current_dir(dir.path())
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("git"));
+    assert!(stdout.contains("status"));
+    assert!(stdout.contains("stylish-status"));
+    assert!(stdout.contains("tracked.txt"));
+    assert!(stdout.contains("[unstaged modified]"));
+    assert!(stdout.contains("fresh.txt"));
+    assert!(stdout.contains("[untracked]"));
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
+}
+
+#[test]
+fn stylish_git_branch_renders_current_branch_without_tables() {
+    let dir = tempdir().expect("tempdir");
+    init_git_repo(dir.path());
+    run_git(dir.path(), &["checkout", "-q", "-b", "stylish-branch"]);
+    run_git(dir.path(), &["branch", "feature/ui"]);
+
+    let output = ush()
+        .args(["-s", "-c", "git branch"])
+        .current_dir(dir.path())
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("git"));
+    assert!(stdout.contains("branch"));
+    assert!(stdout.contains("stylish-branch"));
+    assert!(stdout.contains("feature/ui"));
+    assert!(stdout.contains("[current]"));
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
+}
+
+#[test]
+fn stylish_git_log_renders_recent_commits() {
+    let dir = tempdir().expect("tempdir");
+    init_git_repo(dir.path());
+    run_git(dir.path(), &["checkout", "-q", "-b", "stylish-log"]);
+    fs::write(dir.path().join("tracked.txt"), "hello\nworld\n").expect("update tracked");
+    run_git(dir.path(), &["commit", "-qam", "second pass"]);
+
+    let output = ush()
+        .args(["-s", "-c", "git log -2"])
+        .current_dir(dir.path())
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("git"));
+    assert!(stdout.contains("log"));
+    assert!(stdout.contains("second pass"));
+    assert!(stdout.contains("initial commit"));
+    assert!(stdout.contains("HEAD -> stylish-log"));
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
 }

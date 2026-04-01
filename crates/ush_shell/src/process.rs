@@ -174,6 +174,7 @@ impl Shell {
             "cat" => style::render_cat(&self.cwd, &resolved.args, input),
             "ps" => style::render_ps(&resolved.args),
             "kill" => style::render_kill(&resolved.args),
+            "git" => style::render_git(&self.cwd, &resolved.args),
             _ => Ok(None),
         }
     }

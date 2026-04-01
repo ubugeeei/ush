@@ -29,7 +29,7 @@ fn sammary_summarizes_globbed_files_and_totals() {
 }
 
 #[test]
-fn sammary_uses_table_output_in_stylish_mode() {
+fn sammary_uses_rich_output_in_stylish_mode() {
     let dir = tempdir().expect("tempdir");
     fs::write(dir.path().join("app.rs"), "fn main() {}\n").expect("write");
 
@@ -41,9 +41,13 @@ fn sammary_uses_table_output_in_stylish_mode() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("path"));
-    assert!(stdout.contains("type"));
-    assert!(stdout.contains("TOTAL (1 files)"));
+    assert!(stdout.contains("sammary"));
+    assert!(stdout.contains("files"));
+    assert!(stdout.contains("types"));
+    assert!(stdout.contains("app.rs"));
+    assert!(stdout.contains("[rs]"));
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
 }
 
 #[test]

@@ -1,6 +1,6 @@
-use std::{collections::BTreeMap, path::Path};
+use std::{collections::BTreeMap, fmt::Write as _, path::Path};
 
-use comfy_table::{Cell, ContentArrangement, Table, presets::UTF8_FULL};
+use crate::style::{badge, dim, human_bytes, paint, pluralize};
 
 #[derive(Clone)]
 pub(super) struct SummaryRow {
@@ -105,48 +105,53 @@ pub(super) fn render_plain(
     out
 }
 
-pub(super) fn render_table(
+pub(super) fn render_stylish(
     rows: &[SummaryRow],
     types: &[(String, usize, usize, u64)],
     total_lines: usize,
     total_bytes: u64,
 ) -> String {
-    let mut files = Table::new();
-    files
-        .load_preset(UTF8_FULL)
-        .set_content_arrangement(ContentArrangement::Dynamic)
-        .set_header(vec!["path", "lines", "bytes"]);
+    let mut out = String::new();
+    let _ = writeln!(
+        out,
+        "{} {}",
+        paint("\u{1b}[1;35m", "sammary"),
+        dim(format!(
+            "{}, {}, {}",
+            pluralize(rows.len(), "file", "files"),
+            pluralize(total_lines, "line", "lines"),
+            human_bytes(total_bytes)
+        ))
+    );
+    let _ = writeln!(out);
+    let _ = writeln!(out, "{}", paint("\u{1b}[1;34m", "files"));
     for row in rows {
-        files.add_row(vec![
-            Cell::new(&row.path),
-            Cell::new(row.lines),
-            Cell::new(row.bytes),
-        ]);
+        let _ = writeln!(
+            out,
+            "{} {} {}",
+            paint("\u{1b}[1;36m", &row.path),
+            badge(&row.kind, "\u{1b}[1;34m"),
+            dim(format!(
+                "{}, {}",
+                pluralize(row.lines, "line", "lines"),
+                human_bytes(row.bytes)
+            ))
+        );
     }
-    files.add_row(vec![
-        Cell::new(format!("TOTAL ({} files)", rows.len())),
-        Cell::new(total_lines),
-        Cell::new(total_bytes),
-    ]);
-
-    let mut kinds = Table::new();
-    kinds
-        .load_preset(UTF8_FULL)
-        .set_content_arrangement(ContentArrangement::Dynamic)
-        .set_header(vec!["type", "files", "lines", "bytes"]);
+    let _ = writeln!(out);
+    let _ = writeln!(out, "{}", paint("\u{1b}[1;34m", "types"));
     for (kind, files_count, lines, bytes) in types {
-        kinds.add_row(vec![
-            Cell::new(kind),
-            Cell::new(files_count),
-            Cell::new(lines),
-            Cell::new(bytes),
-        ]);
+        let _ = writeln!(
+            out,
+            "{} {}",
+            paint("\u{1b}[1;36m", kind),
+            dim(format!(
+                "{}, {}, {}",
+                pluralize(*files_count, "file", "files"),
+                pluralize(*lines, "line", "lines"),
+                human_bytes(*bytes)
+            ))
+        );
     }
-    kinds.add_row(vec![
-        Cell::new("TOTAL"),
-        Cell::new(rows.len()),
-        Cell::new(total_lines),
-        Cell::new(total_bytes),
-    ]);
-    format!("{files}\n{kinds}\n")
+    out
 }

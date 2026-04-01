@@ -27,6 +27,15 @@ pub(super) fn definitions() -> Vec<FunctionDef> {
             ],
             Some(Type::String),
         ),
+        builtin(
+            "std::regex::capture",
+            vec![
+                param("value", Type::String),
+                param("pattern", Type::String),
+                param("index", Type::Int),
+            ],
+            Some(Type::String),
+        ),
     ]
 }
 
@@ -45,5 +54,10 @@ pub(super) fn emit(out: &mut OutputBuffer) {
         out,
         "std::regex::replace",
         "  VALUE=\"$1\" PATTERN=\"$2\" REPLACEMENT=\"$3\" awk 'BEGIN { value = ENVIRON[\"VALUE\"]; pattern = ENVIRON[\"PATTERN\"]; replacement = ENVIRON[\"REPLACEMENT\"]; gsub(pattern, replacement, value); printf \"%s\", value }'\n",
+    );
+    emit_fn(
+        out,
+        "std::regex::capture",
+        "  if ! command -v perl >/dev/null 2>&1; then\n    printf '%s\\n' 'ush std::regex::capture: perl is required' >&2\n    return 1\n  fi\n  perl -e 'my ($value, $pattern, $index) = @ARGV; $index = int($index); exit 0 if $index < 1; if ($value =~ /$pattern/) { if (defined $-[$index] && $-[$index] >= 0) { print substr($value, $-[$index], $+[$index] - $-[$index]); } }' -- \"$1\" \"$2\" \"$3\"\n",
     );
 }

@@ -128,6 +128,7 @@ fn builtin_method_name(receiver_ty: &Type, method: &str) -> Option<&'static str>
         (Type::String, "ends_with") => Some("std::string::ends_with"),
         (Type::String, "is_match") => Some("std::regex::is_match"),
         (Type::String, "find") => Some("std::regex::find"),
+        (Type::String, "capture") => Some("std::regex::capture"),
         (Type::String, "replace") => Some("std::string::replace"),
         (Type::String, "replace_regex") => Some("std::regex::replace"),
         (Type::String, "trim_prefix") => Some("std::string::trim_prefix"),

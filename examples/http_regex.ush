@@ -1,6 +1,6 @@
 use std::http::{download, get}
 use std::path::{from_source, tmpfile}
-use std::regex::{find, replace as regex_replace}
+use std::regex::{capture, find, replace as regex_replace}
 
 let root = from_source "."
 let sample = root.join("sample.json").resolve()
@@ -13,6 +13,7 @@ download url copy
 print $ text.starts_with("{")
 print $ "module-ready".is_match("^module")
 print $ find "ush-v0.3.4" "v[0-9.]+"
+print $ capture "release-v0.3.4" "v([0-9.]+)" 1
 print $ regex_replace "v0.3.4" "[.]" "-"
 print $ copy.read_text().starts_with("{")
 

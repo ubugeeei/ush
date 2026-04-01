@@ -145,10 +145,19 @@ pub(super) fn parse_await_task(source: &str) -> Result<Option<String>> {
 }
 
 fn split_paren_form(source: &str) -> Option<(&str, &str, &str)> {
-    let open = source.find('(')?;
     let mut state = ScanState::default();
-    let mut index = open;
-
+    let mut open = None;
+    let mut index = 0usize;
+    while index < source.len() {
+        if !state.in_string() && source.as_bytes()[index] == b'(' {
+            open = Some(index);
+            state.paren = 1;
+            index += 1;
+            break;
+        }
+        index = advance(source, index, &mut state);
+    }
+    let open = open?;
     while index < source.len() {
         if !state.in_string() && source.as_bytes()[index] == b'(' {
             state.paren += 1;

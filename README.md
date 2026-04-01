@@ -42,7 +42,7 @@ Implemented today:
 - Generated `.ush` output stays within POSIX `sh` syntax and POSIX command usage
 - Prototype typed language features: `type { ... }`, enums, traits, marker `impl`, `match`, typed `fn`, Zig-style error signatures like `Problem!String`, and Rust-like `?` propagation
 - Rust-like tail expressions in value-returning functions, where the final expression returns and `;` keeps it as a statement
-- Rust-like `std::module::function` paths plus `use` imports for selected std helpers, including `std::env`, `std::path`, `std::fs`, `std::command`, `std::string`, `std::http`, and `std::regex`
+- Rust-like `std::module::function` paths plus `use` imports for selected std helpers, including `std::env`, `std::path`, `std::fs`, `std::command`, `std::string`, `std::http`, and `std::regex` with capture support
 - Labeled function arguments plus parameter attributes such as `#[default(...)]` and `#[alias("n")]`
 - `alias name = "..."` declarations in `.ush`
 - `bin.ush` as a generated CLI entrypoint, with flags/defaults/completion derived from the `bin(...)` signature

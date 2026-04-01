@@ -47,12 +47,14 @@ fn ush_scripts_support_std_regex_helpers() {
     fs::write(
         &script,
         r#"
-        use std::regex::{find, is_match, replace as regex_replace}
+        use std::regex::{capture, find, is_match, replace as regex_replace}
         print $ is_match "module-ready" "^module"
         print $ find "ush-v0.3.4" "v[0-9.]+"
+        print $ capture "release-v0.3.4" "v([0-9.]+)" 1
         print $ regex_replace "v0.3.4" "[.]" "-"
         print $ "feature-ready".is_match("^feature")
         print $ "release-v0.3.4".find("v[0-9.]+")
+        print $ "release-v0.3.4".capture("v([0-9.]+)", 1)
         print $ "v0.3.4".replace_regex("[.]", "-")
         "#,
     )
@@ -63,6 +65,6 @@ fn ush_scripts_support_std_regex_helpers() {
     assert!(output.status.success());
     assert_eq!(
         String::from_utf8_lossy(&output.stdout),
-        "true\nv0.3.4\nv0-3-4\ntrue\nv0.3.4\nv0-3-4\n"
+        "true\nv0.3.4\n0.3.4\nv0-3-4\ntrue\nv0.3.4\n0.3.4\nv0-3-4\n"
     );
 }

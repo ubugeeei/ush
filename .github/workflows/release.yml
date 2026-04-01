@@ -78,6 +78,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_REF }}
+
       - name: Download release archives
         uses: actions/download-artifact@v4
         with:
@@ -89,6 +94,23 @@ jobs:
         run: |
           cd release-artifacts
           sha256sum *.tar.gz > sha256sums.txt
+
+      - name: Smoke test installer with release artifact
+        run: |
+          archive_path="$PWD/release-artifacts/ush-x86_64-unknown-linux-gnu.tar.gz"
+          checksum_path="$PWD/release-artifacts/sha256sums.txt"
+          home_dir="$(mktemp -d)"
+
+          HOME="$home_dir" \
+          PATH="/usr/bin:/bin" \
+          SHELL=/bin/bash \
+          sh install.sh \
+            --bin-dir "$home_dir/bin" \
+            --no-modify-path \
+            --download-url "file://$archive_path" \
+            --checksum-url "file://$checksum_path"
+
+          "$home_dir/bin/ush" --version
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2

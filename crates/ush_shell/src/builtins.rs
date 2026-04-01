@@ -1,5 +1,6 @@
 mod command;
 mod core;
+mod glob;
 mod interactive;
 mod interactive_support;
 mod introspection;
@@ -31,6 +32,7 @@ impl Shell {
             "unalias" => self.handle_unalias(&args),
             "fsam" | "sammary" => self.handle_sammary(&args),
             "history" => self.handle_history(&args),
+            "glob" => self.handle_glob(&args, input),
             "export" => self.handle_export(&args),
             "unset" => self.handle_unset(&args),
             "confirm" => self.handle_confirm(&args, input),
@@ -62,6 +64,7 @@ fn help_text() -> String {
         "  alias name=value",
         "  unalias name",
         "  sammary [--include-lock] <glob|path>... # recursive file and type summary",
+        "  glob <pattern>...      # expand glob patterns, or read them from stdin",
         "  export NAME=value",
         "  unset NAME",
         "  confirm [--default yes|no] [prompt ...]",

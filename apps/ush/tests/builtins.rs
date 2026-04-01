@@ -190,6 +190,65 @@ fn stylish_env_handles_cleared_process_environment() {
 }
 
 #[test]
+fn glob_builtin_expands_and_sorts_matches() {
+    let dir = tempdir().expect("tempdir");
+    fs::write(dir.path().join("b.txt"), "b\n").expect("write b");
+    fs::write(dir.path().join("a.txt"), "a\n").expect("write a");
+    fs::write(dir.path().join("note.md"), "md\n").expect("write md");
+
+    let output = ush()
+        .args(["-c", "glob '*.txt'"])
+        .current_dir(dir.path())
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "a.txt\nb.txt\n");
+}
+
+#[test]
+fn glob_builtin_reads_patterns_from_stdin() {
+    let dir = tempdir().expect("tempdir");
+    fs::write(dir.path().join("a.txt"), "a\n").expect("write a");
+    fs::write(dir.path().join("note.md"), "md\n").expect("write md");
+
+    let mut child = ush()
+        .args(["-c", "glob"])
+        .current_dir(dir.path())
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("spawn ush");
+    child
+        .stdin
+        .as_mut()
+        .expect("stdin")
+        .write_all(b"*.txt\n*.md\n")
+        .expect("write stdin");
+    let output = child.wait_with_output().expect("wait ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("a.txt"));
+    assert!(stdout.contains("note.md"));
+}
+
+#[test]
+fn glob_builtin_returns_one_when_nothing_matches() {
+    let dir = tempdir().expect("tempdir");
+
+    let output = ush()
+        .args(["-c", "glob '*.txt'"])
+        .current_dir(dir.path())
+        .output()
+        .expect("run ush");
+
+    assert_eq!(output.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&output.stdout).is_empty());
+}
+
+#[test]
 fn bracket_test_builtin_returns_zero_for_true_expression() {
     let output = ush().args(["-c", "[ -d . ]"]).output().expect("run ush");
     assert!(output.status.success());

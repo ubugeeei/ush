@@ -116,12 +116,32 @@ fn fmap_ffmap_and_fzip_work_as_functional_aliases() {
         ])
         .output()
         .expect("run ush");
+    let reverse = ush()
+        .args(["-c", r#"printf 'a\nb\n' | frev"#])
+        .output()
+        .expect("run ush");
+    let sort = ush()
+        .args(["-c", r#"printf 'b\na\n' | fsort"#])
+        .output()
+        .expect("run ush");
+    let unique = ush()
+        .args(["-c", r#"printf 'b\na\nb\n' | funiq"#])
+        .output()
+        .expect("run ush");
+    let join = ush()
+        .args(["-c", r#"printf 'a\nb\n' | fjoin(",")"#])
+        .output()
+        .expect("run ush");
 
     assert!(fmap.status.success());
     assert!(ffmap.status.success());
     assert!(fzip.status.success());
     assert!(ffilter.status.success());
     assert!(fany.status.success());
+    assert!(reverse.status.success());
+    assert!(sort.status.success());
+    assert!(unique.status.success());
+    assert!(join.status.success());
     assert_eq!(String::from_utf8_lossy(&fmap.stdout), "USH\n");
     assert_eq!(String::from_utf8_lossy(&ffmap.stdout), "a\nb\nc\n");
     assert_eq!(String::from_utf8_lossy(&fzip.stdout), "a\t1\nb\t2\n");
@@ -130,4 +150,8 @@ fn fmap_ffmap_and_fzip_work_as_functional_aliases() {
     assert_eq!(String::from_utf8_lossy(&swap.stdout), "1\ta\n2\tb\n");
     assert_eq!(String::from_utf8_lossy(&ffilter.stdout), "ush\n");
     assert_eq!(String::from_utf8_lossy(&fany.stdout), "true\n");
+    assert_eq!(String::from_utf8_lossy(&reverse.stdout), "b\na\n");
+    assert_eq!(String::from_utf8_lossy(&sort.stdout), "a\nb\n");
+    assert_eq!(String::from_utf8_lossy(&unique.stdout), "b\na\n");
+    assert_eq!(String::from_utf8_lossy(&join.stdout), "a,b\n");
 }

@@ -1,8 +1,10 @@
+use std::collections::BTreeSet;
+
 use anyhow::Result;
 
-use super::{HelperKind, ValueStream};
+use super::{HelperKind, ValueStream, lambda_syntax::parse_string_literal};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub(super) enum SequenceOp {
     Car,
     Cdr,
@@ -11,6 +13,10 @@ pub(super) enum SequenceOp {
     Nth(usize),
     Enumerate(usize),
     Swap,
+    Reverse,
+    Sort,
+    Unique,
+    Join(String),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -25,9 +31,16 @@ pub(super) fn parse_sequence_helper(raw: &str) -> Option<Result<HelperKind>> {
         "cdr" | "tail" => return Some(Ok(HelperKind::Sequence(SequenceOp::Cdr))),
         "enumerate" => return Some(Ok(HelperKind::Sequence(SequenceOp::Enumerate(0)))),
         "swap" => return Some(Ok(HelperKind::Sequence(SequenceOp::Swap))),
+        "frev" => return Some(Ok(HelperKind::Sequence(SequenceOp::Reverse))),
+        "fsort" => return Some(Ok(HelperKind::Sequence(SequenceOp::Sort))),
+        "funiq" => return Some(Ok(HelperKind::Sequence(SequenceOp::Unique))),
         "fst" => return Some(Ok(HelperKind::Field(Field::First))),
         "snd" => return Some(Ok(HelperKind::Field(Field::Second))),
         _ => {}
+    }
+
+    if let Some(delimiter) = parse_string_helper(raw, "fjoin") {
+        return Some(Ok(HelperKind::Sequence(SequenceOp::Join(delimiter))));
     }
 
     let (name, count) = parse_count_helper(raw)?;
@@ -43,7 +56,7 @@ pub(super) fn parse_sequence_helper(raw: &str) -> Option<Result<HelperKind>> {
 
 pub(super) fn apply_sequence_op(input: ValueStream, op: &SequenceOp) -> Result<ValueStream> {
     let mut lines = input.into_lines()?;
-    let output = match *op {
+    let output = match op {
         SequenceOp::Car => lines.into_iter().take(1).collect(),
         SequenceOp::Cdr => {
             if !lines.is_empty() {
@@ -51,17 +64,17 @@ pub(super) fn apply_sequence_op(input: ValueStream, op: &SequenceOp) -> Result<V
             }
             lines
         }
-        SequenceOp::Take(count) => lines.into_iter().take(count).collect(),
-        SequenceOp::Drop(count) => lines.into_iter().skip(count).collect(),
+        SequenceOp::Take(count) => lines.into_iter().take(*count).collect(),
+        SequenceOp::Drop(count) => lines.into_iter().skip(*count).collect(),
         SequenceOp::Nth(index) => lines
             .into_iter()
-            .nth(index)
+            .nth(*index)
             .map(|line| vec![line])
             .unwrap_or_default(),
         SequenceOp::Enumerate(start) => lines
             .into_iter()
             .enumerate()
-            .map(|(index, line)| format!("{}\t{line}", index + start))
+            .map(|(index, line)| format!("{}\t{line}", index + *start))
             .collect(),
         SequenceOp::Swap => lines
             .into_iter()
@@ -70,6 +83,17 @@ pub(super) fn apply_sequence_op(input: ValueStream, op: &SequenceOp) -> Result<V
                 None => line,
             })
             .collect(),
+        SequenceOp::Reverse => lines.into_iter().rev().collect(),
+        SequenceOp::Sort => {
+            lines.sort();
+            lines
+        }
+        SequenceOp::Unique => {
+            let mut seen = BTreeSet::new();
+            lines.retain(|line| seen.insert(line.clone()));
+            lines
+        }
+        SequenceOp::Join(delimiter) => vec![lines.join(delimiter)],
     };
     Ok(if output.is_empty() {
         ValueStream::Empty
@@ -87,6 +111,15 @@ fn parse_count_helper(raw: &str) -> Option<(&str, usize)> {
     let name = raw[..open].trim();
     let count = raw[open + 1..close].trim().parse().ok()?;
     Some((name, count))
+}
+
+fn parse_string_helper(raw: &str, name: &str) -> Option<String> {
+    let open = raw.find('(')?;
+    let close = raw.rfind(')')?;
+    if close <= open || raw[..open].trim() != name {
+        return None;
+    }
+    parse_string_literal(raw[open + 1..close].trim())
 }
 
 #[cfg(test)]
@@ -137,6 +170,25 @@ mod tests {
     }
 
     #[test]
+    fn reverse_sort_unique_and_join_are_supported() {
+        let reversed = apply_sequence_op(ValueStream::Text("a\nb\n".into()), &SequenceOp::Reverse)
+            .expect("reverse");
+        let sorted =
+            apply_sequence_op(ValueStream::Text("b\na\n".into()), &SequenceOp::Sort).expect("sort");
+        let unique = apply_sequence_op(ValueStream::Text("b\na\nb\n".into()), &SequenceOp::Unique)
+            .expect("unique");
+        let joined = apply_sequence_op(
+            ValueStream::Text("a\nb\n".into()),
+            &SequenceOp::Join(",".into()),
+        )
+        .expect("join");
+        assert_eq!(reversed.to_text().expect("text"), "b\na\n");
+        assert_eq!(sorted.to_text().expect("text"), "a\nb\n");
+        assert_eq!(unique.to_text().expect("text"), "b\na\n");
+        assert_eq!(joined.to_text().expect("text"), "a,b\n");
+    }
+
+    #[test]
     fn parses_aliases_and_counted_helpers() {
         let head = parse_sequence_helper("head")
             .expect("helper")
@@ -159,6 +211,18 @@ mod tests {
         let swap = parse_sequence_helper("swap")
             .expect("helper")
             .expect("parse");
+        let reverse = parse_sequence_helper("frev")
+            .expect("helper")
+            .expect("parse");
+        let sort = parse_sequence_helper("fsort")
+            .expect("helper")
+            .expect("parse");
+        let unique = parse_sequence_helper("funiq")
+            .expect("helper")
+            .expect("parse");
+        let join = parse_sequence_helper(r#"fjoin(",")"#)
+            .expect("helper")
+            .expect("parse");
         assert!(matches!(head, HelperKind::Sequence(SequenceOp::Car)));
         assert!(matches!(tail, HelperKind::Sequence(SequenceOp::Cdr)));
         assert!(matches!(fst, HelperKind::Field(super::Field::First)));
@@ -169,5 +233,9 @@ mod tests {
             HelperKind::Sequence(SequenceOp::Enumerate(1))
         ));
         assert!(matches!(swap, HelperKind::Sequence(SequenceOp::Swap)));
+        assert!(matches!(reverse, HelperKind::Sequence(SequenceOp::Reverse)));
+        assert!(matches!(sort, HelperKind::Sequence(SequenceOp::Sort)));
+        assert!(matches!(unique, HelperKind::Sequence(SequenceOp::Unique)));
+        assert!(matches!(join, HelperKind::Sequence(SequenceOp::Join(_))));
     }
 }

@@ -47,7 +47,7 @@ Implemented today:
 - Builtin utility: `sammary` for recursive file and type summaries across paths and globs, with lockfiles excluded by default
 - Safety prompt for dangerous `rm -rf` unless `--yes` or `USH_INTERACTION=false`
 - Stylish renderers for `pwd`, `ls`, `cat`, `ps`, and `kill`
-- Structured helpers: `len`, `lines`, `json`, `xml`, `html`, `car`, `cdr`, `head`, `tail`, `take`, `drop`, `nth`, `enumerate`, `swap`, `fst`, `snd`, `map`, `fmap`, `flat`, `ffmap`, `fzip`, `each`, `filter`, `ffilter`, `any`, `fany`, `some`, `fsome`
+- Structured helpers: `len`, `lines`, `json`, `xml`, `html`, `car`, `cdr`, `head`, `tail`, `take`, `drop`, `nth`, `enumerate`, `swap`, `fst`, `snd`, `frev`, `fsort`, `funiq`, `fjoin`, `map`, `fmap`, `flat`, `ffmap`, `fzip`, `each`, `filter`, `ffilter`, `any`, `fany`, `some`, `fsome`
 - Environment-variable expansion, `~` expansion, and simple glob expansion
 - Criterion benchmark skeleton for parser/profiling work
 - GitHub Releases, `curl` installer, `nix`, and Docker packaging entry points
@@ -181,6 +181,7 @@ printf "alpha\nbeta\ngamma\n" | take(2)
 printf "alpha\nbeta\ngamma\n" | drop(1)
 printf "alpha\nbeta\ngamma\n" | nth(1)
 printf "alpha\nbeta\ngamma\n" | enumerate(1)
+printf "beta\nalpha\nbeta\n" | fsort | funiq | fjoin(",")
 printf "alpha\nbeta\ngamma\n" | flat(\head, rest -> [head, "tail", rest])
 printf "alpha\nbeta\n" | fzip(["1", "2"])
 printf "alpha\nbeta\n" | fzip(["1", "2"]) | swap
@@ -210,6 +211,10 @@ Currently supported helper forms:
 - `swap`
 - `fst`
 - `snd`
+- `frev`
+- `fsort`
+- `funiq`
+- `fjoin(",")`
 - `map(\it -> upper(it))`
 - `fmap(\it -> upper(it))`
 - `map(\it -> lower(it))`
@@ -236,6 +241,8 @@ If `json` cannot parse the stream, `ush` falls back to this browser flow instead
 `take`, `drop`, `nth`, and `enumerate` are Rust-style line-stream helpers, with `nth` using zero-based indexing.
 `fst` and `snd` project the first and second fields from tab-separated pair streams such as `fzip(...)`.
 `swap` flips those tab-separated pair streams.
+`frev`, `fsort`, and `funiq` reverse, lexicographically sort, and de-duplicate line streams.
+`fjoin("...")` collapses the current line stream into one line using a literal delimiter.
 `flat` is a small stream-level flat-map that binds `head` and `rest`, where `rest` splices the remaining lines into the output list.
 `fmap`, `ffmap`, `ffilter`, `fany`, and `fsome` are functional aliases for the corresponding helpers.
 `fzip` zips the current line stream against a literal right-hand list or multiline string and emits tab-separated pairs.

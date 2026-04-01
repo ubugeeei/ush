@@ -94,3 +94,35 @@ fn enumerate_and_swap_helpers_are_recognized() {
         super::HelperKind::Sequence(super::sequence::SequenceOp::Swap)
     ));
 }
+
+#[test]
+fn collection_helpers_are_recognized() {
+    let reverse = HelperInvocation::parse("frev")
+        .expect("helper")
+        .expect("parse");
+    let sort = HelperInvocation::parse("fsort")
+        .expect("helper")
+        .expect("parse");
+    let unique = HelperInvocation::parse("funiq")
+        .expect("helper")
+        .expect("parse");
+    let join = HelperInvocation::parse(r#"fjoin(",")"#)
+        .expect("helper")
+        .expect("parse");
+    assert!(matches!(
+        reverse.kind,
+        super::HelperKind::Sequence(super::sequence::SequenceOp::Reverse)
+    ));
+    assert!(matches!(
+        sort.kind,
+        super::HelperKind::Sequence(super::sequence::SequenceOp::Sort)
+    ));
+    assert!(matches!(
+        unique.kind,
+        super::HelperKind::Sequence(super::sequence::SequenceOp::Unique)
+    ));
+    assert!(matches!(
+        join.kind,
+        super::HelperKind::Sequence(super::sequence::SequenceOp::Join(_))
+    ));
+}

@@ -1,9 +1,10 @@
 use std::{
     fmt::{Display, Write as _},
     fs,
+    io::Write as _,
     os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Output, Stdio},
 };
 
 use anyhow::{Context, Result};
@@ -273,6 +274,44 @@ pub fn render_diff(cwd: &Path, args: &[String]) -> Result<Option<(ValueStream, i
     Ok(Some((ValueStream::Text(rendered), status)))
 }
 
+pub fn render_grep(
+    cwd: &Path,
+    args: &[String],
+    input: &ValueStream,
+) -> Result<Option<(ValueStream, i32)>> {
+    let Some(options) = parse_grep_args(args) else {
+        return Ok(None);
+    };
+    if options.targets.is_empty() && input.is_empty() {
+        return Ok(None);
+    }
+
+    let mut command = Command::new("grep");
+    command
+        .args(build_grep_command_args(&options))
+        .current_dir(cwd);
+
+    let output = match capture_command_output(&mut command, input) {
+        Ok(output) => output,
+        Err(_) => return Ok(None),
+    };
+
+    let status = output.status.code().unwrap_or(1);
+    if status > 1 {
+        return Ok(None);
+    }
+
+    let stdout = String::from_utf8(output.stdout)
+        .unwrap_or_else(|error| String::from_utf8_lossy(&error.into_bytes()).to_string());
+    let rendered = if status == 1 {
+        render_grep_no_matches(&options)
+    } else {
+        render_grep_report(&options, &parse_grep_output(&stdout))
+    };
+
+    Ok(Some((ValueStream::Text(rendered), status)))
+}
+
 fn parse_diff_args(args: &[String]) -> Option<DiffOptions> {
     let mut options = DiffOptions {
         context: 3,
@@ -315,6 +354,318 @@ fn parse_diff_args(args: &[String]) -> Option<DiffOptions> {
     }
 
     (!pending_context && options.targets.len() == 2).then_some(options)
+}
+
+fn parse_grep_args(args: &[String]) -> Option<GrepOptions> {
+    let mut options = GrepOptions::default();
+    let mut pending = None::<GrepPending>;
+    let mut force_positional = false;
+
+    for arg in args {
+        if let Some(kind) = pending.take() {
+            match kind {
+                GrepPending::Pattern => options.patterns.push(arg.clone()),
+                GrepPending::PatternFile => options.pattern_files.push(arg.clone()),
+                GrepPending::MaxCount => options.max_count = Some(arg.parse().ok()?),
+            }
+            continue;
+        }
+
+        if force_positional {
+            push_grep_positional(&mut options, arg.clone());
+            continue;
+        }
+
+        match arg.as_str() {
+            "--" => force_positional = true,
+            "-n" | "--line-number" | "-H" | "--with-filename" | "-h" | "--no-filename" => {}
+            "-i" | "--ignore-case" => options.ignore_case = true,
+            "-v" | "--invert-match" => options.invert_match = true,
+            "-w" | "--word-regexp" => options.word_regexp = true,
+            "-x" | "--line-regexp" => options.line_regexp = true,
+            "-F" | "--fixed-strings" => options.fixed_strings = true,
+            "-E" | "--extended-regexp" => options.extended_regexp = true,
+            "-r" | "--recursive" | "-R" | "--dereference-recursive" => options.recursive = true,
+            "-s" | "--no-messages" => options.no_messages = true,
+            "-a" | "--text" => options.text = true,
+            "-e" | "--regexp" => pending = Some(GrepPending::Pattern),
+            "-f" | "--file" => pending = Some(GrepPending::PatternFile),
+            "-m" | "--max-count" => pending = Some(GrepPending::MaxCount),
+            "--color" => {}
+            _ if arg.starts_with("--color=") => {}
+            _ if arg.starts_with("--regexp=") => {
+                options.patterns.push(arg.split_once('=')?.1.to_string());
+            }
+            _ if arg.starts_with("--file=") => {
+                options
+                    .pattern_files
+                    .push(arg.split_once('=')?.1.to_string());
+            }
+            _ if arg.starts_with("--max-count=") => {
+                options.max_count = Some(arg.split_once('=')?.1.parse().ok()?);
+            }
+            _ if arg.starts_with("--binary-files=") => match arg.split_once('=')?.1 {
+                "text" => options.text = true,
+                _ => return None,
+            },
+            _ if arg.starts_with('-') && arg.len() > 1 => {
+                parse_grep_short_flags(arg, &mut options, &mut pending)?
+            }
+            _ => push_grep_positional(&mut options, arg.clone()),
+        }
+    }
+
+    (pending.is_none() && options.has_pattern_source()).then_some(options)
+}
+
+fn parse_grep_short_flags(
+    arg: &str,
+    options: &mut GrepOptions,
+    pending: &mut Option<GrepPending>,
+) -> Option<()> {
+    let mut chars = arg[1..].chars().peekable();
+    while let Some(flag) = chars.next() {
+        match flag {
+            'n' | 'H' | 'h' => {}
+            'i' => options.ignore_case = true,
+            'v' => options.invert_match = true,
+            'w' => options.word_regexp = true,
+            'x' => options.line_regexp = true,
+            'F' => options.fixed_strings = true,
+            'E' => options.extended_regexp = true,
+            'r' | 'R' => options.recursive = true,
+            's' => options.no_messages = true,
+            'a' => options.text = true,
+            'e' => {
+                let rest = chars.collect::<String>();
+                if rest.is_empty() {
+                    *pending = Some(GrepPending::Pattern);
+                } else {
+                    options.patterns.push(rest);
+                }
+                break;
+            }
+            'f' => {
+                let rest = chars.collect::<String>();
+                if rest.is_empty() {
+                    *pending = Some(GrepPending::PatternFile);
+                } else {
+                    options.pattern_files.push(rest);
+                }
+                break;
+            }
+            'm' => {
+                let rest = chars.collect::<String>();
+                if rest.is_empty() {
+                    *pending = Some(GrepPending::MaxCount);
+                } else {
+                    options.max_count = Some(rest.parse().ok()?);
+                }
+                break;
+            }
+            _ => return None,
+        }
+    }
+
+    Some(())
+}
+
+fn push_grep_positional(options: &mut GrepOptions, value: String) {
+    if options.has_pattern_source() {
+        options.targets.push(value);
+    } else {
+        options.patterns.push(value);
+    }
+}
+
+fn build_grep_command_args(options: &GrepOptions) -> Vec<String> {
+    let mut args = vec!["-nH".to_string()];
+    if options.ignore_case {
+        args.push("-i".to_string());
+    }
+    if options.invert_match {
+        args.push("-v".to_string());
+    }
+    if options.word_regexp {
+        args.push("-w".to_string());
+    }
+    if options.line_regexp {
+        args.push("-x".to_string());
+    }
+    if options.fixed_strings {
+        args.push("-F".to_string());
+    }
+    if options.extended_regexp {
+        args.push("-E".to_string());
+    }
+    if options.recursive {
+        args.push("-R".to_string());
+    }
+    if options.no_messages {
+        args.push("-s".to_string());
+    }
+    if options.text {
+        args.push("-a".to_string());
+    }
+    if let Some(max_count) = options.max_count {
+        args.push("-m".to_string());
+        args.push(max_count.to_string());
+    }
+    for pattern in &options.patterns {
+        args.push("-e".to_string());
+        args.push(pattern.clone());
+    }
+    for pattern_file in &options.pattern_files {
+        args.push("-f".to_string());
+        args.push(pattern_file.clone());
+    }
+    args.push("--".to_string());
+    args.extend(options.targets.iter().cloned());
+    args
+}
+
+fn capture_command_output(command: &mut Command, input: &ValueStream) -> Result<Output> {
+    if input.is_empty() {
+        return command.output().context("failed to run command");
+    }
+
+    command
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let mut child = command.spawn().context("failed to run command")?;
+    child
+        .stdin
+        .as_mut()
+        .context("command stdin unavailable")?
+        .write_all(&input.to_bytes()?)?;
+    Ok(child.wait_with_output()?)
+}
+
+fn parse_grep_output(stdout: &str) -> GrepReport {
+    let mut report = GrepReport::default();
+
+    for line in stdout.lines() {
+        let Some((source, rest)) = line.split_once(':') else {
+            if !line.is_empty() {
+                report.notes.push(line.to_string());
+            }
+            continue;
+        };
+        let Some((line_number, text)) = rest.split_once(':') else {
+            report.notes.push(line.to_string());
+            continue;
+        };
+        let Ok(line_number) = line_number.parse() else {
+            report.notes.push(line.to_string());
+            continue;
+        };
+
+        push_grep_match(
+            &mut report.groups,
+            GrepMatch {
+                source: normalize_grep_source(source),
+                line_number,
+                text: text.to_string(),
+            },
+        );
+    }
+
+    report
+}
+
+fn push_grep_match(groups: &mut Vec<GrepGroup>, row: GrepMatch) {
+    if let Some(group) = groups.last_mut() {
+        if group.source == row.source {
+            group.rows.push(GrepMatchRow {
+                line_number: row.line_number,
+                text: row.text,
+            });
+            return;
+        }
+    }
+
+    groups.push(GrepGroup {
+        source: row.source,
+        rows: vec![GrepMatchRow {
+            line_number: row.line_number,
+            text: row.text,
+        }],
+    });
+}
+
+fn normalize_grep_source(source: &str) -> String {
+    match source {
+        "(standard input)" => "stdin".to_string(),
+        _ => source.to_string(),
+    }
+}
+
+fn render_grep_no_matches(options: &GrepOptions) -> String {
+    let mut out = String::new();
+    let _ = writeln!(
+        out,
+        "{} {}",
+        paint(BLUE_BOLD, "grep"),
+        paint(CYAN_BOLD, grep_query_label(options))
+    );
+    let _ = writeln!(
+        out,
+        "{} {}",
+        badge("no matches", YELLOW_BOLD),
+        dim("pattern not found")
+    );
+    out
+}
+
+fn render_grep_report(options: &GrepOptions, report: &GrepReport) -> String {
+    let match_count = report
+        .groups
+        .iter()
+        .map(|group| group.rows.len())
+        .sum::<usize>();
+
+    let mut out = String::new();
+    let _ = writeln!(
+        out,
+        "{} {}",
+        paint(BLUE_BOLD, "grep"),
+        paint(CYAN_BOLD, grep_query_label(options))
+    );
+
+    let mut meta = vec![pluralize(match_count, "match", "matches")];
+    if !report.groups.is_empty() {
+        meta.push(pluralize(report.groups.len(), "source", "sources"));
+    }
+    let _ = writeln!(out, "{}", dim(meta.join(", ")));
+
+    for note in &report.notes {
+        let _ = writeln!(out, "{} {}", badge("note", YELLOW_BOLD), dim(note));
+    }
+
+    for (index, group) in report.groups.iter().enumerate() {
+        if index > 0 || !report.notes.is_empty() {
+            out.push('\n');
+        }
+        render_grep_group(&mut out, group);
+    }
+
+    out
+}
+
+fn grep_query_label(options: &GrepOptions) -> String {
+    if options.patterns.len() == 1 && options.pattern_files.is_empty() {
+        return options.patterns[0].clone();
+    }
+    if options.patterns.is_empty() && options.pattern_files.len() == 1 {
+        return format!("patterns from {}", options.pattern_files[0]);
+    }
+
+    pluralize(
+        options.patterns.len() + options.pattern_files.len(),
+        "pattern",
+        "patterns",
+    )
 }
 
 fn parse_diff_short_flags(
@@ -752,6 +1103,57 @@ struct GitLogRow {
 }
 
 #[derive(Default)]
+struct GrepOptions {
+    ignore_case: bool,
+    invert_match: bool,
+    word_regexp: bool,
+    line_regexp: bool,
+    fixed_strings: bool,
+    extended_regexp: bool,
+    recursive: bool,
+    no_messages: bool,
+    text: bool,
+    max_count: Option<usize>,
+    patterns: Vec<String>,
+    pattern_files: Vec<String>,
+    targets: Vec<String>,
+}
+
+impl GrepOptions {
+    fn has_pattern_source(&self) -> bool {
+        !self.patterns.is_empty() || !self.pattern_files.is_empty()
+    }
+}
+
+enum GrepPending {
+    Pattern,
+    PatternFile,
+    MaxCount,
+}
+
+#[derive(Default)]
+struct GrepReport {
+    groups: Vec<GrepGroup>,
+    notes: Vec<String>,
+}
+
+struct GrepGroup {
+    source: String,
+    rows: Vec<GrepMatchRow>,
+}
+
+struct GrepMatchRow {
+    line_number: usize,
+    text: String,
+}
+
+struct GrepMatch {
+    source: String,
+    line_number: usize,
+    text: String,
+}
+
+#[derive(Default)]
 struct DiffOptions {
     recursive: bool,
     new_file: bool,
@@ -1010,6 +1412,24 @@ fn render_diff_line(out: &mut String, line: &DiffLine) {
         DiffLineKind::Note => dim(&line.text),
     };
     let _ = writeln!(out, "{rendered}");
+}
+
+fn render_grep_group(out: &mut String, group: &GrepGroup) {
+    let _ = writeln!(
+        out,
+        "{} {}",
+        paint(BOLD, &group.source),
+        badge(pluralize(group.rows.len(), "match", "matches"), BLUE_BOLD,)
+    );
+
+    for row in &group.rows {
+        let _ = writeln!(
+            out,
+            "  {} {}",
+            badge(format!("line {}", row.line_number), CYAN_BOLD),
+            paint(BOLD, &row.text)
+        );
+    }
 }
 
 fn count_display_lines(text: &str) -> usize {

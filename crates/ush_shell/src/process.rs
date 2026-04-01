@@ -176,6 +176,7 @@ impl Shell {
             }
             "ps" => Ok(style::render_ps(&resolved.args)?.map(|output| (output, 0))),
             "kill" => Ok(style::render_kill(&resolved.args)?.map(|output| (output, 0))),
+            "grep" => style::render_grep(&self.cwd, &resolved.args, input),
             "git" => Ok(style::render_git(&self.cwd, &resolved.args)?.map(|output| (output, 0))),
             "diff" => style::render_diff(&self.cwd, &resolved.args),
             _ => Ok(None),

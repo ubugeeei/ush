@@ -287,6 +287,73 @@ fn stylish_diff_unified_flag_keeps_rich_output() {
 }
 
 #[test]
+fn stylish_grep_groups_file_matches() {
+    let dir = tempdir().expect("tempdir");
+    fs::write(
+        dir.path().join("sample.txt"),
+        "alpha\nfoo first\nbeta\nfoo second\n",
+    )
+    .expect("write sample");
+
+    let output = ush()
+        .args(["-s", "-c", "grep foo sample.txt"])
+        .current_dir(dir.path())
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("grep"));
+    assert!(stdout.contains("foo"));
+    assert!(stdout.contains("sample.txt"));
+    assert!(stdout.contains("[2 matches]"));
+    assert!(stdout.contains("[line 2]"));
+    assert!(stdout.contains("foo first"));
+    assert!(stdout.contains("[line 4]"));
+    assert!(stdout.contains("foo second"));
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
+}
+
+#[test]
+fn stylish_grep_reads_pipeline_input() {
+    let output = ush()
+        .args(["-s", "-c", "printf 'alpha\nfoo\nbeta\n' | grep foo"])
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("grep"));
+    assert!(stdout.contains("stdin"));
+    assert!(stdout.contains("[1 match]"));
+    assert!(stdout.contains("[line 2]"));
+    assert!(stdout.contains("foo"));
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
+}
+
+#[test]
+fn stylish_grep_no_matches_preserves_exit_code() {
+    let dir = tempdir().expect("tempdir");
+    fs::write(dir.path().join("sample.txt"), "alpha\nbeta\n").expect("write sample");
+
+    let output = ush()
+        .args(["-s", "-c", "grep foo sample.txt"])
+        .current_dir(dir.path())
+        .output()
+        .expect("run ush");
+
+    assert_eq!(output.status.code(), Some(1));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("grep"));
+    assert!(stdout.contains("foo"));
+    assert!(stdout.contains("[no matches]"));
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
+}
+
+#[test]
 fn stylish_git_status_renders_rich_output() {
     let dir = tempdir().expect("tempdir");
     init_git_repo(dir.path());

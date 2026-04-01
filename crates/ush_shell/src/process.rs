@@ -43,8 +43,8 @@ impl Shell {
                 .collect::<Result<HashMap<_, _>>>()?,
         };
         if self.options.stylish {
-            if let Some(rendered) = self.try_stylish(&resolved, &input)? {
-                return Ok((rendered, 0));
+            if let Some((rendered, status)) = self.try_stylish(&resolved, &input)? {
+                return Ok((rendered, status));
             }
         }
         self.spawn_external(&resolved, input, capture)
@@ -168,13 +168,16 @@ impl Shell {
         &self,
         resolved: &ResolvedCommand,
         input: &ValueStream,
-    ) -> Result<Option<ValueStream>> {
+    ) -> Result<Option<(ValueStream, i32)>> {
         match resolved.command.as_str() {
-            "ls" => style::render_ls(&self.cwd, &resolved.args),
-            "cat" => style::render_cat(&self.cwd, &resolved.args, input),
-            "ps" => style::render_ps(&resolved.args),
-            "kill" => style::render_kill(&resolved.args),
-            "git" => style::render_git(&self.cwd, &resolved.args),
+            "ls" => Ok(style::render_ls(&self.cwd, &resolved.args)?.map(|output| (output, 0))),
+            "cat" => {
+                Ok(style::render_cat(&self.cwd, &resolved.args, input)?.map(|output| (output, 0)))
+            }
+            "ps" => Ok(style::render_ps(&resolved.args)?.map(|output| (output, 0))),
+            "kill" => Ok(style::render_kill(&resolved.args)?.map(|output| (output, 0))),
+            "git" => Ok(style::render_git(&self.cwd, &resolved.args)?.map(|output| (output, 0))),
+            "diff" => style::render_diff(&self.cwd, &resolved.args),
             _ => Ok(None),
         }
     }

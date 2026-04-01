@@ -239,6 +239,54 @@ fn stylish_ls_handles_broken_symlinks() {
 }
 
 #[test]
+fn stylish_diff_renders_hunks_and_preserves_exit_code() {
+    let dir = tempdir().expect("tempdir");
+    fs::write(dir.path().join("before.txt"), "alpha\nbeta\n").expect("write before");
+    fs::write(dir.path().join("after.txt"), "alpha\ngamma\n").expect("write after");
+
+    let output = ush()
+        .args(["-s", "-c", "diff before.txt after.txt"])
+        .current_dir(dir.path())
+        .output()
+        .expect("run ush");
+
+    assert_eq!(output.status.code(), Some(1));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("diff"));
+    assert!(stdout.contains("before.txt"));
+    assert!(stdout.contains("after.txt"));
+    assert!(stdout.contains("@@ -1,2 +1,2 @@"));
+    assert!(stdout.contains("-beta"));
+    assert!(stdout.contains("+gamma"));
+    assert!(!stdout.contains("2c2"));
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
+}
+
+#[test]
+fn stylish_diff_unified_flag_keeps_rich_output() {
+    let dir = tempdir().expect("tempdir");
+    fs::write(dir.path().join("before.txt"), "alpha\nbeta\n").expect("write before");
+    fs::write(dir.path().join("after.txt"), "alpha\ngamma\n").expect("write after");
+
+    let output = ush()
+        .args(["-s", "-c", "diff -u before.txt after.txt"])
+        .current_dir(dir.path())
+        .output()
+        .expect("run ush");
+
+    assert_eq!(output.status.code(), Some(1));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("diff"));
+    assert!(stdout.contains("[1 hunk]"));
+    assert!(stdout.contains("[+1]"));
+    assert!(stdout.contains("[-1]"));
+    assert!(stdout.contains("@@ -1,2 +1,2 @@"));
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
+}
+
+#[test]
 fn stylish_git_status_renders_rich_output() {
     let dir = tempdir().expect("tempdir");
     init_git_repo(dir.path());

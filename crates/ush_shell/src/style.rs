@@ -242,6 +242,327 @@ pub fn render_git(cwd: &Path, args: &[String]) -> Result<Option<ValueStream>> {
     }
 }
 
+pub fn render_diff(cwd: &Path, args: &[String]) -> Result<Option<(ValueStream, i32)>> {
+    let Some(options) = parse_diff_args(args) else {
+        return Ok(None);
+    };
+
+    let output = match Command::new("diff")
+        .args(build_diff_command_args(&options))
+        .current_dir(cwd)
+        .output()
+    {
+        Ok(output) => output,
+        Err(_) => return Ok(None),
+    };
+
+    let status = output.status.code().unwrap_or(1);
+    if status > 1 {
+        return Ok(None);
+    }
+
+    let stdout = String::from_utf8(output.stdout)
+        .unwrap_or_else(|error| String::from_utf8_lossy(&error.into_bytes()).to_string());
+
+    let rendered = if status == 0 {
+        render_diff_clean(&options)
+    } else {
+        render_diff_report(&options, &stdout)
+    };
+
+    Ok(Some((ValueStream::Text(rendered), status)))
+}
+
+fn parse_diff_args(args: &[String]) -> Option<DiffOptions> {
+    let mut options = DiffOptions {
+        context: 3,
+        ..DiffOptions::default()
+    };
+    let mut pending_context = false;
+    let mut force_paths = false;
+
+    for arg in args {
+        if pending_context {
+            options.context = arg.parse().ok()?;
+            pending_context = false;
+            continue;
+        }
+
+        if force_paths {
+            options.targets.push(arg.clone());
+            continue;
+        }
+
+        match arg.as_str() {
+            "--" => force_paths = true,
+            "-u" | "--unified" => {}
+            "-r" | "--recursive" => options.recursive = true,
+            "-N" | "--new-file" => options.new_file = true,
+            "-a" | "--text" => options.text = true,
+            "-w" | "--ignore-all-space" => options.ignore_all_space = true,
+            "-b" | "--ignore-space-change" => options.ignore_space_change = true,
+            "-B" | "--ignore-blank-lines" => options.ignore_blank_lines = true,
+            "-i" | "--ignore-case" => options.ignore_case = true,
+            "-U" => pending_context = true,
+            _ if arg.starts_with("--unified=") => {
+                options.context = arg.split_once('=')?.1.parse().ok()?;
+            }
+            _ if arg.starts_with('-') && arg.len() > 1 => {
+                parse_diff_short_flags(arg, &mut options, &mut pending_context)?
+            }
+            _ => options.targets.push(arg.clone()),
+        }
+    }
+
+    (!pending_context && options.targets.len() == 2).then_some(options)
+}
+
+fn parse_diff_short_flags(
+    arg: &str,
+    options: &mut DiffOptions,
+    pending_context: &mut bool,
+) -> Option<()> {
+    let mut chars = arg[1..].chars().peekable();
+    while let Some(flag) = chars.next() {
+        match flag {
+            'u' => {}
+            'r' => options.recursive = true,
+            'N' => options.new_file = true,
+            'a' => options.text = true,
+            'w' => options.ignore_all_space = true,
+            'b' => options.ignore_space_change = true,
+            'B' => options.ignore_blank_lines = true,
+            'i' => options.ignore_case = true,
+            'U' => {
+                let rest = chars.collect::<String>();
+                if rest.is_empty() {
+                    *pending_context = true;
+                } else {
+                    options.context = rest.parse().ok()?;
+                }
+                break;
+            }
+            _ => return None,
+        }
+    }
+
+    Some(())
+}
+
+fn build_diff_command_args(options: &DiffOptions) -> Vec<String> {
+    let mut args = vec![format!("--unified={}", options.context)];
+    if options.recursive {
+        args.push("--recursive".to_string());
+    }
+    if options.new_file {
+        args.push("--new-file".to_string());
+    }
+    if options.text {
+        args.push("--text".to_string());
+    }
+    if options.ignore_all_space {
+        args.push("--ignore-all-space".to_string());
+    }
+    if options.ignore_space_change {
+        args.push("--ignore-space-change".to_string());
+    }
+    if options.ignore_blank_lines {
+        args.push("--ignore-blank-lines".to_string());
+    }
+    if options.ignore_case {
+        args.push("--ignore-case".to_string());
+    }
+    args.push("--".to_string());
+    args.extend(options.targets.iter().cloned());
+    args
+}
+
+fn render_diff_clean(options: &DiffOptions) -> String {
+    let mut out = String::new();
+    let _ = writeln!(
+        out,
+        "{} {} {}",
+        paint(BLUE_BOLD, "diff"),
+        paint(CYAN_BOLD, &options.targets[0]),
+        paint(MAGENTA_BOLD, &options.targets[1])
+    );
+    let _ = writeln!(
+        out,
+        "{} {}",
+        badge("same", GREEN_BOLD),
+        dim("no differences")
+    );
+    out
+}
+
+fn render_diff_report(options: &DiffOptions, stdout: &str) -> String {
+    let report = parse_unified_diff(stdout);
+    let total_hunks = report
+        .sections
+        .iter()
+        .map(|section| section.hunks.len())
+        .sum::<usize>();
+    let total_additions = report
+        .sections
+        .iter()
+        .map(|section| section.additions)
+        .sum::<usize>();
+    let total_deletions = report
+        .sections
+        .iter()
+        .map(|section| section.deletions)
+        .sum::<usize>();
+
+    let mut out = String::new();
+    let _ = writeln!(
+        out,
+        "{} {} {}",
+        paint(BLUE_BOLD, "diff"),
+        paint(CYAN_BOLD, &options.targets[0]),
+        paint(MAGENTA_BOLD, &options.targets[1])
+    );
+
+    let mut meta = Vec::new();
+    if !report.sections.is_empty() {
+        meta.push(pluralize(
+            report.sections.len(),
+            "changed file",
+            "changed files",
+        ));
+    }
+    if total_hunks > 0 {
+        meta.push(pluralize(total_hunks, "hunk", "hunks"));
+    }
+    if total_additions > 0 {
+        meta.push(format!("+{total_additions}"));
+    }
+    if total_deletions > 0 {
+        meta.push(format!("-{total_deletions}"));
+    }
+    if meta.is_empty() {
+        meta.push("differences detected".to_string());
+    }
+    let _ = writeln!(out, "{}", dim(meta.join(", ")));
+
+    for note in &report.notes {
+        let _ = writeln!(out, "{} {}", badge("note", YELLOW_BOLD), dim(note));
+    }
+
+    for (index, section) in report.sections.iter().enumerate() {
+        if index > 0 || !report.notes.is_empty() {
+            out.push('\n');
+        }
+        render_diff_section(&mut out, section);
+    }
+
+    out
+}
+
+fn parse_unified_diff(stdout: &str) -> DiffReport {
+    let mut report = DiffReport::default();
+    let mut pending_old = None::<String>;
+    let mut current_section = None::<DiffSection>;
+    let mut current_hunk = None::<DiffHunk>;
+
+    for line in stdout.lines() {
+        if let Some(value) = line.strip_prefix("--- ") {
+            finalize_diff_hunk(&mut current_section, &mut current_hunk);
+            finalize_diff_section(&mut report, &mut current_section);
+            pending_old = Some(parse_diff_label(value));
+            continue;
+        }
+
+        if let Some(value) = line.strip_prefix("+++ ") {
+            finalize_diff_hunk(&mut current_section, &mut current_hunk);
+            finalize_diff_section(&mut report, &mut current_section);
+            let old_label = pending_old.take().unwrap_or_else(|| "?".to_string());
+            current_section = Some(DiffSection::new(old_label, parse_diff_label(value)));
+            continue;
+        }
+
+        if line.starts_with("@@") {
+            finalize_diff_hunk(&mut current_section, &mut current_hunk);
+            current_hunk = Some(DiffHunk {
+                header: line.to_string(),
+                lines: Vec::new(),
+            });
+            continue;
+        }
+
+        let line_kind = if line.starts_with('+') {
+            Some(DiffLineKind::Added)
+        } else if line.starts_with('-') {
+            Some(DiffLineKind::Removed)
+        } else if line.starts_with(' ') {
+            Some(DiffLineKind::Context)
+        } else if line == r"\ No newline at end of file" {
+            Some(DiffLineKind::Note)
+        } else {
+            None
+        };
+
+        if let Some(kind) = line_kind {
+            if let Some(hunk) = current_hunk.as_mut() {
+                hunk.lines.push(DiffLine {
+                    kind,
+                    text: line.to_string(),
+                });
+                continue;
+            }
+        }
+
+        if line.starts_with("diff ") {
+            continue;
+        }
+
+        if let Some(section) = current_section.as_mut() {
+            section.notes.push(line.to_string());
+        } else if !line.is_empty() {
+            report.notes.push(line.to_string());
+        }
+    }
+
+    finalize_diff_hunk(&mut current_section, &mut current_hunk);
+    finalize_diff_section(&mut report, &mut current_section);
+    report
+}
+
+fn parse_diff_label(value: &str) -> String {
+    value
+        .split_once('\t')
+        .map(|(label, _)| label)
+        .unwrap_or(value)
+        .trim()
+        .to_string()
+}
+
+fn finalize_diff_hunk(section: &mut Option<DiffSection>, hunk: &mut Option<DiffHunk>) {
+    let Some(hunk) = hunk.take() else {
+        return;
+    };
+    let Some(section) = section.as_mut() else {
+        return;
+    };
+
+    section.additions += hunk
+        .lines
+        .iter()
+        .filter(|line| line.kind == DiffLineKind::Added)
+        .count();
+    section.deletions += hunk
+        .lines
+        .iter()
+        .filter(|line| line.kind == DiffLineKind::Removed)
+        .count();
+    section.hunks.push(hunk);
+}
+
+fn finalize_diff_section(report: &mut DiffReport, section: &mut Option<DiffSection>) {
+    if let Some(section) = section.take() {
+        report.sections.push(section);
+    }
+}
+
 fn append_numbered(buffer: &mut String, path: Option<&Path>, text: &str, numbered: bool) {
     if let Some(path) = path {
         let _ = writeln!(
@@ -430,6 +751,65 @@ struct GitLogRow {
     subject: String,
 }
 
+#[derive(Default)]
+struct DiffOptions {
+    recursive: bool,
+    new_file: bool,
+    text: bool,
+    ignore_all_space: bool,
+    ignore_space_change: bool,
+    ignore_blank_lines: bool,
+    ignore_case: bool,
+    context: usize,
+    targets: Vec<String>,
+}
+
+#[derive(Default)]
+struct DiffReport {
+    sections: Vec<DiffSection>,
+    notes: Vec<String>,
+}
+
+struct DiffSection {
+    old_label: String,
+    new_label: String,
+    hunks: Vec<DiffHunk>,
+    additions: usize,
+    deletions: usize,
+    notes: Vec<String>,
+}
+
+impl DiffSection {
+    fn new(old_label: String, new_label: String) -> Self {
+        Self {
+            old_label,
+            new_label,
+            hunks: Vec::new(),
+            additions: 0,
+            deletions: 0,
+            notes: Vec::new(),
+        }
+    }
+}
+
+struct DiffHunk {
+    header: String,
+    lines: Vec<DiffLine>,
+}
+
+struct DiffLine {
+    kind: DiffLineKind,
+    text: String,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum DiffLineKind {
+    Context,
+    Added,
+    Removed,
+    Note,
+}
+
 pub(crate) fn human_bytes(bytes: u64) -> String {
     const UNITS: [&str; 5] = ["B", "KB", "MB", "GB", "TB"];
 
@@ -585,6 +965,51 @@ fn render_ps_row(out: &mut String, row: &PsRow) {
     if display_name != row.command {
         let _ = writeln!(out, "  {}", dim(&row.command));
     }
+}
+
+fn render_diff_section(out: &mut String, section: &DiffSection) {
+    let mut parts = vec![
+        paint(BOLD, &section.old_label),
+        paint(CYAN_BOLD, "->"),
+        paint(BOLD, &section.new_label),
+    ];
+    if !section.hunks.is_empty() {
+        parts.push(badge(
+            pluralize(section.hunks.len(), "hunk", "hunks"),
+            BLUE_BOLD,
+        ));
+    }
+    if section.additions > 0 {
+        parts.push(badge(format!("+{}", section.additions), GREEN_BOLD));
+    }
+    if section.deletions > 0 {
+        parts.push(badge(format!("-{}", section.deletions), RED_BOLD));
+    }
+    let _ = writeln!(out, "{}", parts.join(" "));
+
+    for note in &section.notes {
+        let _ = writeln!(out, "{} {}", badge("note", YELLOW_BOLD), dim(note));
+    }
+
+    for (index, hunk) in section.hunks.iter().enumerate() {
+        if index > 0 || !section.notes.is_empty() {
+            out.push('\n');
+        }
+        let _ = writeln!(out, "{}", paint(CYAN_BOLD, &hunk.header));
+        for line in &hunk.lines {
+            render_diff_line(out, line);
+        }
+    }
+}
+
+fn render_diff_line(out: &mut String, line: &DiffLine) {
+    let rendered = match line.kind {
+        DiffLineKind::Context => dim(&line.text),
+        DiffLineKind::Added => paint(GREEN_BOLD, &line.text),
+        DiffLineKind::Removed => paint(RED_BOLD, &line.text),
+        DiffLineKind::Note => dim(&line.text),
+    };
+    let _ = writeln!(out, "{rendered}");
 }
 
 fn count_display_lines(text: &str) -> usize {

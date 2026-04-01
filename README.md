@@ -74,32 +74,24 @@ Workspace layout:
 
 ## Usage
 
-If you installed `ush` with `install.sh`, the binaries are placed in `"$USH_PREFIX/bin"` and `USH_PREFIX` defaults to `~/.local`.
-In the default case, make sure `~/.local/bin` is on your `PATH`:
+Quick install:
 
 ```bash
-export PATH="$HOME/.local/bin:$PATH"
+curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | sh
+exec "$SHELL" -l
+ush --version
 ```
 
-For a persistent setup:
+The installer tries to stay zero-config:
+
+- it installs into the first writable personal bin directory already on your `PATH`
+- otherwise it falls back to `~/.local/bin`
+- if that directory is not on your `PATH`, it appends the export line to `~/.zshrc`, `~/.bashrc`, or `~/.profile`
+
+If you want an explicit location instead:
 
 ```bash
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
-```
-
-If you installed with a custom prefix, use that prefix instead:
-
-```bash
-export PATH="$USH_PREFIX/bin:$PATH"
-```
-
-You can confirm the binaries are visible with:
-
-```bash
-command -v ush
-command -v ush_lsp
-ush -c 'printf "ok\n"'
+curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | env USH_BIN_DIR="$HOME/.local/bin" sh
 ```
 
 `nix profile install ...` and the Docker image already expose `ush` on `PATH`.
@@ -347,7 +339,9 @@ Start here for more detail:
 
 ### curl
 
-`install.sh` downloads the matching GitHub Releases archive and installs `ush` plus `ush_lsp` into `~/.local/bin` by default.
+`install.sh` downloads the matching GitHub Releases archive and installs `ush` plus `ush_lsp`.
+By default it picks the first writable personal bin directory already on `PATH`.
+If none is available, it falls back to `~/.local/bin` and updates your shell rc automatically on POSIX shells.
 Release archives are currently published for:
 
 - macOS `x86_64`
@@ -361,13 +355,19 @@ curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | sh
 Pin a release version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | env USH_VERSION=v0.2.0 sh
+curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | env USH_VERSION=v0.3.4 sh
 ```
 
-Install into a custom prefix:
+Install into a custom bin directory:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | env USH_PREFIX="$HOME/.ush" sh
+curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | env USH_BIN_DIR="$HOME/.ush/bin" sh
+```
+
+Skip automatic `PATH` updates:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | env USH_AUTO_PATH=0 sh
 ```
 
 ### nix

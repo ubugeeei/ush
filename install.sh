@@ -4,6 +4,7 @@ set -eu
 REPO_INPUT="${USH_REPO:-${UBSH_REPO:-ubugeeei/ush}}"
 VERSION="${USH_VERSION:-${UBSH_VERSION:-latest}}"
 PREFIX="${USH_PREFIX:-${UBSH_PREFIX:-$HOME/.local}}"
+BIN_DIR_INPUT="${USH_BIN_DIR:-${UBSH_BIN_DIR:-}}"
 DOWNLOAD_URL="${USH_DOWNLOAD_URL:-${UBSH_DOWNLOAD_URL:-}}"
 TMPDIR="$(mktemp -d)"
 
@@ -25,6 +26,106 @@ normalize_repo() {
     -e 's#^https\{0,1\}://github\.com/##' \
     -e 's#^git@github\.com:##' \
     -e 's#\.git$##'
+}
+
+path_contains() {
+  case ":$PATH:" in
+    *":$1:"*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+pick_bin_dir() {
+  if [ -n "$BIN_DIR_INPUT" ]; then
+    printf '%s\n' "$BIN_DIR_INPUT"
+    return
+  fi
+
+  if [ "${USH_PREFIX+x}" = "x" ] || [ "${UBSH_PREFIX+x}" = "x" ]; then
+    printf '%s/bin\n' "$PREFIX"
+    return
+  fi
+
+  for candidate in "$HOME/.local/bin" "$HOME/bin"; do
+    if path_contains "$candidate"; then
+      printf '%s\n' "$candidate"
+      return
+    fi
+  done
+
+  old_ifs="$IFS"
+  IFS=":"
+  for candidate in $PATH; do
+    [ -n "$candidate" ] || continue
+    case "$candidate" in
+      "$HOME"/*)
+        if [ -d "$candidate" ] && [ -w "$candidate" ]; then
+          printf '%s\n' "$candidate"
+          IFS="$old_ifs"
+          return
+        fi
+        ;;
+    esac
+  done
+  IFS="$old_ifs"
+
+  printf '%s\n' "$HOME/.local/bin"
+}
+
+detect_profile() {
+  shell_name="${SHELL##*/}"
+
+  case "$shell_name" in
+    zsh) printf '%s\n' "$HOME/.zshrc" ;;
+    bash)
+      if [ -f "$HOME/.bashrc" ] || [ ! -f "$HOME/.bash_profile" ]; then
+        printf '%s\n' "$HOME/.bashrc"
+      else
+        printf '%s\n' "$HOME/.bash_profile"
+      fi
+      ;;
+    ksh) printf '%s\n' "$HOME/.kshrc" ;;
+    fish) printf '\n' ;;
+    *) printf '%s\n' "$HOME/.profile" ;;
+  esac
+}
+
+ensure_path() {
+  bin_dir="$1"
+
+  if path_contains "$bin_dir"; then
+    printf 'ready\n'
+    return
+  fi
+
+  if [ "${USH_AUTO_PATH:-${UBSH_AUTO_PATH:-1}}" = "0" ]; then
+    printf 'manual\n'
+    return
+  fi
+
+  profile="$(detect_profile)"
+  if [ -z "$profile" ]; then
+    printf 'manual\n'
+    return
+  fi
+
+  display_dir="$bin_dir"
+  case "$bin_dir" in
+    "$HOME"/*) display_dir="\$HOME/${bin_dir#"$HOME"/}" ;;
+  esac
+
+  line="export PATH=\"$display_dir:\$PATH\""
+  if [ -f "$profile" ] && grep -F "$line" "$profile" >/dev/null 2>&1; then
+    printf '%s\n' "$profile"
+    return
+  fi
+
+  touch "$profile"
+  {
+    printf '\n# Added by ush install.sh\n'
+    printf '%s\n' "$line"
+  } >> "$profile"
+  printf '%s\n' "$profile"
 }
 
 detect_target() {
@@ -102,6 +203,7 @@ need_cmd install
 
 REPO="$(normalize_repo "$REPO_INPUT")"
 TARGET="$(detect_target)"
+BIN_DIR="$(pick_bin_dir)"
 URL="$(build_download_url "$REPO" "$VERSION" "$TARGET")"
 ARCHIVE="$TMPDIR/ush.tar.gz"
 UNPACK_DIR="$TMPDIR/unpack"
@@ -122,14 +224,34 @@ if [ ! -f "$PACKAGE_DIR/ush" ]; then
   exit 1
 fi
 
-mkdir -p "$PREFIX/bin"
-install -m 755 "$PACKAGE_DIR/ush" "$PREFIX/bin/ush"
+mkdir -p "$BIN_DIR"
+install -m 755 "$PACKAGE_DIR/ush" "$BIN_DIR/ush"
 
 if [ -f "$PACKAGE_DIR/ush_lsp" ]; then
-  install -m 755 "$PACKAGE_DIR/ush_lsp" "$PREFIX/bin/ush_lsp"
+  install -m 755 "$PACKAGE_DIR/ush_lsp" "$BIN_DIR/ush_lsp"
 fi
 
-echo "ush installed to $PREFIX/bin/ush"
+PATH_STATUS="$(ensure_path "$BIN_DIR")"
+
+echo "ush installed to $BIN_DIR/ush"
 if [ -f "$PACKAGE_DIR/ush_lsp" ]; then
-  echo "ush_lsp installed to $PREFIX/bin/ush_lsp"
+  echo "ush_lsp installed to $BIN_DIR/ush_lsp"
+fi
+
+case "$PATH_STATUS" in
+  ready)
+    echo "ush is already on PATH. Try: ush --version"
+    ;;
+  manual)
+    echo "add this to your shell config, then restart your shell:"
+    echo "export PATH=\"$BIN_DIR:\$PATH\""
+    ;;
+  *)
+    echo "added $BIN_DIR to PATH in $PATH_STATUS"
+    echo "restart your shell or run: . \"$PATH_STATUS\""
+    ;;
+esac
+
+if command -v "$BIN_DIR/ush" >/dev/null 2>&1; then
+  echo "quick check: $BIN_DIR/ush --version"
 fi

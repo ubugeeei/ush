@@ -35,9 +35,9 @@ pub(super) fn parse_lambda_helper(raw: &str) -> Option<Result<HelperKind>> {
     let kind = match name {
         "map" | "fmap" => parse_transform_lambda(inner).map(HelperKind::Map),
         "each" => parse_transform_lambda(inner).map(HelperKind::Each),
-        "filter" => parse_predicate_lambda(inner).map(HelperKind::Filter),
-        "any" => parse_predicate_lambda(inner).map(HelperKind::Any),
-        "some" => parse_predicate_lambda(inner).map(HelperKind::Some),
+        "filter" | "ffilter" => parse_predicate_lambda(inner).map(HelperKind::Filter),
+        "any" | "fany" => parse_predicate_lambda(inner).map(HelperKind::Any),
+        "some" | "fsome" => parse_predicate_lambda(inner).map(HelperKind::Some),
         "flat" | "ffmap" => parse_flat_lambda(inner).map(HelperKind::Flat),
         _ => return None,
     };

@@ -47,7 +47,7 @@ Implemented today:
 - Builtin utility: `sammary` for recursive file and type summaries across paths and globs, with lockfiles excluded by default
 - Safety prompt for dangerous `rm -rf` unless `--yes` or `USH_INTERACTION=false`
 - Stylish renderers for `pwd`, `ls`, `cat`, `ps`, and `kill`
-- Structured helpers: `len`, `lines`, `json`, `xml`, `html`, `car`, `cdr`, `map`, `fmap`, `flat`, `ffmap`, `fzip`, `each`, `filter`, `any`, `some`
+- Structured helpers: `len`, `lines`, `json`, `xml`, `html`, `car`, `cdr`, `head`, `tail`, `take`, `drop`, `nth`, `fst`, `snd`, `map`, `fmap`, `flat`, `ffmap`, `fzip`, `each`, `filter`, `ffilter`, `any`, `fany`, `some`, `fsome`
 - Environment-variable expansion, `~` expansion, and simple glob expansion
 - Criterion benchmark skeleton for parser/profiling work
 - GitHub Releases, `curl` installer, `nix`, and Docker packaging entry points
@@ -177,8 +177,13 @@ printf "hello\nworld\n" | fmap(\it -> upper(it))
 printf "hello\n" | map(\line -> { upper(line) })
 printf "alpha\nbeta\ngamma\n" | car
 printf "alpha\nbeta\ngamma\n" | cdr
+printf "alpha\nbeta\ngamma\n" | take(2)
+printf "alpha\nbeta\ngamma\n" | drop(1)
+printf "alpha\nbeta\ngamma\n" | nth(1)
 printf "alpha\nbeta\ngamma\n" | flat(\head, rest -> [head, "tail", rest])
 printf "alpha\nbeta\n" | fzip(["1", "2"])
+printf "alpha\nbeta\n" | fzip(["1", "2"]) | fst
+printf "alpha\nbeta\n" | fzip(["1", "2"]) | snd
 cat package.json | json | len
 cat feed.xml | xml
 curl -fsSL https://example.com | html
@@ -194,6 +199,13 @@ Currently supported helper forms:
 - `html`
 - `car`
 - `cdr`
+- `head`
+- `tail`
+- `take(2)`
+- `drop(1)`
+- `nth(1)`
+- `fst`
+- `snd`
 - `map(\it -> upper(it))`
 - `fmap(\it -> upper(it))`
 - `map(\it -> lower(it))`
@@ -204,17 +216,23 @@ Currently supported helper forms:
 - `fzip(["left", "right"])`
 - `each(\it -> print(it))`
 - `filter(\it -> contains(it, "foo"))`
+- `ffilter(\it -> contains(it, "foo"))`
 - `filter(\it -> starts_with(it, "foo"))`
 - `filter(\it -> ends_with(it, "foo"))`
 - `any(\it -> contains(it, "foo"))`
+- `fany(\it -> contains(it, "foo"))`
 - `some(\it -> contains(it, "foo"))`
+- `fsome(\it -> contains(it, "foo"))`
 
 `html` writes the current stream into a temporary HTML file and opens it in your default browser.
 If `json` cannot parse the stream, `ush` falls back to this browser flow instead of failing immediately.
 `xml` pretty-prints valid XML and falls back to the same browser flow if the input is not valid XML.
 `car` and `cdr` are Lisp-style head and tail helpers over the current line stream.
+`head` and `tail` are plain aliases for `car` and `cdr`.
+`take`, `drop`, and `nth` are Rust-style line-stream helpers, with `nth` using zero-based indexing.
+`fst` and `snd` project the first and second fields from tab-separated pair streams such as `fzip(...)`.
 `flat` is a small stream-level flat-map that binds `head` and `rest`, where `rest` splices the remaining lines into the output list.
-`fmap` and `ffmap` are functional aliases for `map` and `flat`.
+`fmap`, `ffmap`, `ffilter`, `fany`, and `fsome` are functional aliases for the corresponding helpers.
 `fzip` zips the current line stream against a literal right-hand list or multiline string and emits tab-separated pairs.
 Helper lambdas also accept `\name -> expr`, `\name -> { expr }`, zero-arg forms like `\-> { "ok" }`, and two-arg `flat(\head, rest -> [...])`.
 

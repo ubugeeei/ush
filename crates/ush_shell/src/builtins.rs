@@ -84,7 +84,7 @@ fn help_text() -> String {
         "  Cmd-Left/Right and Cmd-Shift-Left/Right work on terminals that forward Super",
         "",
         "structured helpers:",
-        "  len, length, lines, json, xml, html, car, cdr, map(...), fmap(...), flat(...), ffmap(...), fzip(...), filter(...), any(...)",
+        "  len, length, lines, json, xml, html, car, cdr, head, tail, take(...), drop(...), nth(...), fst, snd, map(...), fmap(...), flat(...), ffmap(...), fzip(...), filter(...), ffilter(...), any(...), fany(...), some(...), fsome(...)",
     ]
     .join("\n")
         + "\n"

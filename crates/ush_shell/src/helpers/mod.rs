@@ -3,6 +3,8 @@ mod flat_lambda;
 mod lambda;
 mod lambda_syntax;
 mod sequence;
+#[cfg(test)]
+mod tests;
 mod value;
 mod zip;
 
@@ -13,7 +15,7 @@ pub use value::ValueStream;
 
 use self::flat_lambda::FlatTransform;
 use self::lambda::{Predicate, Transform, apply_transform, parse_lambda_helper};
-use self::sequence::{car, cdr, flat};
+use self::sequence::{Field, SequenceOp, apply_sequence_op, parse_sequence_helper};
 use self::zip::{ZipSource, parse_zip_helper};
 
 #[derive(Debug, Clone)]
@@ -28,14 +30,14 @@ enum HelperKind {
     Json,
     Xml,
     Html,
-    Car,
-    Cdr,
+    Sequence(SequenceOp),
     Map(Transform),
     Each(Transform),
     Filter(Predicate),
     Any(Predicate),
     Some(Predicate),
     Flat(FlatTransform),
+    Field(Field),
     Zip(ZipSource),
 }
 
@@ -48,9 +50,9 @@ impl HelperInvocation {
             "json" => Some(Ok(HelperKind::Json)),
             "xml" => Some(Ok(HelperKind::Xml)),
             "html" => Some(Ok(HelperKind::Html)),
-            "car" => Some(Ok(HelperKind::Car)),
-            "cdr" => Some(Ok(HelperKind::Cdr)),
-            _ => parse_zip_helper(trimmed).or_else(|| parse_lambda_helper(trimmed)),
+            _ => parse_sequence_helper(trimmed)
+                .or_else(|| parse_zip_helper(trimmed))
+                .or_else(|| parse_lambda_helper(trimmed)),
         }?;
         Some(kind.map(|kind| Self { kind }))
     }
@@ -83,8 +85,7 @@ impl HelperInvocation {
                 browser::open_in_browser(&input)?;
                 Ok((ValueStream::Empty, 0))
             }
-            HelperKind::Car => Ok((car(input)?, 0)),
-            HelperKind::Cdr => Ok((cdr(input)?, 0)),
+            HelperKind::Sequence(op) => Ok((apply_sequence_op(input, op)?, 0)),
             HelperKind::Map(transform) | HelperKind::Each(transform) => {
                 let output = input
                     .into_lines()?
@@ -112,6 +113,7 @@ impl HelperInvocation {
                 ))
             }
             HelperKind::Flat(transform) => Ok((flat(input, transform)?, 0)),
+            HelperKind::Field(field) => Ok((project_field(input, *field)?, 0)),
             HelperKind::Zip(source) => Ok((source.apply(input)?, 0)),
         }
     }
@@ -132,91 +134,42 @@ fn stream_len(input: ValueStream) -> usize {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{HelperInvocation, ValueStream};
+fn flat(input: ValueStream, transform: &FlatTransform) -> Result<ValueStream> {
+    let mut lines = input.into_lines()?;
+    let Some(head) = lines.first().cloned() else {
+        return Ok(ValueStream::Empty);
+    };
+    let rest = if lines.len() > 1 {
+        lines.split_off(1)
+    } else {
+        Vec::new()
+    };
+    let output = transform.apply(&head, &rest);
+    Ok(if output.is_empty() {
+        ValueStream::Empty
+    } else {
+        ValueStream::Lines(output)
+    })
+}
 
-    #[test]
-    fn len_counts_lines() {
-        let helper = HelperInvocation::parse("len")
-            .expect("helper")
-            .expect("parse");
-        let (output, _) = helper
-            .execute(ValueStream::Text("a\nb\n".to_string()))
-            .expect("execute");
-        assert_eq!(output.to_text().expect("text"), "2\n");
-    }
-
-    #[test]
-    fn length_remains_as_compat_alias() {
-        let helper = HelperInvocation::parse("length")
-            .expect("helper")
-            .expect("parse");
-        let (output, _) = helper
-            .execute(ValueStream::Text("a\nb\n".to_string()))
-            .expect("execute");
-        assert_eq!(output.to_text().expect("text"), "2\n");
-    }
-
-    #[test]
-    fn html_helper_is_recognized() {
-        let helper = HelperInvocation::parse("html")
-            .expect("helper")
-            .expect("parse");
-        assert!(matches!(helper.kind, super::HelperKind::Html));
-    }
-
-    #[test]
-    fn xml_helper_is_recognized() {
-        let helper = HelperInvocation::parse("xml")
-            .expect("helper")
-            .expect("parse");
-        assert!(matches!(helper.kind, super::HelperKind::Xml));
-    }
-
-    #[test]
-    fn backslash_lambda_supports_custom_arg_names_and_block_bodies() {
-        let helper = HelperInvocation::parse(r#"map(\line -> { upper(line) })"#)
-            .expect("helper")
-            .expect("parse");
-        let (output, _) = helper
-            .execute(ValueStream::Text("ush\n".to_string()))
-            .expect("execute");
-        assert_eq!(output.to_text().expect("text"), "USH\n");
-    }
-
-    #[test]
-    fn zero_arg_block_lambda_can_produce_constants() {
-        let helper = HelperInvocation::parse(r#"map(\-> { "ok" })"#)
-            .expect("helper")
-            .expect("parse");
-        let (output, _) = helper
-            .execute(ValueStream::Text("a\nb\n".to_string()))
-            .expect("execute");
-        assert_eq!(output.to_text().expect("text"), "ok\nok\n");
-    }
-
-    #[test]
-    fn car_and_cdr_helpers_are_recognized() {
-        let car = HelperInvocation::parse("car")
-            .expect("helper")
-            .expect("parse");
-        let cdr = HelperInvocation::parse("cdr")
-            .expect("helper")
-            .expect("parse");
-        assert!(matches!(car.kind, super::HelperKind::Car));
-        assert!(matches!(cdr.kind, super::HelperKind::Cdr));
-    }
-
-    #[test]
-    fn fmap_and_ffmap_aliases_are_recognized() {
-        let fmap = HelperInvocation::parse(r#"fmap(\it -> upper(it))"#)
-            .expect("helper")
-            .expect("parse");
-        let ffmap = HelperInvocation::parse(r#"ffmap(\head, rest -> [head, rest])"#)
-            .expect("helper")
-            .expect("parse");
-        assert!(matches!(fmap.kind, super::HelperKind::Map(_)));
-        assert!(matches!(ffmap.kind, super::HelperKind::Flat(_)));
-    }
+fn project_field(input: ValueStream, field: Field) -> Result<ValueStream> {
+    let output = input
+        .into_lines()?
+        .into_iter()
+        .map(|line| match line.split_once('\t') {
+            Some((left, right)) => match field {
+                Field::First => left.to_string(),
+                Field::Second => right.to_string(),
+            },
+            None => match field {
+                Field::First => line,
+                Field::Second => String::new(),
+            },
+        })
+        .collect::<Vec<_>>();
+    Ok(if output.is_empty() {
+        ValueStream::Empty
+    } else {
+        ValueStream::Lines(output)
+    })
 }

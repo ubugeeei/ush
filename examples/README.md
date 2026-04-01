@@ -74,9 +74,14 @@ cargo run -p ush -- -c 'cat examples/sample.xml | xml'
 cargo run -p ush -- -c 'cat examples/sample.html | html'
 cargo run -p ush -- -c 'cat examples/sample_lines.txt | car'
 cargo run -p ush -- -c 'cat examples/sample_lines.txt | cdr'
+cargo run -p ush -- -c 'cat examples/sample_lines.txt | take(2)'
+cargo run -p ush -- -c 'cat examples/sample_lines.txt | drop(1)'
+cargo run -p ush -- -c 'cat examples/sample_lines.txt | nth(1)'
 cargo run -p ush -- -c 'cat examples/sample_lines.txt | flat(\head, rest -> [head, "tail", rest])'
 cargo run -p ush -- -c 'cat examples/sample_lines.txt | fmap(\it -> upper(it))'
 cargo run -p ush -- -c 'printf "a\nb\n" | fzip(["1", "2"])'
+cargo run -p ush -- -c 'printf "a\nb\n" | fzip(["1", "2"]) | fst'
+cargo run -p ush -- -c 'printf "a\nb\n" | fzip(["1", "2"]) | snd'
 cargo run -p ush -- --config examples/config.pkl
 cargo run -p ush -- test examples/smoke_test.ush
 ```

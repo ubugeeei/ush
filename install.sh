@@ -6,6 +6,7 @@ VERSION="${USH_VERSION:-${UBSH_VERSION:-latest}}"
 PREFIX="${USH_PREFIX:-${UBSH_PREFIX:-$HOME/.local}}"
 BIN_DIR_INPUT="${USH_BIN_DIR:-${UBSH_BIN_DIR:-}}"
 DOWNLOAD_URL="${USH_DOWNLOAD_URL:-${UBSH_DOWNLOAD_URL:-}}"
+AUTO_PATH="${USH_AUTO_PATH:-${UBSH_AUTO_PATH:-1}}"
 TMPDIR="$(mktemp -d)"
 
 cleanup() {
@@ -13,6 +14,58 @@ cleanup() {
 }
 
 trap cleanup EXIT INT TERM
+
+usage() {
+  cat <<'EOF'
+usage: install.sh [--version VERSION] [--bin-dir DIR] [--prefix DIR] [--download-url URL] [--no-modify-path]
+
+options:
+  --version VERSION     install a specific release tag such as v0.3.4
+  --bin-dir DIR         install ush into DIR
+  --prefix DIR          install ush into DIR/bin
+  --download-url URL    override the release archive URL
+  --no-modify-path      do not edit shell rc files
+  -h, --help            show this help
+EOF
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --version)
+      [ "$#" -ge 2 ] || { echo "install.sh: --version requires a value" >&2; exit 1; }
+      VERSION="$2"
+      shift 2
+      ;;
+    --bin-dir)
+      [ "$#" -ge 2 ] || { echo "install.sh: --bin-dir requires a value" >&2; exit 1; }
+      BIN_DIR_INPUT="$2"
+      shift 2
+      ;;
+    --prefix)
+      [ "$#" -ge 2 ] || { echo "install.sh: --prefix requires a value" >&2; exit 1; }
+      PREFIX="$2"
+      shift 2
+      ;;
+    --download-url)
+      [ "$#" -ge 2 ] || { echo "install.sh: --download-url requires a value" >&2; exit 1; }
+      DOWNLOAD_URL="$2"
+      shift 2
+      ;;
+    --no-modify-path)
+      AUTO_PATH=0
+      shift
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "install.sh: unknown option: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
 
 need_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -98,7 +151,7 @@ ensure_path() {
     return
   fi
 
-  if [ "${USH_AUTO_PATH:-${UBSH_AUTO_PATH:-1}}" = "0" ]; then
+  if [ "$AUTO_PATH" = "0" ]; then
     printf 'manual\n'
     return
   fi

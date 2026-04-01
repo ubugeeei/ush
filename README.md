@@ -91,7 +91,7 @@ The installer tries to stay zero-config:
 If you want an explicit location instead:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | env USH_BIN_DIR="$HOME/.local/bin" sh
+curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | sh -s -- --bin-dir "$HOME/.local/bin"
 ```
 
 `nix profile install ...` and the Docker image already expose `ush` on `PATH`.
@@ -355,19 +355,19 @@ curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | sh
 Pin a release version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | env USH_VERSION=v0.3.4 sh
+curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | sh -s -- --version v0.3.4
 ```
 
 Install into a custom bin directory:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | env USH_BIN_DIR="$HOME/.ush/bin" sh
+curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | sh -s -- --bin-dir "$HOME/.ush/bin"
 ```
 
 Skip automatic `PATH` updates:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | env USH_AUTO_PATH=0 sh
+curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | sh -s -- --no-modify-path
 ```
 
 ### nix

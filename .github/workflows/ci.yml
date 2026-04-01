@@ -50,6 +50,9 @@ jobs:
       - name: Run workspace tests
         run: cargo test --workspace
 
+      - name: Test installer flow
+        run: sh scripts/test_install.sh
+
       - name: Check no_std compiler core
         run: cargo check -p ush_compiler --no-default-features
 

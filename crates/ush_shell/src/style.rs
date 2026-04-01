@@ -11,7 +11,7 @@ use std::{
 use anyhow::{Context, Result};
 use chrono::{DateTime, Local};
 
-use crate::helpers::ValueStream;
+use crate::{commands::CommandLookup, helpers::ValueStream};
 
 pub fn render_ls(cwd: &Path, args: &[String]) -> Result<Option<ValueStream>> {
     let Some((hidden_mode, mut targets)) = parse_ls_args(args) else {
@@ -170,6 +170,61 @@ pub fn render_aliases(aliases: &BTreeMap<String, String>) -> String {
     );
     for (name, value) in aliases {
         render_alias_row(&mut out, name, value);
+    }
+
+    out
+}
+
+pub fn render_which(rows: &[(String, Option<CommandLookup>)]) -> String {
+    let mut alias_count = 0usize;
+    let mut builtin_count = 0usize;
+    let mut external_count = 0usize;
+    let mut missing_count = 0usize;
+
+    for (_, result) in rows {
+        match result {
+            Some(CommandLookup::Alias(_)) => alias_count += 1,
+            Some(CommandLookup::Builtin) => builtin_count += 1,
+            Some(CommandLookup::External(_)) => external_count += 1,
+            None => missing_count += 1,
+        }
+    }
+
+    let mut out = String::new();
+    let _ = writeln!(
+        out,
+        "{} {}",
+        paint(BLUE_BOLD, "which"),
+        dim(pluralize(rows.len(), "target", "targets"))
+    );
+
+    let mut meta = Vec::new();
+    if alias_count > 0 {
+        meta.push(pluralize(alias_count, "alias", "aliases"));
+    }
+    if builtin_count > 0 {
+        meta.push(pluralize(builtin_count, "builtin", "builtins"));
+    }
+    if external_count > 0 {
+        meta.push(pluralize(
+            external_count,
+            "external command",
+            "external commands",
+        ));
+    }
+    if missing_count > 0 {
+        meta.push(pluralize(
+            missing_count,
+            "missing target",
+            "missing targets",
+        ));
+    }
+    if !meta.is_empty() {
+        let _ = writeln!(out, "{}", dim(meta.join(", ")));
+    }
+
+    for (name, result) in rows {
+        render_which_row(&mut out, name, result.as_ref());
     }
 
     out
@@ -1452,6 +1507,47 @@ fn render_alias_row(out: &mut String, name: &str, value: &str) {
         badge("alias", BLUE_BOLD),
         paint(BOLD, value)
     );
+}
+
+fn render_which_row(out: &mut String, name: &str, result: Option<&CommandLookup>) {
+    match result {
+        Some(CommandLookup::Alias(value)) => {
+            let _ = writeln!(
+                out,
+                "{} {} {}",
+                paint(CYAN_BOLD, name),
+                badge("alias", BLUE_BOLD),
+                paint(BOLD, value)
+            );
+        }
+        Some(CommandLookup::Builtin) => {
+            let _ = writeln!(
+                out,
+                "{} {} {}",
+                paint(CYAN_BOLD, name),
+                badge("builtin", YELLOW_BOLD),
+                dim("shell builtin")
+            );
+        }
+        Some(CommandLookup::External(path)) => {
+            let _ = writeln!(
+                out,
+                "{} {} {}",
+                paint(CYAN_BOLD, name),
+                badge("external", GREEN_BOLD),
+                dim(path.display())
+            );
+        }
+        None => {
+            let _ = writeln!(
+                out,
+                "{} {} {}",
+                paint(CYAN_BOLD, name),
+                badge("not found", RED_BOLD),
+                dim("unavailable on PATH")
+            );
+        }
+    }
 }
 
 fn render_diff_section(out: &mut String, section: &DiffSection) {

@@ -463,6 +463,66 @@ fn stylish_alias_renders_named_expansions() {
 }
 
 #[test]
+fn stylish_which_renders_alias_builtin_and_external_targets() {
+    let dir = tempdir().expect("tempdir");
+    let config_path = dir.path().join("config.json");
+    fs::write(
+        &config_path,
+        r#"{
+  "aliases": {
+    "ll": "ls -lah"
+  }
+}
+"#,
+    )
+    .expect("write config");
+
+    let output = ush()
+        .args([
+            "--config",
+            config_path.to_str().expect("utf8 path"),
+            "-s",
+            "-c",
+            "which ll echo sh",
+        ])
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("which"));
+    assert!(stdout.contains("3 targets"));
+    assert!(stdout.contains("[alias]"));
+    assert!(stdout.contains("ll"));
+    assert!(stdout.contains("ls -lah"));
+    assert!(stdout.contains("[builtin]"));
+    assert!(stdout.contains("echo"));
+    assert!(stdout.contains("shell builtin"));
+    assert!(stdout.contains("[external]"));
+    assert!(stdout.contains("sh"));
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
+}
+
+#[test]
+fn stylish_which_marks_missing_targets_and_preserves_exit_code() {
+    let output = ush()
+        .args(["-s", "-c", "which definitely-not-a-real-command"])
+        .output()
+        .expect("run ush");
+
+    assert_eq!(output.status.code(), Some(1));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("which"));
+    assert!(stdout.contains("1 target"));
+    assert!(stdout.contains("[not found]"));
+    assert!(stdout.contains("definitely-not-a-real-command"));
+    assert!(stdout.contains("unavailable on PATH"));
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
+}
+
+#[test]
 fn stylish_git_status_renders_rich_output() {
     let dir = tempdir().expect("tempdir");
     init_git_repo(dir.path());

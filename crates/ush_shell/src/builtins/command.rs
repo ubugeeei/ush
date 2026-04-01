@@ -1,7 +1,7 @@
 use anyhow::{Result, bail};
 
 use super::introspection::{LookupStyle, describe_commands};
-use crate::{Shell, ValueStream, commands, parser::CommandSpec};
+use crate::{Shell, ValueStream, commands, parser::CommandSpec, style};
 
 impl Shell {
     pub(super) fn handle_env(
@@ -66,6 +66,20 @@ impl Shell {
         if args.is_empty() {
             bail!("{name} requires at least one command name");
         }
+
+        if self.options.stylish && name == "which" {
+            let mut rows = Vec::new();
+            let mut status = 0;
+            for arg in args {
+                let result = commands::lookup_command(arg, &self.aliases);
+                if result.is_none() {
+                    status = 1;
+                }
+                rows.push((arg.clone(), result));
+            }
+            return Ok((ValueStream::Text(style::render_which(&rows)), status));
+        }
+
         let (text, status) = describe_commands(&self.aliases, args, style);
         Ok((ValueStream::Text(text), status))
     }

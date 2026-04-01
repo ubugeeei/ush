@@ -22,6 +22,13 @@
 That means the project can explore a more modern shell language without giving up the portability and compatibility of `sh`.
 The `no_std` target is only the compiler core. The app binary and interactive shell runtime are still intentionally `std`-based because they need processes, terminals, files, and OS integration.
 
+Language direction:
+
+- aim for a real small language closer to MoonBit in seriousness than to shell macros
+- keep the everyday feel somewhere between Rust, Zig, and Go
+- prefer strong data modeling and a practical stdlib over clever shell-only tricks
+- keep POSIX `sh` as the lowered runtime contract
+
 ## Status
 
 This repository is an MVP focused on architecture and interaction experiments.
@@ -331,6 +338,7 @@ cargo run -p ush -- -c "sammary --include-lock ."
 
 Start here for more detail:
 
+- `docs/language-vision.md` for the language design target and ergonomics direction
 - `examples/README.md` for runnable samples
 - `docs/README.md` for guide index
 - `docs/typed-errors.md` for a step-by-step walkthrough of `Problem!T`, `raise`, inferred `# raises:`, `?`, and external-command `unknown`

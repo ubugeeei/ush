@@ -4,6 +4,9 @@ Step-by-step guides for `ush` live here.
 
 Available today:
 
+- [`language-vision.md`](./language-vision.md): the long-term direction for `.ush`
+  as a small language, aiming for roughly MoonBit-level expressiveness with a
+  feel between Rust, Zig, and Go
 - [`lowering.md`](./lowering.md): representative `.ush` to `sh` lowering for major
   language features, runtime scaffolding, Rust-like tail expressions, `bin(...)`,
   and typed error propagation

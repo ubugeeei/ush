@@ -276,6 +276,7 @@ Useful commands:
 
 ```bash
 cargo run -p ush -- examples/hello.ush
+cargo run -p ush -- scripts/bootstrap.sh --flag value
 cargo run -p ush -- examples/control_flow.ush
 cargo run -p ush -- compile examples/hello.ush
 cargo run -p ush -- test
@@ -288,6 +289,8 @@ cargo run -p ush -- examples/std_modules.ush
 cargo run -p ush -- -c "sammary 'crates/ush_shell/src'"
 cargo run -p ush -- -c "sammary --include-lock ."
 ```
+
+`.ush` files are compiled and then executed by `/bin/sh`; `.sh` files are forwarded straight to `/bin/sh` with their arguments.
 
 Start here for more detail:
 

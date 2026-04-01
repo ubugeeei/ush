@@ -16,6 +16,11 @@ use ush_tooling::{check_file, format_source};
 
 use crate::cli::{Action, Cli};
 
+enum ScriptMode {
+    Ush,
+    Posix,
+}
+
 fn main() -> Result<()> {
     if script_docs::handle_raw_doc_request()? {
         return Ok(());
@@ -55,16 +60,17 @@ fn main() -> Result<()> {
     );
 
     if let Some(script) = &cli.script {
-        let status = if script.extension().and_then(|ext| ext.to_str()) == Some("ush") {
-            if script_docs::handle_script_doc_request(script, &cli.script_args)? {
-                return Ok(());
+        let status = match script_mode(script) {
+            ScriptMode::Ush => {
+                if script_docs::handle_script_doc_request(script, &cli.script_args)? {
+                    return Ok(());
+                }
+                let compiler = UshCompiler::default();
+                let compiled = compiler.compile_file(script)?;
+                let mut shell = Shell::new(config, options)?;
+                shell.run_compiled_script(script, &compiled, &cli.script_args)?
             }
-            let compiler = UshCompiler::default();
-            let compiled = compiler.compile_file(script)?;
-            let mut shell = Shell::new(config, options)?;
-            shell.run_compiled_script(script, &compiled, &cli.script_args)?
-        } else {
-            run_posix_script(script, &cli.script_args, &options)?
+            ScriptMode::Posix => run_posix_script(script, &cli.script_args, &options)?,
         };
         process::exit(status);
     }
@@ -164,4 +170,12 @@ fn write_sourcemap_file(
     let json = serde_json::to_string_pretty(&payload).context("failed to serialize sourcemap")?;
     std::fs::write(path, format!("{json}\n"))
         .with_context(|| format!("failed to write {}", path.display()))
+}
+
+fn script_mode(path: &Path) -> ScriptMode {
+    match path.extension().and_then(|ext| ext.to_str()) {
+        Some("ush") => ScriptMode::Ush,
+        Some("sh") => ScriptMode::Posix,
+        _ => ScriptMode::Posix,
+    }
 }

@@ -1,4 +1,5 @@
 mod cli;
+mod runtime_diagnostics;
 mod script_docs;
 mod test_runner;
 
@@ -66,9 +67,10 @@ fn main() -> Result<()> {
                     return Ok(());
                 }
                 let compiler = UshCompiler::default();
-                let compiled = compiler.compile_file(script)?;
+                let compiled = compiler.compile_file_with_sourcemap(script)?;
+                let instrumented = runtime_diagnostics::instrument_compiled_script(script, &compiled);
                 let mut shell = Shell::new(config, options)?;
-                shell.run_compiled_script(script, &compiled, &cli.script_args)?
+                shell.run_compiled_script(script, &instrumented, &cli.script_args)?
             }
             ScriptMode::Posix => run_posix_script(script, &cli.script_args, &options)?,
         };

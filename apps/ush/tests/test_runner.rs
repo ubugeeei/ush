@@ -24,6 +24,8 @@ fn test_command_runs_explicit_directory_and_reports_failures() {
     assert_eq!(output.status.code(), Some(1));
     assert!(stdout.contains("ok   suite/pass.ush"));
     assert!(stdout.contains("fail suite/fail.ush"));
+    assert!(stdout.contains("stderr: ush runtime map:"));
+    assert!(stdout.contains("stderr:   source: shell \"false\""));
     assert!(stdout.contains("1 passed; 1 failed"));
 }
 

@@ -76,3 +76,21 @@ fn functional_aliases_are_recognized() {
     assert!(matches!(fany.kind, super::HelperKind::Any(_)));
     assert!(matches!(fsome.kind, super::HelperKind::Some(_)));
 }
+
+#[test]
+fn enumerate_and_swap_helpers_are_recognized() {
+    let enumerate = HelperInvocation::parse("enumerate(1)")
+        .expect("helper")
+        .expect("parse");
+    let swap = HelperInvocation::parse("swap")
+        .expect("helper")
+        .expect("parse");
+    assert!(matches!(
+        enumerate.kind,
+        super::HelperKind::Sequence(super::sequence::SequenceOp::Enumerate(1))
+    ));
+    assert!(matches!(
+        swap.kind,
+        super::HelperKind::Sequence(super::sequence::SequenceOp::Swap)
+    ));
+}

@@ -47,7 +47,7 @@ Implemented today:
 - Builtin utility: `sammary` for recursive file and type summaries across paths and globs, with lockfiles excluded by default
 - Safety prompt for dangerous `rm -rf` unless `--yes` or `USH_INTERACTION=false`
 - Stylish renderers for `pwd`, `ls`, `cat`, `ps`, and `kill`
-- Structured helpers: `len`, `lines`, `json`, `xml`, `html`, `car`, `cdr`, `head`, `tail`, `take`, `drop`, `nth`, `fst`, `snd`, `map`, `fmap`, `flat`, `ffmap`, `fzip`, `each`, `filter`, `ffilter`, `any`, `fany`, `some`, `fsome`
+- Structured helpers: `len`, `lines`, `json`, `xml`, `html`, `car`, `cdr`, `head`, `tail`, `take`, `drop`, `nth`, `enumerate`, `swap`, `fst`, `snd`, `map`, `fmap`, `flat`, `ffmap`, `fzip`, `each`, `filter`, `ffilter`, `any`, `fany`, `some`, `fsome`
 - Environment-variable expansion, `~` expansion, and simple glob expansion
 - Criterion benchmark skeleton for parser/profiling work
 - GitHub Releases, `curl` installer, `nix`, and Docker packaging entry points
@@ -180,8 +180,10 @@ printf "alpha\nbeta\ngamma\n" | cdr
 printf "alpha\nbeta\ngamma\n" | take(2)
 printf "alpha\nbeta\ngamma\n" | drop(1)
 printf "alpha\nbeta\ngamma\n" | nth(1)
+printf "alpha\nbeta\ngamma\n" | enumerate(1)
 printf "alpha\nbeta\ngamma\n" | flat(\head, rest -> [head, "tail", rest])
 printf "alpha\nbeta\n" | fzip(["1", "2"])
+printf "alpha\nbeta\n" | fzip(["1", "2"]) | swap
 printf "alpha\nbeta\n" | fzip(["1", "2"]) | fst
 printf "alpha\nbeta\n" | fzip(["1", "2"]) | snd
 cat package.json | json | len
@@ -204,6 +206,8 @@ Currently supported helper forms:
 - `take(2)`
 - `drop(1)`
 - `nth(1)`
+- `enumerate(1)`
+- `swap`
 - `fst`
 - `snd`
 - `map(\it -> upper(it))`
@@ -229,8 +233,9 @@ If `json` cannot parse the stream, `ush` falls back to this browser flow instead
 `xml` pretty-prints valid XML and falls back to the same browser flow if the input is not valid XML.
 `car` and `cdr` are Lisp-style head and tail helpers over the current line stream.
 `head` and `tail` are plain aliases for `car` and `cdr`.
-`take`, `drop`, and `nth` are Rust-style line-stream helpers, with `nth` using zero-based indexing.
+`take`, `drop`, `nth`, and `enumerate` are Rust-style line-stream helpers, with `nth` using zero-based indexing.
 `fst` and `snd` project the first and second fields from tab-separated pair streams such as `fzip(...)`.
+`swap` flips those tab-separated pair streams.
 `flat` is a small stream-level flat-map that binds `head` and `rest`, where `rest` splices the remaining lines into the output list.
 `fmap`, `ffmap`, `ffilter`, `fany`, and `fsome` are functional aliases for the corresponding helpers.
 `fzip` zips the current line stream against a literal right-hand list or multiline string and emits tab-separated pairs.

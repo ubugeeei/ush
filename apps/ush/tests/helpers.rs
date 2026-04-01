@@ -43,12 +43,20 @@ fn head_tail_take_drop_and_nth_work_on_line_streams() {
         .args(["-c", "printf 'a\nb\nc\n' | nth(1)"])
         .output()
         .expect("run ush");
+    let enumerate = ush()
+        .args(["-c", "printf 'a\nb\nc\n' | enumerate(1)"])
+        .output()
+        .expect("run ush");
 
     assert_eq!(String::from_utf8_lossy(&head.stdout), "a\n");
     assert_eq!(String::from_utf8_lossy(&tail.stdout), "b\nc\n");
     assert_eq!(String::from_utf8_lossy(&take.stdout), "a\nb\n");
     assert_eq!(String::from_utf8_lossy(&drop.stdout), "b\nc\n");
     assert_eq!(String::from_utf8_lossy(&nth.stdout), "b\n");
+    assert_eq!(
+        String::from_utf8_lossy(&enumerate.stdout),
+        "1\ta\n2\tb\n3\tc\n"
+    );
 }
 
 #[test]
@@ -90,6 +98,10 @@ fn fmap_ffmap_and_fzip_work_as_functional_aliases() {
         .args(["-c", r#"printf 'a\nb\n' | fzip(["1", "2"]) | snd"#])
         .output()
         .expect("run ush");
+    let swap = ush()
+        .args(["-c", r#"printf 'a\nb\n' | fzip(["1", "2"]) | swap"#])
+        .output()
+        .expect("run ush");
     let ffilter = ush()
         .args([
             "-c",
@@ -115,6 +127,7 @@ fn fmap_ffmap_and_fzip_work_as_functional_aliases() {
     assert_eq!(String::from_utf8_lossy(&fzip.stdout), "a\t1\nb\t2\n");
     assert_eq!(String::from_utf8_lossy(&fst.stdout), "a\nb\n");
     assert_eq!(String::from_utf8_lossy(&snd.stdout), "1\n2\n");
+    assert_eq!(String::from_utf8_lossy(&swap.stdout), "1\ta\n2\tb\n");
     assert_eq!(String::from_utf8_lossy(&ffilter.stdout), "ush\n");
     assert_eq!(String::from_utf8_lossy(&fany.stdout), "true\n");
 }

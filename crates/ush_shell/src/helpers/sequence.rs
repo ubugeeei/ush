@@ -9,6 +9,8 @@ pub(super) enum SequenceOp {
     Take(usize),
     Drop(usize),
     Nth(usize),
+    Enumerate(usize),
+    Swap,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -21,6 +23,8 @@ pub(super) fn parse_sequence_helper(raw: &str) -> Option<Result<HelperKind>> {
     match raw {
         "car" | "head" => return Some(Ok(HelperKind::Sequence(SequenceOp::Car))),
         "cdr" | "tail" => return Some(Ok(HelperKind::Sequence(SequenceOp::Cdr))),
+        "enumerate" => return Some(Ok(HelperKind::Sequence(SequenceOp::Enumerate(0)))),
+        "swap" => return Some(Ok(HelperKind::Sequence(SequenceOp::Swap))),
         "fst" => return Some(Ok(HelperKind::Field(Field::First))),
         "snd" => return Some(Ok(HelperKind::Field(Field::Second))),
         _ => {}
@@ -31,6 +35,7 @@ pub(super) fn parse_sequence_helper(raw: &str) -> Option<Result<HelperKind>> {
         "take" => HelperKind::Sequence(SequenceOp::Take(count)),
         "drop" => HelperKind::Sequence(SequenceOp::Drop(count)),
         "nth" => HelperKind::Sequence(SequenceOp::Nth(count)),
+        "enumerate" => HelperKind::Sequence(SequenceOp::Enumerate(count)),
         _ => return None,
     };
     Some(Ok(kind))
@@ -53,6 +58,18 @@ pub(super) fn apply_sequence_op(input: ValueStream, op: &SequenceOp) -> Result<V
             .nth(index)
             .map(|line| vec![line])
             .unwrap_or_default(),
+        SequenceOp::Enumerate(start) => lines
+            .into_iter()
+            .enumerate()
+            .map(|(index, line)| format!("{}\t{line}", index + start))
+            .collect(),
+        SequenceOp::Swap => lines
+            .into_iter()
+            .map(|line| match line.split_once('\t') {
+                Some((left, right)) => format!("{right}\t{left}"),
+                None => line,
+            })
+            .collect(),
     };
     Ok(if output.is_empty() {
         ValueStream::Empty
@@ -104,6 +121,22 @@ mod tests {
     }
 
     #[test]
+    fn enumerate_and_swap_are_supported() {
+        let enumerated = apply_sequence_op(
+            ValueStream::Text("a\nb\n".into()),
+            &SequenceOp::Enumerate(1),
+        )
+        .expect("enumerate");
+        let swapped = apply_sequence_op(
+            ValueStream::Text("left\tright\nup\tdown\n".into()),
+            &SequenceOp::Swap,
+        )
+        .expect("swap");
+        assert_eq!(enumerated.to_text().expect("text"), "1\ta\n2\tb\n");
+        assert_eq!(swapped.to_text().expect("text"), "right\tleft\ndown\tup\n");
+    }
+
+    #[test]
     fn parses_aliases_and_counted_helpers() {
         let head = parse_sequence_helper("head")
             .expect("helper")
@@ -120,10 +153,21 @@ mod tests {
         let take = parse_sequence_helper("take(2)")
             .expect("helper")
             .expect("parse");
+        let enumerate = parse_sequence_helper("enumerate(1)")
+            .expect("helper")
+            .expect("parse");
+        let swap = parse_sequence_helper("swap")
+            .expect("helper")
+            .expect("parse");
         assert!(matches!(head, HelperKind::Sequence(SequenceOp::Car)));
         assert!(matches!(tail, HelperKind::Sequence(SequenceOp::Cdr)));
         assert!(matches!(fst, HelperKind::Field(super::Field::First)));
         assert!(matches!(snd, HelperKind::Field(super::Field::Second)));
         assert!(matches!(take, HelperKind::Sequence(SequenceOp::Take(2))));
+        assert!(matches!(
+            enumerate,
+            HelperKind::Sequence(SequenceOp::Enumerate(1))
+        ));
+        assert!(matches!(swap, HelperKind::Sequence(SequenceOp::Swap)));
     }
 }

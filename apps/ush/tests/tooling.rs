@@ -91,5 +91,21 @@ fn compile_can_write_sourcemap_json() {
     assert_eq!(map["source"], script.display().to_string());
     assert_eq!(map["generated"], compiled.display().to_string());
     assert_eq!(map["lines"][assign_line - 1]["source_line"], 1);
+    assert_eq!(
+        map["lines"][assign_line - 1]["generated_text"],
+        "greeting='hello'"
+    );
+    assert_eq!(
+        map["lines"][assign_line - 1]["source_text"],
+        "let greeting = \"hello\""
+    );
     assert_eq!(map["lines"][print_line - 1]["source_line"], 2);
+    assert_eq!(
+        map["lines"][print_line - 1]["generated_text"],
+        "printf '%s\\n' \"${greeting}\""
+    );
+    assert_eq!(
+        map["lines"][print_line - 1]["source_text"],
+        "print greeting"
+    );
 }

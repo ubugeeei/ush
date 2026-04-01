@@ -146,6 +146,8 @@ struct JsonSourceMap {
 struct JsonSourceMapLine {
     generated_line: usize,
     source_line: Option<usize>,
+    generated_text: String,
+    source_text: Option<String>,
 }
 
 fn write_sourcemap_file(
@@ -164,6 +166,8 @@ fn write_sourcemap_file(
             .map(|line| JsonSourceMapLine {
                 generated_line: line.generated_line,
                 source_line: line.source_line,
+                generated_text: line.generated_text.clone(),
+                source_text: line.source_text.clone(),
             })
             .collect(),
     };

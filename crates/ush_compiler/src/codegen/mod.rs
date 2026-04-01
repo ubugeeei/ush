@@ -46,6 +46,7 @@ pub(crate) use task_block::infer_async_block_type;
 pub(crate) fn compile_program(
     program: &[Statement],
     docs: &ScriptDocs,
+    source: &str,
     script_name: Option<&str>,
     source_dir: Option<&str>,
     source_path: Option<&str>,
@@ -118,5 +119,5 @@ pub(crate) fn compile_program(
         bin::push_bin_entry(&mut out, def, &globals, &functions, &trait_impls, &enums)?;
     }
     functions::push_wait_footer(&mut out);
-    Ok(out.into_compiled())
+    Ok(out.into_compiled(Some(source)))
 }

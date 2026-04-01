@@ -20,6 +20,20 @@ fn sourcemap_tracks_top_level_statements() {
     assert_eq!(compiled.sourcemap.source_line(1), None);
     assert_eq!(compiled.sourcemap.source_line(assign_line), Some(1));
     assert_eq!(compiled.sourcemap.source_line(print_line), Some(2));
+    assert_eq!(
+        compiled
+            .sourcemap
+            .line(assign_line)
+            .and_then(|line| line.source_text.as_deref()),
+        Some("let greeting = \"hello\"")
+    );
+    assert_eq!(
+        compiled
+            .sourcemap
+            .line(print_line)
+            .map(|line| line.generated_text.as_str()),
+        Some("printf '%s\\n' \"${greeting}\"")
+    );
 }
 
 #[test]
@@ -46,4 +60,18 @@ fn sourcemap_tracks_nested_function_body_lines() {
     assert_eq!(compiled.sourcemap.source_line(header_line), Some(1));
     assert_eq!(compiled.sourcemap.source_line(body_line), Some(2));
     assert_eq!(compiled.sourcemap.source_line(return_line), Some(3));
+}
+
+#[test]
+fn sourcemap_render_listing_pairs_generated_and_source_lines() {
+    let compiled = UshCompiler::default()
+        .compile_source_with_sourcemap("let greeting = \"hello\"\nprint greeting\n")
+        .expect("compile");
+
+    let listing = compiled.sourcemap.render_listing();
+
+    assert!(listing.contains("greeting='hello'"));
+    assert!(listing.contains("<= let greeting = \"hello\""));
+    assert!(listing.contains("printf '%s\\n' \"${greeting}\""));
+    assert!(listing.contains("<= print greeting"));
 }

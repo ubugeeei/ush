@@ -71,7 +71,14 @@ impl UshCompiler {
     ) -> Result<CompiledScript> {
         let program = imports::resolve_program(parse::parse_program(source)?)?;
         let docs = ScriptDocs::parse(source);
-        codegen::compile_program(&program, &docs, script_name, source_dir, source_path)
+        codegen::compile_program(
+            &program,
+            &docs,
+            source,
+            script_name,
+            source_dir,
+            source_path,
+        )
     }
 
     #[cfg(feature = "std")]

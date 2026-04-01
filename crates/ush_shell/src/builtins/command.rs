@@ -24,7 +24,12 @@ impl Shell {
         if rest.is_empty() {
             let mut vars = self.env.clone();
             vars.extend(overrides);
-            return Ok((ValueStream::Text(render_env(&vars)), 0));
+            let text = if self.options.stylish {
+                style::render_env_map(&vars)
+            } else {
+                render_env(&vars)
+            };
+            return Ok((ValueStream::Text(text), 0));
         }
 
         let spec = make_spec(rest);

@@ -145,6 +145,51 @@ fn stylish_type_marks_missing_targets() {
 }
 
 #[test]
+fn stylish_env_renders_sorted_variables_without_tables() {
+    let output = ush()
+        .env_clear()
+        .args(["-s", "-c", "env HELLO=ush FOO=bar EMPTY="])
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("env"));
+    assert!(stdout.contains("variables"));
+    assert!(stdout.contains("FOO"));
+    assert!(stdout.contains("bar"));
+    assert!(stdout.contains("HELLO"));
+    assert!(stdout.contains("ush"));
+    assert!(stdout.contains("EMPTY"));
+    assert!(stdout.contains("(empty)"));
+    let empty_index = stdout.find("EMPTY").expect("EMPTY");
+    let foo_index = stdout.find("FOO").expect("FOO");
+    let hello_index = stdout.find("HELLO").expect("HELLO");
+    assert!(empty_index < foo_index);
+    assert!(foo_index < hello_index);
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
+}
+
+#[test]
+fn stylish_env_handles_cleared_process_environment() {
+    let output = ush()
+        .env_clear()
+        .args(["-s", "-c", "env"])
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("env"));
+    assert!(stdout.contains("variables"));
+    assert!(stdout.contains("USH_STYLISH"));
+    assert!(stdout.contains("true"));
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
+}
+
+#[test]
 fn bracket_test_builtin_returns_zero_for_true_expression() {
     let output = ush().args(["-c", "[ -d . ]"]).output().expect("run ush");
     assert!(output.status.success());

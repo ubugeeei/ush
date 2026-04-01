@@ -1,5 +1,5 @@
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, HashMap},
     fmt::{Display, Write as _},
     fs,
     io::Write as _,
@@ -225,6 +225,30 @@ pub fn render_lookup(command: &str, rows: &[(String, Option<CommandLookup>)]) ->
 
     for (name, result) in rows {
         render_which_row(&mut out, name, result.as_ref());
+    }
+
+    out
+}
+
+pub fn render_env_map(env: &HashMap<String, String>) -> String {
+    let mut entries = env.iter().collect::<Vec<_>>();
+    entries.sort_by(|(left, _), (right, _)| left.cmp(right));
+
+    let mut out = String::new();
+    let _ = writeln!(
+        out,
+        "{} {}",
+        paint(BLUE_BOLD, "env"),
+        dim(pluralize(entries.len(), "variable", "variables"))
+    );
+
+    if entries.is_empty() {
+        let _ = writeln!(out, "{}", dim("(empty)"));
+        return out;
+    }
+
+    for (name, value) in entries {
+        render_env_row(&mut out, name, value);
     }
 
     out
@@ -1550,6 +1574,21 @@ fn render_which_row(out: &mut String, name: &str, result: Option<&CommandLookup>
     }
 }
 
+fn render_env_row(out: &mut String, name: &str, value: &str) {
+    let display_value = if value.is_empty() {
+        dim("(empty)")
+    } else {
+        paint(BOLD, value)
+    };
+    let _ = writeln!(
+        out,
+        "{} {} {}",
+        paint(CYAN_BOLD, name),
+        dim("="),
+        display_value
+    );
+}
+
 fn render_diff_section(out: &mut String, section: &DiffSection) {
     let mut parts = vec![
         paint(BOLD, &section.old_label),
@@ -2112,4 +2151,20 @@ fn render_git_log_row(out: &mut String, row: &GitLogRow) {
     parts.push(paint(BOLD, &row.subject));
     let _ = writeln!(out, "{}", parts.join(" "));
     let _ = writeln!(out, "  {}", dim(format!("{} · {}", row.date, row.author)));
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use super::render_env_map;
+
+    #[test]
+    fn render_env_map_marks_empty_state() {
+        let rendered = render_env_map(&HashMap::new());
+
+        assert!(rendered.contains("env"));
+        assert!(rendered.contains("0 variables"));
+        assert!(rendered.contains("(empty)"));
+    }
 }

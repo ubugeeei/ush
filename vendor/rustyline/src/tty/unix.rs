@@ -38,8 +38,6 @@ const BRACKETED_PASTE_ON: &str = "\x1b[?2004h";
 const BRACKETED_PASTE_OFF: &str = "\x1b[?2004l";
 const BEGIN_SYNCHRONIZED_UPDATE: &str = "\x1b[?2026h";
 const END_SYNCHRONIZED_UPDATE: &str = "\x1b[?2026l";
-const KEYBOARD_PROTOCOL_PUSH: &str = "\x1b[>1u";
-const KEYBOARD_PROTOCOL_POP: &str = "\x1b[<u";
 
 nix::ioctl_read_bad!(win_size, libc::TIOCGWINSZ, libc::winsize);
 
@@ -106,8 +104,7 @@ pub type KeyMap = PosixKeyMap;
 pub struct PosixMode {
     termios: Termios,
     tty_in: AltFd,
-    bracketed_paste_out: Option<AltFd>,
-    keyboard_protocol_out: Option<AltFd>,
+    tty_out: Option<AltFd>,
     raw_mode: Arc<AtomicBool>,
 }
 
@@ -119,11 +116,8 @@ impl RawMode for PosixMode {
     fn disable_raw_mode(&self) -> Result<()> {
         termios_::disable_raw_mode(self.tty_in, &self.termios)?;
         // disable bracketed paste
-        if let Some(out) = self.bracketed_paste_out {
+        if let Some(out) = self.tty_out {
             write_all(out, BRACKETED_PASTE_OFF)?;
-        }
-        if let Some(out) = self.keyboard_protocol_out {
-            write_all(out, KEYBOARD_PROTOCOL_POP)?;
         }
         self.raw_mode.store(false, Ordering::SeqCst);
         Ok(())
@@ -1503,17 +1497,8 @@ impl Term for PosixTerminal {
         let (original_mode, key_map) = termios_::enable_raw_mode(self.tty_in, c.enable_signals())?;
 
         self.raw_mode.store(true, Ordering::SeqCst);
-        // request enhanced keyboard reporting when the terminal supports it
-        let keyboard_protocol_out = if let Err(e) = write_all(self.tty_out, KEYBOARD_PROTOCOL_PUSH)
-        {
-            debug!(target: "rustyline", "Cannot enable keyboard protocol: {e}");
-            None
-        } else {
-            Some(self.tty_out)
-        };
-
         // enable bracketed paste
-        let bracketed_paste_out = if !c.enable_bracketed_paste() {
+        let out = if !c.enable_bracketed_paste() {
             None
         } else if let Err(e) = write_all(self.tty_out, BRACKETED_PASTE_ON) {
             debug!(target: "rustyline", "Cannot enable bracketed paste: {e}");
@@ -1532,8 +1517,7 @@ impl Term for PosixTerminal {
             PosixMode {
                 termios: original_mode,
                 tty_in: self.tty_in,
-                bracketed_paste_out,
-                keyboard_protocol_out,
+                tty_out: out,
                 raw_mode: self.raw_mode.clone(),
             },
             key_map,

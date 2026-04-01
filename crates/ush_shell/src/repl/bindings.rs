@@ -102,6 +102,11 @@ fn selection_edit_command(evt: &Event, delete: SelectionDelete) -> Option<Cmd> {
         Some(KeyEvent(KeyCode::Backspace | KeyCode::Delete, _)) => {
             Some(Cmd::Kill(delete_movement(delete)))
         }
+        Some(KeyEvent(KeyCode::Char('K' | 'U' | 'W' | 'k' | 'u' | 'w'), mods))
+            if mods.contains(Modifiers::CTRL) && !mods.contains(Modifiers::ALT) =>
+        {
+            Some(Cmd::Kill(delete_movement(delete)))
+        }
         Some(KeyEvent(KeyCode::Char('H' | 'h'), mods))
             if mods.contains(Modifiers::CTRL) && !mods.contains(Modifiers::ALT) =>
         {
@@ -135,10 +140,16 @@ fn selection_delete_command(
     })
 }
 
-fn selection_delete_events() -> [Event; 6] {
+fn selection_delete_events() -> [Event; 12] {
     [
         Event::from(KeyEvent(KeyCode::Backspace, Modifiers::NONE)),
         Event::from(KeyEvent(KeyCode::Delete, Modifiers::NONE)),
+        Event::from(KeyEvent(KeyCode::Char('K'), Modifiers::CTRL)),
+        Event::from(KeyEvent(KeyCode::Char('k'), Modifiers::CTRL)),
+        Event::from(KeyEvent(KeyCode::Char('U'), Modifiers::CTRL)),
+        Event::from(KeyEvent(KeyCode::Char('u'), Modifiers::CTRL)),
+        Event::from(KeyEvent(KeyCode::Char('W'), Modifiers::CTRL)),
+        Event::from(KeyEvent(KeyCode::Char('w'), Modifiers::CTRL)),
         Event::from(KeyEvent(KeyCode::Char('H'), Modifiers::CTRL)),
         Event::from(KeyEvent(KeyCode::Char('h'), Modifiers::CTRL)),
         Event::from(KeyEvent(KeyCode::Char('D'), Modifiers::CTRL)),
@@ -156,9 +167,10 @@ fn should_keep_selection(evt: &Event) -> bool {
 fn is_delete_event(evt: &Event) -> bool {
     match evt.get(0) {
         Some(KeyEvent(KeyCode::Backspace | KeyCode::Delete, _)) => true,
-        Some(KeyEvent(KeyCode::Char('H' | 'h' | 'D' | 'd'), mods)) => {
-            mods.contains(Modifiers::CTRL) && !mods.contains(Modifiers::ALT)
-        }
+        Some(KeyEvent(
+            KeyCode::Char('D' | 'H' | 'K' | 'U' | 'W' | 'd' | 'h' | 'k' | 'u' | 'w'),
+            mods,
+        )) => mods.contains(Modifiers::CTRL) && !mods.contains(Modifiers::ALT),
         _ => false,
     }
 }

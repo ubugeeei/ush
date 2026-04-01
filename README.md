@@ -44,7 +44,7 @@ Implemented today:
 - Installer patterns such as `curl -fsSL https://... | sh` are detected from the parsed pipeline and executed through POSIX `/bin/sh`
 - `.ush` inline shell escapes via `$ command ...`, alongside `shell expr` for dynamic command strings
 - Builtins: `:`, `.`, `cd`, `pwd`, `echo`, `true`, `false`, `alias`, `unalias`, `history`, `export`, `unset`, `confirm`, `input`, `select`, `env`, `command`, `which`, `type`, `test`, `[`, `help`, `source`, `rm`
-- Builtin utility: `fsam` for glob-based file summaries with per-file and total line counts
+- Builtin utility: `sammary` for recursive file and type summaries across paths and globs, with lockfiles excluded by default
 - Safety prompt for dangerous `rm -rf` unless `--yes` or `USH_INTERACTION=false`
 - Stylish renderers for `pwd`, `ls`, `cat`, `ps`, and `kill`
 - Structured helpers: `len`, `lines`, `json`, `xml`, `html`, `map`, `each`, `filter`, `any`, `some`
@@ -142,6 +142,12 @@ export USH_INTERACTION=false
 
 The REPL is tuned around `rustyline`'s Emacs mode with extra bindings for shell-heavy navigation:
 
+- `Ctrl-A` / `Ctrl-E`: jump to line start/end
+- `Ctrl-C`: interrupt the current prompt or child command and return control to `ush`
+- `Ctrl-L`: clear the screen
+- `Ctrl-P` / `Ctrl-N`: previous and next history entry
+- `Ctrl-U` / `Ctrl-K`: kill to the line start/end
+- `Ctrl-W`: kill the previous shell word
 - `Up` / `Down`: previous and next history entry
 - `Shift-Left` / `Shift-Right`: extend a visible character selection
 - `Shift-Up` / `Shift-Down`: behaves like normal history movement when the terminal forwards those keys
@@ -153,10 +159,10 @@ The REPL is tuned around `rustyline`'s Emacs mode with extra bindings for shell-
 - `Ctrl-Alt-Shift-Left` / `Ctrl-Alt-Shift-Right`: extend selection across big shell tokens
 - `Ctrl-Alt-Shift-Up` / `Ctrl-Alt-Shift-Down`: extra line-edge selection aliases for macOS terminal mappings
 - `Home` / `End`: jump to line start/end, and `Shift-Home` / `Shift-End` selects to the edge
-- `Cmd-Left` / `Cmd-Right`: jump to line start/end when the terminal forwards them as `Super` cursor keys; `ush` also requests enhanced keyboard reporting on supporting terminals
+- `Cmd-Left` / `Cmd-Right`: jump to line start/end when the terminal forwards them as `Super` cursor keys
 - `Cmd-Shift-Left` / `Cmd-Shift-Right`: extend selection to the line edges when the terminal forwards `Super+Shift`, and `Cmd-Shift-Up` / `Cmd-Shift-Down` map to the same line-edge selection inside the single-line REPL
 
-When a selection is active, typing replaces it and `Backspace` / `Delete` removes it, so keyboard-only editing feels closer to a native text field even inside the terminal.
+When a selection is active, typing replaces it and `Backspace` / `Delete` / `Ctrl-W` / `Ctrl-U` / `Ctrl-K` remove it, so keyboard-only editing feels closer to a native text field even inside the terminal.
 
 If you opt into `USH_KEYMAP=vi` or `shell.keymap = "vi"`, `ush` switches the REPL to `rustyline`'s Vi editing mode instead. That is the recommended workaround for Codex Desktop, where `Cmd`-modified keys are often intercepted by the host app before the shell can read them.
 
@@ -279,7 +285,8 @@ cargo run -p ush -- format examples/hello.ush --stdout
 cargo run -p ush -- check examples/hello.ush
 cargo run -p ush_lsp
 cargo run -p ush -- examples/std_modules.ush
-cargo run -p ush -- -c "fsam 'crates/ush_shell/src/**/*.rs'"
+cargo run -p ush -- -c "sammary 'crates/ush_shell/src'"
+cargo run -p ush -- -c "sammary --include-lock ."
 ```
 
 Start here for more detail:

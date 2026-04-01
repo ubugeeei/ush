@@ -1,9 +1,9 @@
 mod command;
 mod core;
-mod fsam;
 mod interactive;
 mod interactive_support;
 mod introspection;
+mod sammary;
 mod test_eval;
 
 use anyhow::{Result, bail};
@@ -29,7 +29,7 @@ impl Shell {
             "false" => Ok((ValueStream::Empty, 1)),
             "alias" => self.handle_alias(&args),
             "unalias" => self.handle_unalias(&args),
-            "fsam" => self.handle_fsam(&args),
+            "fsam" | "sammary" => self.handle_sammary(&args),
             "history" => Ok((ValueStream::Text(self.read_history()), 0)),
             "export" => self.handle_export(&args),
             "unset" => self.handle_unset(&args),
@@ -61,7 +61,7 @@ fn help_text() -> String {
         "  true / false",
         "  alias name=value",
         "  unalias name",
-        "  fsam <glob|path>...    # file summary with lines/bytes and totals",
+        "  sammary [--include-lock] <glob|path>... # recursive file and type summary",
         "  export NAME=value",
         "  unset NAME",
         "  confirm [--default yes|no] [prompt ...]",
@@ -78,9 +78,10 @@ fn help_text() -> String {
         "  set USH_KEYMAP=vi     # opt into Vi-style REPL editing, useful in Codex Desktop",
         "",
         "interactive shortcuts:",
+        "  Ctrl-A/C/E/L/P/N/U/K/W are always wired for line editing and interrupt flow",
         "  Up/Down history, Option-Up/Down prefix search, Home/End line edge",
         "  Ctrl-Shift-Up/Down and Ctrl-Alt-Shift-Up/Down extend selection to line edges",
-        "  Cmd-Left/Right and Cmd-Shift-Left/Right work on terminals that forward Super or honor enhanced keyboard reporting",
+        "  Cmd-Left/Right and Cmd-Shift-Left/Right work on terminals that forward Super",
         "",
         "structured helpers:",
         "  len, length, lines, json, xml, html, map(...), filter(...), any(...)",

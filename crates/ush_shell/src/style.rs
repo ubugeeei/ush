@@ -36,28 +36,12 @@ pub fn render_ls(cwd: &Path, args: &[String]) -> Result<Option<ValueStream>> {
 
     for target in targets {
         let path = normalize_path(cwd, &target);
-        let entries = if path.is_dir() {
-            fs::read_dir(&path)
-                .with_context(|| format!("failed to read {}", path.display()))?
-                .collect::<Result<Vec<_>, _>>()?
-        } else {
-            let entry = fs::read_dir(path.parent().unwrap_or(cwd))?
-                .flatten()
-                .find(|entry| entry.path() == path)
-                .with_context(|| format!("failed to resolve {}", path.display()))?;
-            vec![entry]
-        };
+        let mut entries = ls_entries(&path, show_hidden)
+            .with_context(|| format!("failed to read {}", path.display()))?;
+        entries.sort_by(|left, right| left.0.cmp(&right.0));
 
-        let mut entries = entries;
-        entries.sort_by_key(|entry| entry.file_name());
-
-        for entry in entries {
-            let file_name = entry.file_name().to_string_lossy().to_string();
-            if !show_hidden && file_name.starts_with('.') {
-                continue;
-            }
-
-            let metadata = entry.metadata()?;
+        for (file_name, entry_path) in entries {
+            let metadata = entry_path.metadata()?;
             let kind = if metadata.is_dir() {
                 ("dir", Color::Blue)
             } else if metadata.permissions().mode() & 0o111 != 0 {
@@ -86,6 +70,33 @@ pub fn render_ls(cwd: &Path, args: &[String]) -> Result<Option<ValueStream>> {
     }
 
     Ok(Some(ValueStream::Text(format!("{table}\n"))))
+}
+
+fn ls_entries(path: &Path, show_hidden: bool) -> Result<Vec<(String, PathBuf)>> {
+    if path.is_dir() {
+        let mut entries = fs::read_dir(path)?
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .filter_map(|entry| {
+                let file_name = entry.file_name().to_string_lossy().to_string();
+                (!file_name.starts_with('.') || show_hidden).then_some((file_name, entry.path()))
+            })
+            .collect::<Vec<_>>();
+        if show_hidden {
+            entries.push((".".to_string(), path.to_path_buf()));
+            entries.push((
+                "..".to_string(),
+                path.parent().unwrap_or(path).to_path_buf(),
+            ));
+        }
+        return Ok(entries);
+    }
+
+    let file_name = path
+        .file_name()
+        .map(|name| name.to_string_lossy().to_string())
+        .unwrap_or_else(|| path.display().to_string());
+    Ok(vec![(file_name, path.to_path_buf())])
 }
 
 pub fn render_cat(cwd: &Path, args: &[String], input: &ValueStream) -> Result<Option<ValueStream>> {

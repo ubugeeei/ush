@@ -80,6 +80,28 @@ fn includes_history_and_home_end_variants() {
 }
 
 #[test]
+fn includes_core_ctrl_shortcuts() {
+    let bindings = binding_specs();
+
+    assert!(bindings.contains(&BindingSpec {
+        event: Event::from(KeyEvent(KeyCode::Char('A'), Modifiers::CTRL)),
+        action: BindingAction::Command(Cmd::Move(Movement::BeginningOfLine)),
+    }));
+    assert!(bindings.contains(&BindingSpec {
+        event: Event::from(KeyEvent(KeyCode::Char('C'), Modifiers::CTRL)),
+        action: BindingAction::Command(Cmd::Interrupt),
+    }));
+    assert!(bindings.contains(&BindingSpec {
+        event: Event::from(KeyEvent(KeyCode::Char('L'), Modifiers::CTRL)),
+        action: BindingAction::Command(Cmd::ClearScreen),
+    }));
+    assert!(bindings.contains(&BindingSpec {
+        event: Event::from(KeyEvent(KeyCode::Char('W'), Modifiers::CTRL)),
+        action: BindingAction::Command(Cmd::Kill(Movement::BackwardWord(1, Word::Emacs))),
+    }));
+}
+
+#[test]
 fn replaces_selected_text_on_plain_character_input() {
     let command = selection_edit_command(
         &Event::from(KeyEvent::new('x', Modifiers::NONE)),
@@ -99,6 +121,16 @@ fn replaces_selected_text_on_plain_character_input() {
 fn deletes_selected_text_on_ctrl_h_backspace() {
     let command = selection_edit_command(
         &Event::from(KeyEvent(KeyCode::Char('H'), Modifiers::CTRL)),
+        SelectionDelete::Forward(4),
+    );
+
+    assert_eq!(command, Some(Cmd::Kill(Movement::ForwardChar(4))));
+}
+
+#[test]
+fn deletes_selected_text_on_ctrl_w() {
+    let command = selection_edit_command(
+        &Event::from(KeyEvent(KeyCode::Char('W'), Modifiers::CTRL)),
         SelectionDelete::Forward(4),
     );
 
@@ -154,6 +186,9 @@ fn registers_explicit_delete_events_for_selection_edits() {
 
     assert!(events.contains(&Event::from(KeyEvent(KeyCode::Backspace, Modifiers::NONE,))));
     assert!(events.contains(&Event::from(KeyEvent(KeyCode::Delete, Modifiers::NONE,))));
+    assert!(events.contains(&Event::from(KeyEvent(KeyCode::Char('W'), Modifiers::CTRL,))));
+    assert!(events.contains(&Event::from(KeyEvent(KeyCode::Char('U'), Modifiers::CTRL,))));
+    assert!(events.contains(&Event::from(KeyEvent(KeyCode::Char('K'), Modifiers::CTRL,))));
     assert!(events.contains(&Event::from(KeyEvent(KeyCode::Char('H'), Modifiers::CTRL,))));
     assert!(events.contains(&Event::from(KeyEvent(KeyCode::Char('D'), Modifiers::CTRL,))));
 }

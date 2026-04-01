@@ -104,39 +104,36 @@ fn interactive_builtins_honor_defaults_without_interaction() {
 }
 
 #[test]
-fn fsam_summarizes_globbed_files_and_totals() {
+fn stylish_ls_a_includes_dot_entries_and_hidden_files() {
     let dir = tempdir().expect("tempdir");
-    fs::write(dir.path().join("a.txt"), "a\nb\n").expect("write");
-    fs::write(dir.path().join("b.txt"), "c\n").expect("write");
+    fs::write(dir.path().join(".hidden"), "secret\n").expect("write");
+    fs::write(dir.path().join("visible"), "open\n").expect("write");
 
     let output = ush()
-        .args(["-c", "fsam '*.txt'"])
+        .args(["-s", "-c", "ls -a"])
         .current_dir(dir.path())
         .output()
         .expect("run ush");
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("lines\tbytes\tpath"));
-    assert!(stdout.contains("2\t4\ta.txt"));
-    assert!(stdout.contains("1\t2\tb.txt"));
-    assert!(stdout.contains("3\t6\tTOTAL (2 files)"));
+    assert!(stdout.contains("│ .       ┆"));
+    assert!(stdout.contains("│ ..      ┆"));
+    assert!(stdout.contains("│ .hidden ┆"));
+    assert!(stdout.contains("│ visible ┆"));
 }
 
 #[test]
-fn fsam_uses_table_output_in_stylish_mode() {
+fn stylish_ls_keeps_explicit_hidden_targets_visible_without_all_flag() {
     let dir = tempdir().expect("tempdir");
-    fs::write(dir.path().join("app.rs"), "fn main() {}\n").expect("write");
+    fs::write(dir.path().join(".env"), "TOKEN=ush\n").expect("write");
 
     let output = ush()
-        .args(["-s", "-c", "fsam '*.rs'"])
+        .args(["-s", "-c", "ls .env"])
         .current_dir(dir.path())
         .output()
         .expect("run ush");
 
     assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("path"));
-    assert!(stdout.contains("lines"));
-    assert!(stdout.contains("TOTAL (1 files)"));
+    assert!(String::from_utf8_lossy(&output.stdout).contains("│ .env ┆"));
 }

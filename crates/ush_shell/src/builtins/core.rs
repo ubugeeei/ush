@@ -39,6 +39,10 @@ impl Shell {
 
     pub(super) fn handle_alias(&mut self, args: &[String]) -> Result<(ValueStream, i32)> {
         if args.is_empty() {
+            if self.options.stylish {
+                return Ok((ValueStream::Text(style::render_aliases(&self.aliases)), 0));
+            }
+
             let text = self
                 .aliases
                 .iter()

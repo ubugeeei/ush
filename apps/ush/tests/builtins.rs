@@ -423,6 +423,46 @@ fn stylish_history_limit_shows_latest_entries() {
 }
 
 #[test]
+fn stylish_alias_renders_named_expansions() {
+    let dir = tempdir().expect("tempdir");
+    let config_path = dir.path().join("config.json");
+    fs::write(
+        &config_path,
+        r#"{
+  "aliases": {
+    "ll": "ls -lah",
+    "gs": "git status"
+  }
+}
+"#,
+    )
+    .expect("write config");
+
+    let output = ush()
+        .args([
+            "--config",
+            config_path.to_str().expect("utf8 path"),
+            "-s",
+            "-c",
+            "alias",
+        ])
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("alias"));
+    assert!(stdout.contains("2 aliases"));
+    assert!(stdout.contains("shell shortcuts expanded before command lookup"));
+    assert!(stdout.contains("ll"));
+    assert!(stdout.contains("ls -lah"));
+    assert!(stdout.contains("gs"));
+    assert!(stdout.contains("git status"));
+    assert!(!stdout.contains("┌"));
+    assert!(!stdout.contains("│"));
+}
+
+#[test]
 fn stylish_git_status_renders_rich_output() {
     let dir = tempdir().expect("tempdir");
     init_git_repo(dir.path());

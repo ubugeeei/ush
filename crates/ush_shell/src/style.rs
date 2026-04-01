@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeMap,
     fmt::{Display, Write as _},
     fs,
     io::Write as _,
@@ -146,6 +147,32 @@ pub fn render_cat(cwd: &Path, args: &[String], input: &ValueStream) -> Result<Op
     }
 
     Ok(Some(ValueStream::Text(buffer)))
+}
+
+pub fn render_aliases(aliases: &BTreeMap<String, String>) -> String {
+    let mut out = String::new();
+    let _ = writeln!(
+        out,
+        "{} {}",
+        paint(BLUE_BOLD, "alias"),
+        dim(pluralize(aliases.len(), "alias", "aliases"))
+    );
+
+    if aliases.is_empty() {
+        let _ = writeln!(out, "{}", dim("(empty)"));
+        return out;
+    }
+
+    let _ = writeln!(
+        out,
+        "{}",
+        dim("shell shortcuts expanded before command lookup")
+    );
+    for (name, value) in aliases {
+        render_alias_row(&mut out, name, value);
+    }
+
+    out
 }
 
 pub fn render_history(entries: &[String], limit: Option<usize>) -> String {
@@ -1415,6 +1442,16 @@ fn render_ps_row(out: &mut String, row: &PsRow) {
     if display_name != row.command {
         let _ = writeln!(out, "  {}", dim(&row.command));
     }
+}
+
+fn render_alias_row(out: &mut String, name: &str, value: &str) {
+    let _ = writeln!(
+        out,
+        "{} {} {}",
+        paint(CYAN_BOLD, name),
+        badge("alias", BLUE_BOLD),
+        paint(BOLD, value)
+    );
 }
 
 fn render_diff_section(out: &mut String, section: &DiffSection) {

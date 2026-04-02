@@ -1,4 +1,4 @@
-use ush_compiler::UshCompiler;
+use ush_compiler::{SourceMapSection, UshCompiler};
 
 fn generated_line(output: &str, needle: &str) -> usize {
     output
@@ -70,8 +70,62 @@ fn sourcemap_render_listing_pairs_generated_and_source_lines() {
 
     let listing = compiled.sourcemap.render_listing();
 
+    assert!(listing.contains("generated "));
+    assert!(listing.contains("mapped span G"));
+    assert!(listing.contains("-- runtime-support --"));
+    assert!(listing.contains("-- user-code --"));
     assert!(listing.contains("greeting='hello'"));
     assert!(listing.contains("<= let greeting = \"hello\""));
     assert!(listing.contains("printf '%s\\n' \"${greeting}\""));
     assert!(listing.contains("<= print greeting"));
+}
+
+#[test]
+fn sourcemap_summary_and_source_index_group_related_lines() {
+    let compiled = UshCompiler::default()
+        .compile_source_with_sourcemap("if true {\n  print \"hi\"\n}\n")
+        .expect("compile");
+
+    let condition_lines = compiled.sourcemap.generated_lines_for_source(1);
+    let print_lines = compiled.sourcemap.generated_lines_for_source(2);
+    let summary = compiled.sourcemap.summary();
+    let source_index = compiled.sourcemap.source_index();
+    let user_code = summary
+        .sections
+        .iter()
+        .find(|section| section.section == SourceMapSection::UserCode)
+        .expect("user-code section");
+
+    assert!(condition_lines.len() >= 3);
+    assert_eq!(print_lines.len(), 1);
+    assert_eq!(summary.source_line_count, 2);
+    assert_eq!(
+        source_index
+            .iter()
+            .find(|line| line.source_line == 1)
+            .and_then(|line| line.source_text.as_deref()),
+        Some("if true {")
+    );
+    assert_eq!(
+        source_index
+            .iter()
+            .find(|line| line.source_line == 1)
+            .map(|line| line.generated_lines.as_slice()),
+        Some(condition_lines.as_slice())
+    );
+    assert_eq!(user_code.mapped_line_count, condition_lines.len() + print_lines.len());
+    assert!(user_code.generated_line_count >= user_code.mapped_line_count);
+}
+
+#[test]
+fn sourcemap_render_mapped_listing_skips_unmapped_sections() {
+    let compiled = UshCompiler::default()
+        .compile_source_with_sourcemap("print \"hello\"\n")
+        .expect("compile");
+
+    let listing = compiled.sourcemap.render_mapped_listing();
+
+    assert!(listing.contains("mapped "));
+    assert!(listing.contains("-- user-code --"));
+    assert!(!listing.contains("-- runtime-support --"));
 }

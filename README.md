@@ -337,6 +337,7 @@ Current highlights:
 - `async` / `.await`
 - `bin(...)` entrypoints for generated CLI tools
 - `#|` doc comments for generated `--help`, `--man`, and completion text, including std-like sections such as notes, warnings, errors, and see-also links
+- sectioned sourcemaps with generated-line summaries, reverse source indexes, and runtime failure mapping back to `.ush` lines
 
 Useful commands:
 
@@ -364,6 +365,7 @@ Start here for more detail:
 - `docs/language-vision.md` for the language design target and ergonomics direction
 - `examples/README.md` for runnable samples
 - `docs/README.md` for guide index
+- `docs/sourcemaps.md` for the sourcemap JSON format, sections, reverse lookup, and runtime diagnostics
 - `docs/typed-errors.md` for a step-by-step walkthrough of `Problem!T`, `raise`, inferred `# raises:`, `?`, and external-command `unknown`
 
 ## Install

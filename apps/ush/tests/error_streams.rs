@@ -34,8 +34,10 @@ fn ush_script_raise_exits_with_typed_error() {
     assert_eq!(output.status.code(), Some(1));
     assert!(stderr.contains("ush raise: Problem"));
     assert!(stderr.contains("ush runtime map:"));
+    assert!(stderr.contains("section: user-code"));
     assert!(stderr.contains(&format!("{}:10", script.display())));
-    assert!(stderr.contains("source: print $ wrap $ fail ()"));
+    assert!(stderr.contains("source : print $ wrap $ fail ()"));
+    assert!(stderr.contains("mapped : G"));
 }
 
 #[test]
@@ -67,7 +69,9 @@ fn ush_script_try_operator_propagates_function_failure() {
     assert_eq!(output.status.code(), Some(1));
     assert!(stderr.contains("ush raise: Problem"));
     assert!(stderr.contains("ush runtime map:"));
+    assert!(stderr.contains("section: user-code"));
     assert!(stderr.contains(&script.display().to_string()));
-    assert!(stderr.contains("source: outer ()"));
+    assert!(stderr.contains("source : outer ()"));
+    assert!(stderr.contains("mapped : G"));
     assert!(!String::from_utf8_lossy(&output.stdout).contains("unreachable"));
 }

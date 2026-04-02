@@ -87,9 +87,46 @@ fn compile_can_write_sourcemap_json() {
         .map(|index| index + 1)
         .expect("print line");
 
-    assert_eq!(map["version"], 1);
+    let sources = map["sources"].as_array().expect("sources array");
+    let summary = &map["summary"];
+
+    assert_eq!(map["version"], 2);
     assert_eq!(map["source"], script.display().to_string());
     assert_eq!(map["generated"], compiled.display().to_string());
+    assert_eq!(summary["mapped_line_count"], 2);
+    assert_eq!(summary["source_line_count"], 2);
+    assert!(
+        summary["generated_line_count"]
+            .as_u64()
+            .expect("generated line count")
+            >= 2
+    );
+    assert!(
+        summary["sections"]
+            .as_array()
+            .expect("summary sections")
+            .iter()
+            .any(|section| {
+                section["section"] == "user-code" && section["mapped_line_count"] == 2
+            })
+    );
+    assert!(sources.iter().any(|line| {
+        line["source_line"] == 1
+            && line["source_text"] == "let greeting = \"hello\""
+            && line["generated_lines"]
+                .as_array()
+                .expect("generated lines")
+                .contains(&Value::from(assign_line))
+    }));
+    assert!(sources.iter().any(|line| {
+        line["source_line"] == 2
+            && line["source_text"] == "print greeting"
+            && line["generated_lines"]
+                .as_array()
+                .expect("generated lines")
+                .contains(&Value::from(print_line))
+    }));
+    assert_eq!(map["lines"][assign_line - 1]["section"], "user-code");
     assert_eq!(map["lines"][assign_line - 1]["source_line"], 1);
     assert_eq!(
         map["lines"][assign_line - 1]["generated_text"],
@@ -99,6 +136,7 @@ fn compile_can_write_sourcemap_json() {
         map["lines"][assign_line - 1]["source_text"],
         "let greeting = \"hello\""
     );
+    assert_eq!(map["lines"][print_line - 1]["section"], "user-code");
     assert_eq!(map["lines"][print_line - 1]["source_line"], 2);
     assert_eq!(
         map["lines"][print_line - 1]["generated_text"],

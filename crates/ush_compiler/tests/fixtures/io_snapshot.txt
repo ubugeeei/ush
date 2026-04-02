@@ -1,4 +1,7 @@
 == mapped shell ==
+mapped 8 / 467 generated lines across 5 source lines
+mapped span G0449..G0456
+-- user-code --
 G0449 -> S0001 | greeting='hello'
              <= let greeting = "hello"
 G0450 -> S0002 | if {

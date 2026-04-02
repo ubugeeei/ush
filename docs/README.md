@@ -12,6 +12,8 @@ Available today:
   and typed error propagation
 - [`source-docs.md`](./source-docs.md): how to write std-like `#|` source docs with
   summaries, paragraphs, notes, warnings, errors, examples, and see-also links
+- [`sourcemaps.md`](./sourcemaps.md): the sourcemap JSON format, section model,
+  reverse line index, and runtime failure mapping output
 - [`typed-errors.md`](./typed-errors.md): how `.ush` typed errors, Zig-style `Problem!T`
   signatures, `raise`, inferred `# raises:`, Rust-like `?`, and tail expressions fit together
 

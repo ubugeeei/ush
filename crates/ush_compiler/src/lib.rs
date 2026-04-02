@@ -21,7 +21,10 @@ extern crate alloc;
 
 use anyhow::Result;
 pub use docs::ScriptDocs;
-pub use sourcemap::{CompiledScript, SourceMap, SourceMapLine};
+pub use sourcemap::{
+    CompiledScript, SourceMap, SourceMapLine, SourceMapSection, SourceMapSectionSummary,
+    SourceMapSourceLine, SourceMapSummary,
+};
 use types::OutputString;
 
 #[cfg(feature = "std")]

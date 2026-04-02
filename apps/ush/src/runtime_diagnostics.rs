@@ -1,23 +1,33 @@
-use std::path::Path;
+use std::{collections::BTreeMap, path::Path};
 
-use ush_compiler::{CompiledScript, SourceMapLine};
+use ush_compiler::{CompiledScript, SourceMapLine, SourceMapSection};
 
 pub fn instrument_compiled_script(origin: &Path, compiled: &CompiledScript) -> String {
     let mut out = String::new();
     let mut quote_state = ShellQuoteState::default();
+    let generated_groups = compiled
+        .sourcemap
+        .source_index()
+        .into_iter()
+        .map(|line| (line.source_line, format_generated_lines(&line.generated_lines)))
+        .collect::<BTreeMap<_, _>>();
     out.push_str("__ush_runtime_map_origin=");
     out.push_str(&shell_quote(&origin.display().to_string()));
     out.push('\n');
     out.push_str("__ush_runtime_map_generated=''\n");
+    out.push_str("__ush_runtime_map_section=''\n");
     out.push_str("__ush_runtime_map_source_line=''\n");
     out.push_str("__ush_runtime_map_source=''\n");
     out.push_str("__ush_runtime_map_shell=''\n");
+    out.push_str("__ush_runtime_map_mapped=''\n");
     out.push('\n');
     out.push_str("__ush_runtime_map_track() {\n");
     out.push_str("  __ush_runtime_map_generated=\"$1\"\n");
-    out.push_str("  __ush_runtime_map_source_line=\"$2\"\n");
-    out.push_str("  __ush_runtime_map_source=\"$3\"\n");
-    out.push_str("  __ush_runtime_map_shell=\"$4\"\n");
+    out.push_str("  __ush_runtime_map_section=\"$2\"\n");
+    out.push_str("  __ush_runtime_map_source_line=\"$3\"\n");
+    out.push_str("  __ush_runtime_map_source=\"$4\"\n");
+    out.push_str("  __ush_runtime_map_shell=\"$5\"\n");
+    out.push_str("  __ush_runtime_map_mapped=\"$6\"\n");
     out.push_str("}\n");
     out.push('\n');
     out.push_str("__ush_runtime_map_report() {\n");
@@ -28,15 +38,22 @@ pub fn instrument_compiled_script(origin: &Path, compiled: &CompiledScript) -> S
         "    printf '\\nush runtime map: %s:%s\\n' \"$__ush_runtime_map_origin\" \"$__ush_runtime_map_source_line\" >&2\n",
     );
     out.push_str(
-        "    printf '  shell : G%04d | %s\\n' \"$__ush_runtime_map_generated\" \"$__ush_runtime_map_shell\" >&2\n",
+        "    printf '  section: %s\\n' \"$__ush_runtime_map_section\" >&2\n",
     );
-    out.push_str("    printf '  source: %s\\n' \"$__ush_runtime_map_source\" >&2\n");
+    out.push_str(
+        "    printf '  shell  : G%04d | %s\\n' \"$__ush_runtime_map_generated\" \"$__ush_runtime_map_shell\" >&2\n",
+    );
+    out.push_str("    printf '  source : %s\\n' \"$__ush_runtime_map_source\" >&2\n");
+    out.push_str("    printf '  mapped : %s\\n' \"$__ush_runtime_map_mapped\" >&2\n");
     out.push_str("  elif [ -n \"$__ush_runtime_map_generated\" ]; then\n");
     out.push_str("    printf '\\nush runtime map: %s\\n' \"$__ush_runtime_map_origin\" >&2\n");
     out.push_str(
-        "    printf '  shell : G%04d | %s\\n' \"$__ush_runtime_map_generated\" \"$__ush_runtime_map_shell\" >&2\n",
+        "    printf '  section: %s\\n' \"$__ush_runtime_map_section\" >&2\n",
     );
-    out.push_str("    printf '  source: (no direct source mapping)\\n' >&2\n");
+    out.push_str(
+        "    printf '  shell  : G%04d | %s\\n' \"$__ush_runtime_map_generated\" \"$__ush_runtime_map_shell\" >&2\n",
+    );
+    out.push_str("    printf '  source : (no direct source mapping)\\n' >&2\n");
     out.push_str("  fi\n");
     out.push_str("}\n");
     out.push('\n');
@@ -48,11 +65,16 @@ pub fn instrument_compiled_script(origin: &Path, compiled: &CompiledScript) -> S
         quote_state.observe(&line.generated_text);
         let touches_multiline_literal = started_inside_multiline_literal || quote_state.is_open();
 
-        if line.source_line.is_some()
+        if line.section == SourceMapSection::UserCode
             && !touches_multiline_literal
             && should_inline_track(&line.generated_text)
         {
-            append_tracking_prefix(&mut out, line);
+            let mapped = line
+                .source_line
+                .and_then(|source_line| generated_groups.get(&source_line))
+                .map(String::as_str)
+                .unwrap_or("");
+            append_tracking_prefix(&mut out, line, mapped);
             out.push_str("; ");
         }
         out.push_str(&line.generated_text);
@@ -61,9 +83,11 @@ pub fn instrument_compiled_script(origin: &Path, compiled: &CompiledScript) -> S
     out
 }
 
-fn append_tracking_prefix(out: &mut String, line: &SourceMapLine) {
+fn append_tracking_prefix(out: &mut String, line: &SourceMapLine, mapped: &str) {
     out.push_str("__ush_runtime_map_track ");
     out.push_str(&shell_quote(&line.generated_line.to_string()));
+    out.push(' ');
+    out.push_str(&shell_quote(line.section.label()));
     out.push(' ');
     out.push_str(&shell_quote(
         &line
@@ -75,6 +99,8 @@ fn append_tracking_prefix(out: &mut String, line: &SourceMapLine) {
     out.push_str(&shell_quote(line.source_text.as_deref().unwrap_or("")));
     out.push(' ');
     out.push_str(&shell_quote(&line.generated_text));
+    out.push(' ');
+    out.push_str(&shell_quote(mapped));
 }
 
 fn should_inline_track(line: &str) -> bool {
@@ -94,6 +120,9 @@ fn should_inline_track(line: &str) -> bool {
     if trimmed.starts_with('}') {
         return false;
     }
+    if trimmed.contains(')') && trimmed.ends_with(";;") {
+        return false;
+    }
     if trimmed.ends_with(')') && !trimmed.contains('(') {
         return false;
     }
@@ -102,6 +131,14 @@ fn should_inline_track(line: &str) -> bool {
 
 fn shell_quote(value: &str) -> String {
     format!("'{}'", value.replace('\'', "'\"'\"'"))
+}
+
+fn format_generated_lines(lines: &[usize]) -> String {
+    lines
+        .iter()
+        .map(|line| format!("G{line:04}"))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -144,7 +181,7 @@ impl ShellQuoteState {
 
 #[cfg(test)]
 mod tests {
-    use super::{instrument_compiled_script, should_inline_track};
+    use super::{format_generated_lines, instrument_compiled_script, should_inline_track};
     use ush_compiler::UshCompiler;
 
     #[test]
@@ -158,7 +195,9 @@ mod tests {
         assert!(script.contains("__ush_runtime_map_track() {"));
         assert!(script.contains("trap '__ush_runtime_map_report \"$?\"' 0"));
         assert!(script.contains("__ush_runtime_map_track '"));
+        assert!(script.contains("'user-code'"));
         assert!(script.contains("'print \"hello\"'"));
+        assert!(script.contains("'G"));
     }
 
     #[test]
@@ -167,6 +206,8 @@ mod tests {
         assert!(!should_inline_track("}; then"));
         assert!(!should_inline_track("} && {"));
         assert!(!should_inline_track("done"));
+        assert!(!should_inline_track("'0') value='ok'; ;;"));
+        assert!(!should_inline_track("'--name') shift; value=\"$1\"; ;;"));
         assert!(should_inline_track("[ \"$(printf '%s' true)\" = 'true' ]"));
         assert!(should_inline_track("count=$((count + 1))"));
     }
@@ -191,5 +232,11 @@ mod tests {
             .find(|line| line.contains("printf '%s\\n' \"${article}\""))
             .expect("print line");
         assert!(print_line.contains("__ush_runtime_map_track "));
+    }
+
+    #[test]
+    fn generated_line_groups_render_as_shell_line_spans() {
+        assert_eq!(format_generated_lines(&[7]), "G0007");
+        assert_eq!(format_generated_lines(&[7, 8, 11]), "G0007, G0008, G0011");
     }
 }

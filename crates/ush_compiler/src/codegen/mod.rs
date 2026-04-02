@@ -34,7 +34,7 @@ use super::{
     env::{CodegenState, EnumRegistry, Env},
 };
 use crate::ScriptDocs;
-use crate::sourcemap::{CompiledScript, OutputBuffer};
+use crate::sourcemap::{CompiledScript, OutputBuffer, SourceMapSection};
 use crate::traits::{TraitImplRegistry, TraitRegistry, register_trait, register_trait_impl};
 use crate::util::shell_quote;
 
@@ -57,7 +57,8 @@ pub(crate) fn compile_program(
     let mut traits = TraitRegistry::default();
     let mut trait_impls = TraitImplRegistry::default();
     let mut state = CodegenState::default();
-    let mut out = OutputBuffer::from_text(
+    let mut out = OutputBuffer::with_section(SourceMapSection::RuntimeSupport);
+    out.push_str(
         "#!/bin/sh\nset -eu\n\n__ush_jobs=''\n__ush_task_seq='0'\n__ush_task_files=''\n__ush_tmp_seq='0'\n\n",
     );
     out.push_str("__ush_source_dir=");
@@ -85,17 +86,22 @@ pub(crate) fn compile_program(
     let extra_completion = bin_entry
         .map(bin::completion_candidates)
         .unwrap_or_default();
+    let previous_section = out.set_section(SourceMapSection::DocSupport);
     docs::push_doc_support(
         &mut out,
         docs,
         script_name.unwrap_or("script"),
         &extra_completion,
     );
+    out.set_section(previous_section);
+    let previous_section = out.set_section(SourceMapSection::RuntimeSupport);
     stdlib::emit_builtins(&mut out);
+    out.set_section(previous_section);
 
     let globals = functions::analyze_globals(program, &functions, &trait_impls, &enums)?;
     let function_errors =
         effects::analyze_function_errors(program, &globals, &functions, &trait_impls, &enums)?;
+    let previous_section = out.set_section(SourceMapSection::UserCode);
     for statement in program {
         if matches!(statement.kind, StatementKind::Enum(_)) {
             continue;
@@ -118,6 +124,9 @@ pub(crate) fn compile_program(
     if let Some(def) = bin_entry {
         bin::push_bin_entry(&mut out, def, &globals, &functions, &trait_impls, &enums)?;
     }
+    out.set_section(previous_section);
+    let previous_section = out.set_section(SourceMapSection::RuntimeSupport);
     functions::push_wait_footer(&mut out);
+    out.set_section(previous_section);
     Ok(out.into_compiled(Some(source)))
 }

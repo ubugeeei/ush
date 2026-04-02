@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{collections::BTreeMap, vec::Vec};
 use core::fmt::Write as _;
 use core::mem;
 
@@ -24,6 +24,75 @@ impl SourceMap {
         self.line(generated_line).and_then(|line| line.source_line)
     }
 
+    pub fn generated_lines_for_source(&self, source_line: usize) -> Vec<usize> {
+        self.lines
+            .iter()
+            .filter_map(|line| (line.source_line == Some(source_line)).then_some(line.generated_line))
+            .collect()
+    }
+
+    pub fn source_index(&self) -> Vec<SourceMapSourceLine> {
+        let mut grouped = BTreeMap::<usize, SourceMapSourceLine>::new();
+        for line in &self.lines {
+            let Some(source_line) = line.source_line else {
+                continue;
+            };
+            let entry = grouped.entry(source_line).or_insert_with(|| SourceMapSourceLine {
+                source_line,
+                source_text: line.source_text.clone(),
+                generated_lines: Vec::new(),
+            });
+            if entry.source_text.is_none() {
+                entry.source_text = line.source_text.clone();
+            }
+            entry.generated_lines.push(line.generated_line);
+        }
+        grouped.into_values().collect()
+    }
+
+    pub fn summary(&self) -> SourceMapSummary {
+        let mut mapped_line_count = 0usize;
+        let mut first_mapped_generated_line = None::<usize>;
+        let mut last_mapped_generated_line = None::<usize>;
+        let mut section_counts =
+            BTreeMap::<SourceMapSection, SourceMapSectionSummary>::new();
+
+        for line in &self.lines {
+            let entry = section_counts
+                .entry(line.section)
+                .or_insert_with(|| SourceMapSectionSummary {
+                    section: line.section,
+                    generated_line_count: 0,
+                    mapped_line_count: 0,
+                });
+            entry.generated_line_count += 1;
+
+            if line.source_line.is_some() {
+                mapped_line_count += 1;
+                entry.mapped_line_count += 1;
+                first_mapped_generated_line
+                    .get_or_insert(line.generated_line);
+                last_mapped_generated_line = Some(line.generated_line);
+            }
+        }
+
+        let generated_line_count = self.lines.len();
+        let source_line_count = self.source_index().len();
+
+        SourceMapSummary {
+            generated_line_count,
+            mapped_line_count,
+            unmapped_line_count: generated_line_count.saturating_sub(mapped_line_count),
+            source_line_count,
+            first_mapped_generated_line,
+            last_mapped_generated_line,
+            sections: SourceMapSection::all()
+                .into_iter()
+                .filter_map(|section| section_counts.remove(&section))
+                .collect(),
+        }
+    }
+
     pub fn render_listing(&self) -> OutputString {
         self.render_listing_inner(false)
     }
@@ -34,14 +103,49 @@ impl SourceMap {
 
     fn render_listing_inner(&self, mapped_only: bool) -> OutputString {
         let mut out = OutputString::new();
+        let summary = self.summary();
+        if mapped_only {
+            let _ = writeln!(
+                out,
+                "mapped {} / {} generated lines across {} source lines",
+                summary.mapped_line_count,
+                summary.generated_line_count,
+                summary.source_line_count
+            );
+        } else {
+            let _ = writeln!(
+                out,
+                "generated {} lines, mapped {}, unmapped {}, source {}",
+                summary.generated_line_count,
+                summary.mapped_line_count,
+                summary.unmapped_line_count,
+                summary.source_line_count
+            );
+        }
+        if let (Some(first), Some(last)) = (
+            summary.first_mapped_generated_line,
+            summary.last_mapped_generated_line,
+        ) {
+            let _ = writeln!(out, "mapped span G{first:04}..G{last:04}");
+        }
+
+        let mut current_section = None::<SourceMapSection>;
+        let mut rendered_any = false;
         for line in &self.lines {
             if mapped_only && line.source_line.is_none() {
                 continue;
             }
+            if current_section != Some(line.section) {
+                if rendered_any {
+                    out.push('\n');
+                }
+                let _ = writeln!(out, "-- {} --", line.section.label());
+                current_section = Some(line.section);
+            }
             let source = line
                 .source_line
                 .map(|value| format!("S{value:04}"))
-                .unwrap_or_else(|| "----".to_string());
+                .unwrap_or_else(|| OutputString::from("----"));
             let _ = writeln!(
                 out,
                 "G{:04} -> {} | {}",
@@ -50,31 +154,103 @@ impl SourceMap {
             if let Some(source_text) = &line.source_text {
                 let _ = writeln!(out, "             <= {}", source_text);
             }
+            rendered_any = true;
+        }
+        if !rendered_any {
+            out.push_str("(no mapped lines)\n");
         }
         out
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum SourceMapSection {
+    RuntimeSupport,
+    DocSupport,
+    UserCode,
+}
+
+impl SourceMapSection {
+    pub fn all() -> [Self; 3] {
+        [Self::RuntimeSupport, Self::DocSupport, Self::UserCode]
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::RuntimeSupport => "runtime-support",
+            Self::DocSupport => "doc-support",
+            Self::UserCode => "user-code",
+        }
+    }
+}
+
+impl Default for SourceMapSection {
+    fn default() -> Self {
+        Self::UserCode
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceMapSourceLine {
+    pub source_line: usize,
+    pub source_text: Option<OutputString>,
+    pub generated_lines: Vec<usize>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceMapSummary {
+    pub generated_line_count: usize,
+    pub mapped_line_count: usize,
+    pub unmapped_line_count: usize,
+    pub source_line_count: usize,
+    pub first_mapped_generated_line: Option<usize>,
+    pub last_mapped_generated_line: Option<usize>,
+    pub sections: Vec<SourceMapSectionSummary>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceMapSectionSummary {
+    pub section: SourceMapSection,
+    pub generated_line_count: usize,
+    pub mapped_line_count: usize,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceMapLine {
     pub generated_line: usize,
+    pub section: SourceMapSection,
     pub source_line: Option<usize>,
     pub generated_text: OutputString,
     pub source_text: Option<OutputString>,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub(crate) struct OutputBuffer {
     text: OutputString,
     line_origins: Vec<Option<usize>>,
+    line_sections: Vec<SourceMapSection>,
     current_origin: Option<usize>,
+    current_section: SourceMapSection,
+}
+
+impl Default for OutputBuffer {
+    fn default() -> Self {
+        Self {
+            text: OutputString::new(),
+            line_origins: Vec::new(),
+            line_sections: Vec::new(),
+            current_origin: None,
+            current_section: SourceMapSection::UserCode,
+        }
+    }
 }
 
 impl OutputBuffer {
-    pub(crate) fn from_text(text: &str) -> Self {
-        let mut out = Self::default();
-        out.push_str(text);
-        out
+    pub(crate) fn with_section(section: SourceMapSection) -> Self {
+        Self {
+            current_section: section,
+            ..Self::default()
+        }
     }
 
     pub(crate) fn push_str(&mut self, value: &str) {
@@ -82,6 +258,7 @@ impl OutputBuffer {
         for ch in value.chars() {
             if ch == '\n' {
                 self.line_origins.push(self.current_origin);
+                self.line_sections.push(self.current_section);
             }
         }
     }
@@ -90,6 +267,7 @@ impl OutputBuffer {
         self.text.push(ch);
         if ch == '\n' {
             self.line_origins.push(self.current_origin);
+            self.line_sections.push(self.current_section);
         }
     }
 
@@ -101,16 +279,22 @@ impl OutputBuffer {
         mem::replace(&mut self.current_origin, line)
     }
 
+    pub(crate) fn set_section(&mut self, section: SourceMapSection) -> SourceMapSection {
+        mem::replace(&mut self.current_section, section)
+    }
+
     pub(crate) fn append_buffer(&mut self, other: &Self, indent: usize) {
-        let origins = other.completed_line_origins();
-        for (line, origin) in other.text.lines().zip(origins.into_iter()) {
-            let previous = self.set_origin(origin);
+        let metadata = other.completed_line_metadata();
+        for (line, (origin, section)) in other.text.lines().zip(metadata.into_iter()) {
+            let previous_origin = self.set_origin(origin);
+            let previous_section = self.set_section(section);
             if indent > 0 {
                 self.push_str(&" ".repeat(indent));
             }
             self.push_str(line);
             self.push('\n');
-            self.set_origin(previous);
+            self.set_origin(previous_origin);
+            self.set_section(previous_section);
         }
     }
 
@@ -122,6 +306,7 @@ impl OutputBuffer {
             .map(OutputString::from)
             .collect::<Vec<_>>();
         debug_assert_eq!(generated_lines.len(), self.line_origins.len());
+        debug_assert_eq!(generated_lines.len(), self.line_sections.len());
         let source_lines = source
             .map(|value| value.lines().map(OutputString::from).collect::<Vec<_>>())
             .unwrap_or_default();
@@ -129,14 +314,16 @@ impl OutputBuffer {
             lines: self
                 .line_origins
                 .into_iter()
+                .zip(self.line_sections)
                 .enumerate()
-                .map(|(index, source_line)| {
+                .map(|(index, (source_line, section))| {
                     let generated_text = generated_lines.get(index).cloned().unwrap_or_default();
                     let source_text = source_line
                         .and_then(|line| source_lines.get(line.saturating_sub(1)))
                         .cloned();
                     SourceMapLine {
                         generated_line: index + 1,
+                        section,
                         source_line,
                         generated_text,
                         source_text,
@@ -150,17 +337,23 @@ impl OutputBuffer {
         }
     }
 
-    fn completed_line_origins(&self) -> Vec<Option<usize>> {
-        let mut origins = self.line_origins.clone();
+    fn completed_line_metadata(&self) -> Vec<(Option<usize>, SourceMapSection)> {
+        let mut metadata = self
+            .line_origins
+            .iter()
+            .copied()
+            .zip(self.line_sections.iter().copied())
+            .collect::<Vec<_>>();
         if !self.text.is_empty() && !self.text.ends_with('\n') {
-            origins.push(self.current_origin);
+            metadata.push((self.current_origin, self.current_section));
         }
-        origins
+        metadata
     }
 
     fn finish_partial_line(&mut self) {
         if !self.text.is_empty() && !self.text.ends_with('\n') {
             self.line_origins.push(self.current_origin);
+            self.line_sections.push(self.current_section);
         }
     }
 }

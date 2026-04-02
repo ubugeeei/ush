@@ -83,6 +83,23 @@ pub(crate) fn continue_background_job(_: u32) -> io::Result<()> {
 }
 
 #[cfg(unix)]
+pub(crate) fn send_process_signal(pid: i32, signal: i32) -> io::Result<()> {
+    let result = unsafe { libc::kill(pid, signal) };
+    if result != 0 {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(())
+}
+
+#[cfg(not(unix))]
+pub(crate) fn send_process_signal(_: i32, _: i32) -> io::Result<()> {
+    Err(io::Error::new(
+        io::ErrorKind::Unsupported,
+        "signals are only supported on unix targets",
+    ))
+}
+
+#[cfg(unix)]
 pub(crate) fn exit_status(status: std::process::ExitStatus) -> i32 {
     use std::os::unix::process::ExitStatusExt;
 

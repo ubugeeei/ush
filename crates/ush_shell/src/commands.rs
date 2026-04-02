@@ -5,8 +5,9 @@ use which::which;
 
 pub(crate) const BUILTIN_COMMANDS: &[&str] = &[
     ":", ".", "[", "alias", "bg", "cd", "command", "confirm", "disown", "echo", "env", "exit",
-    "export", "false", "fg", "fsam", "glob", "help", "history", "input", "jobs", "pwd", "rm",
-    "sammary", "select", "source", "test", "true", "type", "unalias", "unset", "wait", "which",
+    "export", "false", "fg", "fsam", "glob", "help", "history", "input", "jobs", "port", "pwd",
+    "rm", "sammary", "select", "source", "stop", "test", "true", "type", "unalias", "unset",
+    "wait", "which",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -17,6 +17,25 @@ pub struct Cli {
     #[arg(long = "config", value_name = "FILE")]
     pub config: Option<PathBuf>,
 
+    #[arg(short = 'l', long = "login")]
+    pub login: bool,
+
+    #[arg(long = "no-profile", conflicts_with = "profile_file")]
+    pub no_profile: bool,
+
+    #[arg(
+        long = "profile-file",
+        value_name = "FILE",
+        conflicts_with = "no_profile"
+    )]
+    pub profile_file: Option<PathBuf>,
+
+    #[arg(long = "no-rc", conflicts_with = "rc_file")]
+    pub no_rc: bool,
+
+    #[arg(long = "rc-file", value_name = "FILE", conflicts_with = "no_rc")]
+    pub rc_file: Option<PathBuf>,
+
     #[arg(short = 'c', value_name = "COMMAND")]
     pub command: Option<String>,
 

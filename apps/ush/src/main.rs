@@ -12,7 +12,7 @@ use serde::Serialize;
 
 use ush_compiler::{SourceMap, UshCompiler};
 use ush_config::UshConfig;
-use ush_shell::{Shell, ShellOptions, run_posix_script};
+use ush_shell::{SessionStartup, Shell, ShellOptions, run_posix_script};
 use ush_tooling::{check_file, format_source};
 
 use crate::cli::{Action, Cli};
@@ -59,6 +59,7 @@ fn main() -> Result<()> {
         cli.print_ast,
         &config,
     );
+    let startup = session_startup(&cli);
 
     if let Some(script) = &cli.script {
         let status = match script_mode(script) {
@@ -68,8 +69,10 @@ fn main() -> Result<()> {
                 }
                 let compiler = UshCompiler::default();
                 let compiled = compiler.compile_file_with_sourcemap(script)?;
-                let instrumented = runtime_diagnostics::instrument_compiled_script(script, &compiled);
+                let instrumented =
+                    runtime_diagnostics::instrument_compiled_script(script, &compiled);
                 let mut shell = Shell::new(config, options)?;
+                shell.load_session_startup(&startup)?;
                 shell.run_compiled_script(script, &instrumented, &cli.script_args)?
             }
             ScriptMode::Posix => run_posix_script(script, &cli.script_args, &options)?,
@@ -78,6 +81,7 @@ fn main() -> Result<()> {
     }
 
     let mut shell = Shell::new(config, options)?;
+    shell.load_session_startup(&startup)?;
     if let Some(command) = &cli.command {
         process::exit(shell.execute(command)?);
     }
@@ -183,5 +187,16 @@ fn script_mode(path: &Path) -> ScriptMode {
         Some("ush") => ScriptMode::Ush,
         Some("sh") => ScriptMode::Posix,
         _ => ScriptMode::Posix,
+    }
+}
+
+fn session_startup(cli: &Cli) -> SessionStartup {
+    let is_repl = cli.action.is_none() && cli.script.is_none() && cli.command.is_none();
+
+    SessionStartup {
+        load_profile: (cli.login && !cli.no_profile) || cli.profile_file.is_some(),
+        load_rc: (is_repl && !cli.no_rc) || cli.rc_file.is_some(),
+        profile_file: cli.profile_file.clone(),
+        rc_file: cli.rc_file.clone(),
     }
 }

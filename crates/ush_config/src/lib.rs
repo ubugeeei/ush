@@ -41,6 +41,10 @@ pub struct ShellConfig {
     pub keymap: ShellKeymap,
     #[serde(default)]
     pub prompt: Option<String>,
+    #[serde(default, alias = "profileFiles")]
+    pub profile_files: Vec<PathBuf>,
+    #[serde(default, alias = "rcFiles")]
+    pub rc_files: Vec<PathBuf>,
     #[serde(skip)]
     pub starship: Option<StarshipPromptConfig>,
 }
@@ -53,6 +57,8 @@ impl Default for ShellConfig {
             history_size: default_history_size(),
             keymap: ShellKeymap::default(),
             prompt: None,
+            profile_files: Vec::new(),
+            rc_files: Vec::new(),
             starship: None,
         }
     }
@@ -169,6 +175,8 @@ fn load_pkl(path: &Path) -> Result<UshConfig> {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use super::{ShellKeymap, UshConfig};
 
     #[test]
@@ -182,5 +190,26 @@ mod tests {
             serde_json::from_str(r#"{ "shell": { "keymap": "vi" } }"#).expect("config");
 
         assert_eq!(config.shell.keymap, ShellKeymap::Vi);
+    }
+
+    #[test]
+    fn deserializes_startup_file_lists_from_json() {
+        let config: UshConfig = serde_json::from_str(
+            r#"
+            {
+              "shell": {
+                "profileFiles": ["profile.sh"],
+                "rcFiles": ["rc.sh"]
+              }
+            }
+            "#,
+        )
+        .expect("config");
+
+        assert_eq!(
+            config.shell.profile_files,
+            vec![PathBuf::from("profile.sh")]
+        );
+        assert_eq!(config.shell.rc_files, vec![PathBuf::from("rc.sh")]);
     }
 }

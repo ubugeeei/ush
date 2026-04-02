@@ -9,6 +9,7 @@ mod process;
 mod prompt;
 mod repl;
 mod signal;
+mod startup;
 mod style;
 
 use std::{
@@ -22,6 +23,7 @@ pub use self::{
     helpers::{HelperInvocation, ValueStream},
     options::{ShellOptions, run_posix_script},
     parser::{ParsedLine, parse_line},
+    startup::SessionStartup,
 };
 
 pub struct Shell {

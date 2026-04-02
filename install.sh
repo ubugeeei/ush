@@ -21,7 +21,7 @@ usage() {
 usage: install.sh [--version VERSION] [--bin-dir DIR] [--prefix DIR] [--download-url URL] [--checksum-url URL] [--no-modify-path]
 
 options:
-  --version VERSION     install a specific release tag such as v0.3.4
+  --version VERSION     install a specific release tag such as v0.4.0
   --bin-dir DIR         install ush into DIR
   --prefix DIR          install ush into DIR/bin
   --download-url URL    override the release archive URL

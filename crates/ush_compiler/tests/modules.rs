@@ -88,25 +88,31 @@ fn prepend_env_updates_the_current_shell_session() {
 
 #[test]
 fn std_fs_helpers_cover_basic_file_operations() {
-    let output = run_program(
+    let sandbox = tempdir().expect("tempdir");
+    let moved = sandbox.path().join("moved.txt");
+    let directory = sandbox.path().join("dir");
+
+    let output = run_program(&format!(
         r#"
-        use std::fs::{append_text, copy, exists, is_dir, is_file, mkdir_p, move, read_text, remove, tmpfile, write_text}
+        use std::fs::{{append_text, copy, exists, is_dir, is_file, mkdir_p, move, read_text, remove, tmpfile, write_text}}
         let path = tmpfile()
         write_text path "alpha"
         append_text path ":beta"
-        let moved = std::path::join "/tmp" "ush-modules-moved.txt"
+        let moved = "{moved}"
         copy path moved
         print $ read_text moved
         print $ exists moved
         print $ is_file moved
-        mkdir_p "/tmp/ush-modules-dir"
-        print $ is_dir "/tmp/ush-modules-dir"
+        mkdir_p "{directory}"
+        print $ is_dir "{directory}"
         move moved path
         remove path
         print $ exists path
-        $ rmdir /tmp/ush-modules-dir
+        $ rmdir "{directory}"
       "#,
-    );
+        moved = moved.display(),
+        directory = directory.display(),
+    ));
 
     assert_eq!(output, "alpha:beta\ntrue\ntrue\ntrue\nfalse\n");
 }

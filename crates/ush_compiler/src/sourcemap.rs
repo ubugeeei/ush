@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
 use core::fmt::Write as _;
 use core::mem;
 

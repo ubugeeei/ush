@@ -1,5 +1,6 @@
 mod command;
 mod core;
+mod core_support;
 mod glob;
 mod interactive;
 mod interactive_support;

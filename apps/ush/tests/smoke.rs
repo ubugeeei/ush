@@ -6,6 +6,10 @@ fn ush() -> Command {
     Command::new(env!("CARGO_BIN_EXE_ush"))
 }
 
+fn shell_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', r#"'\''"#))
+}
+
 #[test]
 fn helper_pipeline_counts_lines() {
     let output = ush()
@@ -48,6 +52,81 @@ fn posix_control_flow_uses_sh_fallback() {
 
     assert!(output.status.success());
     assert_eq!(String::from_utf8_lossy(&output.stdout), "ok\n");
+}
+
+#[test]
+fn source_builtin_runs_multiline_posix_blocks() {
+    let dir = tempdir().expect("tempdir");
+    let script = dir.path().join("source.sh");
+    fs::write(&script, "if true; then\n  echo sourced\nfi\n").expect("write source");
+
+    let output = ush()
+        .args([
+            "-c",
+            &format!(
+                "source {}",
+                shell_quote(script.to_str().expect("utf8 path"))
+            ),
+        ])
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "sourced\n");
+}
+
+#[test]
+fn source_builtin_returns_the_last_command_status() {
+    let dir = tempdir().expect("tempdir");
+    let script = dir.path().join("source.sh");
+    fs::write(&script, "false\n").expect("write source");
+
+    let output = ush()
+        .args([
+            "-c",
+            &format!(
+                "source {}",
+                shell_quote(script.to_str().expect("utf8 path"))
+            ),
+        ])
+        .output()
+        .expect("run ush");
+
+    assert_eq!(output.status.code(), Some(1));
+}
+
+#[test]
+fn source_builtin_applies_fallback_state_changes_to_following_commands() {
+    let dir = tempdir().expect("tempdir");
+    let target = dir.path().join("workspace");
+    fs::create_dir_all(&target).expect("mkdir");
+    let script = dir.path().join("source.sh");
+    fs::write(
+        &script,
+        format!(
+            "cd {} && true\npwd\nexport FOO=bar && true\necho $FOO\nalias ll='ls -la' && true\ntype ll\n",
+            shell_quote(target.to_str().expect("utf8 path"))
+        ),
+    )
+    .expect("write source");
+
+    let output = ush()
+        .args([
+            "-c",
+            &format!(
+                "source {}",
+                shell_quote(script.to_str().expect("utf8 path"))
+            ),
+        ])
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains(&format!("{}\n", target.display())));
+    assert!(stdout.contains("bar\n"));
+    assert!(stdout.contains("ll is aliased to"));
+    assert!(stdout.contains("ls -la"));
 }
 
 #[test]

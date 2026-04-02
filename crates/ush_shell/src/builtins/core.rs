@@ -3,10 +3,17 @@ use std::{
     io::{self, Write},
 };
 
+use rustyline::validate::ValidationResult;
+
 use anyhow::{Context, Result, anyhow, bail};
 
-use super::test_eval;
-use crate::{Shell, ValueStream, expand::strip_outer_quotes, process::ResolvedCommand, style};
+use super::{
+    core_support::{parse_history_limit, render_history_plain, with_trailing_newline},
+    test_eval,
+};
+use crate::{
+    Shell, ValueStream, expand::strip_outer_quotes, process::ResolvedCommand, repl, style,
+};
 
 impl Shell {
     pub(super) fn change_directory(&mut self, args: &[String]) -> Result<(ValueStream, i32)> {
@@ -97,10 +104,32 @@ impl Shell {
         };
         let source = fs::read_to_string(self.normalize_path(path))
             .with_context(|| format!("failed to read {path}"))?;
+
+        let mut chunk = String::new();
+        let mut last_status = 0;
         for line in source.lines() {
-            self.execute(line)?;
+            if !chunk.is_empty() {
+                chunk.push('\n');
+            }
+            chunk.push_str(line);
+
+            if matches!(repl::validate_input(&chunk), ValidationResult::Incomplete) {
+                continue;
+            }
+            if chunk.trim().is_empty() {
+                chunk.clear();
+                continue;
+            }
+
+            last_status = self.execute(&chunk)?;
+            chunk.clear();
         }
-        Ok((ValueStream::Empty, 0))
+
+        if !chunk.trim().is_empty() {
+            last_status = self.execute(&chunk)?;
+        }
+
+        Ok((ValueStream::Empty, last_status))
     }
 
     pub(super) fn handle_exit(&mut self, args: &[String]) -> Result<(ValueStream, i32)> {
@@ -193,60 +222,4 @@ pub(super) fn render_echo(args: &[String]) -> String {
         text.push('\n');
     }
     text
-}
-
-fn with_trailing_newline(text: String) -> String {
-    if text.is_empty() {
-        text
-    } else {
-        format!("{text}\n")
-    }
-}
-
-fn parse_history_limit(args: &[String]) -> Result<Option<usize>> {
-    let mut pending_limit = false;
-    let mut limit = None;
-
-    for arg in args {
-        if pending_limit {
-            limit = Some(parse_history_limit_value(arg)?);
-            pending_limit = false;
-            continue;
-        }
-
-        match arg.as_str() {
-            "--limit" => pending_limit = true,
-            _ if arg.starts_with("--limit=") => {
-                limit = Some(parse_history_limit_value(arg.split_once('=').unwrap().1)?);
-            }
-            _ if arg.chars().all(|ch| ch.is_ascii_digit()) => {
-                limit = Some(parse_history_limit_value(arg)?);
-            }
-            _ => bail!("history accepts only a numeric limit or --limit N"),
-        }
-    }
-
-    if pending_limit {
-        bail!("history --limit requires a value");
-    }
-
-    Ok(limit)
-}
-
-fn parse_history_limit_value(value: &str) -> Result<usize> {
-    let limit = value.parse::<usize>()?;
-    Ok(limit.max(1))
-}
-
-fn render_history_plain(entries: &[String], limit: Option<usize>) -> String {
-    let start = entries
-        .len()
-        .saturating_sub(limit.unwrap_or(entries.len()).min(entries.len()));
-    let text = entries[start..]
-        .iter()
-        .enumerate()
-        .map(|(offset, entry)| format!("{}\t{}", start + offset + 1, entry))
-        .collect::<Vec<_>>()
-        .join("\n");
-    with_trailing_newline(text)
 }

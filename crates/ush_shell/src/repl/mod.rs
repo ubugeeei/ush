@@ -24,6 +24,8 @@ use ush_config::ShellKeymap;
 
 use self::selection::SelectionHandle;
 
+pub(crate) use self::validate::validate_input;
+
 pub struct UshHelper {
     commands: BTreeSet<String>,
     env_names: BTreeSet<String>,

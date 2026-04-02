@@ -1,13 +1,18 @@
+mod state;
+use self::state::StatefulShellRun;
+use super::{Shell, ValueStream, commands, signal, style};
+use anyhow::{Context, Result};
 use std::{
     collections::HashMap,
     io::Write,
     path::Path,
     process::{Child, Command, Stdio},
 };
-
-use anyhow::{Context, Result};
-
-use super::{Shell, ValueStream, commands, signal, style};
+const STATE_CHUNK_FILE: &str = "USH_INTERNAL_CHUNK_FILE";
+const STATE_CWD_FILE: &str = "USH_INTERNAL_STATE_CWD";
+const STATE_ENV_FILE: &str = "USH_INTERNAL_STATE_ENV";
+const STATE_ALIAS_FILE: &str = "USH_INTERNAL_STATE_ALIAS";
+const STATE_DONE_FILE: &str = "USH_INTERNAL_STATE_DONE";
 
 #[derive(Debug)]
 pub(crate) struct ResolvedCommand {
@@ -106,8 +111,10 @@ impl Shell {
         input: ValueStream,
         capture: bool,
     ) -> Result<(ValueStream, i32)> {
+        let state = StatefulShellRun::new(source, &self.aliases)?;
         let mut command = Command::new("/bin/sh");
-        command.arg("-c").arg(source);
+        command.arg(state.runner_path());
+        state.populate_command_env(&mut command);
         populate_command(
             &mut command,
             &self.cwd,
@@ -117,7 +124,9 @@ impl Shell {
             input.is_empty(),
             capture,
         );
-        self.spawn_command(&mut command, input, capture, "failed to spawn /bin/sh")
+        let result = self.spawn_command(&mut command, input, capture, "failed to spawn /bin/sh")?;
+        state.apply(self)?;
+        Ok(result)
     }
 
     pub fn run_compiled_script(

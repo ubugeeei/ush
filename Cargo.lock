@@ -1274,7 +1274,7 @@ checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
 
 [[package]]
 name = "ush"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -1291,7 +1291,7 @@ dependencies = [
 
 [[package]]
 name = "ush_compiler"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "bumpalo",
@@ -1306,7 +1306,7 @@ dependencies = [
 
 [[package]]
 name = "ush_config"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "directories",
@@ -1318,7 +1318,7 @@ dependencies = [
 
 [[package]]
 name = "ush_lsp"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "lsp-server",
@@ -1329,7 +1329,7 @@ dependencies = [
 
 [[package]]
 name = "ush_shell"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1348,7 +1348,7 @@ dependencies = [
 
 [[package]]
 name = "ush_tooling"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "ush_compiler",

@@ -1,0 +1,7 @@
+ush raise: Problem
+
+ush runtime map: <SCRIPT>:10
+  section: user-code
+  shell  : G0465 | __ush_value_0="$(__ush_capture_return='1' ush_fn_fail)"
+  source : print $ wrap $ fail ()
+  mapped : G0465, G0466, G0467

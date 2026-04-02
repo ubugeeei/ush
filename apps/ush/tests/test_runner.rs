@@ -6,6 +6,21 @@ fn ush() -> Command {
     Command::new(env!("CARGO_BIN_EXE_ush"))
 }
 
+fn normalize_path(text: &str, path: &std::path::Path, marker: &str) -> String {
+    let target = path.display().to_string();
+    text.lines()
+        .map(|line| {
+            if line.starts_with("  stderr: ush runtime map: ") {
+                format!("  stderr: ush runtime map: {marker}:1")
+            } else {
+                line.replace(&target, marker)
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+        + "\n"
+}
+
 #[test]
 fn test_command_runs_explicit_directory_and_reports_failures() {
     let dir = tempdir().expect("tempdir");
@@ -20,15 +35,14 @@ fn test_command_runs_explicit_directory_and_reports_failures() {
         .output()
         .expect("run ush test");
 
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = normalize_path(
+        &String::from_utf8_lossy(&output.stdout),
+        &tests.join("fail.ush"),
+        "<FAIL_SCRIPT>",
+    );
     assert_eq!(output.status.code(), Some(1));
-    assert!(stdout.contains("ok   suite/pass.ush"));
-    assert!(stdout.contains("fail suite/fail.ush"));
-    assert!(stdout.contains("stderr: ush runtime map:"));
-    assert!(stdout.contains("stderr:   section: user-code"));
-    assert!(stdout.contains("stderr:   source : shell \"false\""));
-    assert!(stdout.contains("stderr:   mapped : G"));
-    assert!(stdout.contains("1 passed; 1 failed"));
+    assert!(output.stderr.is_empty());
+    assert_eq!(stdout, include_str!("fixtures/test_runner_failure.stdout"));
 }
 
 #[test]
@@ -46,6 +60,6 @@ fn test_command_defaults_to_tests_directory() {
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(output.status.success());
-    assert!(stdout.contains("ok   tests/sample.ush"));
-    assert!(stdout.contains("1 passed; 0 failed"));
+    assert!(output.stderr.is_empty());
+    assert_eq!(stdout, include_str!("fixtures/test_runner_success.stdout"));
 }

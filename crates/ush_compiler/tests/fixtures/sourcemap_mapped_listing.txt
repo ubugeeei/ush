@@ -1,0 +1,5 @@
+mapped 1 / 460 generated lines across 1 source lines
+mapped span G0449..G0449
+-- user-code --
+G0449 -> S0001 | printf '%s\n' 'hello'
+             <= print "hello"

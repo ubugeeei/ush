@@ -1,4 +1,6 @@
-use ush_compiler::{SourceMapSection, UshCompiler};
+use std::fmt::Write as _;
+
+use ush_compiler::{CompiledScript, SourceMapSection, UshCompiler};
 
 fn generated_line(output: &str, needle: &str) -> usize {
     output
@@ -63,21 +65,14 @@ fn sourcemap_tracks_nested_function_body_lines() {
 }
 
 #[test]
-fn sourcemap_render_listing_pairs_generated_and_source_lines() {
+fn sourcemap_render_listing_matches_snapshot() {
     let compiled = UshCompiler::default()
         .compile_source_with_sourcemap("let greeting = \"hello\"\nprint greeting\n")
         .expect("compile");
 
-    let listing = compiled.sourcemap.render_listing();
+    let listing = compact_sourcemap_snapshot(&compiled);
 
-    assert!(listing.contains("generated "));
-    assert!(listing.contains("mapped span G"));
-    assert!(listing.contains("-- runtime-support --"));
-    assert!(listing.contains("-- user-code --"));
-    assert!(listing.contains("greeting='hello'"));
-    assert!(listing.contains("<= let greeting = \"hello\""));
-    assert!(listing.contains("printf '%s\\n' \"${greeting}\""));
-    assert!(listing.contains("<= print greeting"));
+    assert_eq!(listing, include_str!("fixtures/sourcemap_listing.txt"));
 }
 
 #[test]
@@ -118,14 +113,64 @@ fn sourcemap_summary_and_source_index_group_related_lines() {
 }
 
 #[test]
-fn sourcemap_render_mapped_listing_skips_unmapped_sections() {
+fn sourcemap_render_mapped_listing_matches_snapshot() {
     let compiled = UshCompiler::default()
         .compile_source_with_sourcemap("print \"hello\"\n")
         .expect("compile");
 
     let listing = compiled.sourcemap.render_mapped_listing();
 
-    assert!(listing.contains("mapped "));
-    assert!(listing.contains("-- user-code --"));
-    assert!(!listing.contains("-- runtime-support --"));
+    assert_eq!(listing, include_str!("fixtures/sourcemap_mapped_listing.txt"));
+}
+
+fn compact_sourcemap_snapshot(compiled: &CompiledScript) -> String {
+    let summary = compiled.sourcemap.summary();
+    let sources = compiled.sourcemap.source_index();
+    let mut out = String::new();
+
+    let _ = writeln!(out, "summary:");
+    let _ = writeln!(out, "  generated_line_count: {}", summary.generated_line_count);
+    let _ = writeln!(out, "  mapped_line_count: {}", summary.mapped_line_count);
+    let _ = writeln!(out, "  unmapped_line_count: {}", summary.unmapped_line_count);
+    let _ = writeln!(out, "  source_line_count: {}", summary.source_line_count);
+    let _ = writeln!(
+        out,
+        "  first_mapped_generated_line: {}",
+        summary.first_mapped_generated_line.unwrap_or_default()
+    );
+    let _ = writeln!(
+        out,
+        "  last_mapped_generated_line: {}",
+        summary.last_mapped_generated_line.unwrap_or_default()
+    );
+    let _ = writeln!(out, "sections:");
+    for section in summary.sections {
+        let _ = writeln!(
+            out,
+            "  {}: generated={} mapped={}",
+            section.section.label(),
+            section.generated_line_count,
+            section.mapped_line_count
+        );
+    }
+    let _ = writeln!(out, "sources:");
+    for source in sources {
+        let rendered_lines = source
+            .generated_lines
+            .iter()
+            .map(|line| format!("G{line:04}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let _ = writeln!(
+            out,
+            "  S{:04} -> {} | {}",
+            source.source_line,
+            rendered_lines,
+            source.source_text.as_deref().unwrap_or("")
+        );
+    }
+    let _ = writeln!(out);
+    let _ = writeln!(out, "mapped listing:");
+    out.push_str(&compiled.sourcemap.render_mapped_listing());
+    out
 }

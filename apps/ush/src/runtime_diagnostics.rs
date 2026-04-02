@@ -181,6 +181,8 @@ impl ShellQuoteState {
 
 #[cfg(test)]
 mod tests {
+    use std::fmt::Write as _;
+
     use super::{format_generated_lines, instrument_compiled_script, should_inline_track};
     use ush_compiler::UshCompiler;
 
@@ -190,14 +192,9 @@ mod tests {
             .compile_source_with_sourcemap("print \"hello\"\n")
             .expect("compile");
 
-        let script = instrument_compiled_script("example.ush".as_ref(), &compiled);
+        let script = compact_runtime_snapshot(&instrument_compiled_script("example.ush".as_ref(), &compiled));
 
-        assert!(script.contains("__ush_runtime_map_track() {"));
-        assert!(script.contains("trap '__ush_runtime_map_report \"$?\"' 0"));
-        assert!(script.contains("__ush_runtime_map_track '"));
-        assert!(script.contains("'user-code'"));
-        assert!(script.contains("'print \"hello\"'"));
-        assert!(script.contains("'G"));
+        assert_eq!(script, include_str!("fixtures/runtime_diagnostics_simple.sh"));
     }
 
     #[test]
@@ -220,23 +217,32 @@ mod tests {
             )
             .expect("compile");
 
-        let script = instrument_compiled_script("example.ush".as_ref(), &compiled);
-        let lines = script.lines().collect::<Vec<_>>();
-
-        assert!(lines.contains(&"article='<article>"));
-        assert!(lines.contains(&"  hello"));
-        assert!(lines.contains(&"</article>'"));
-
-        let print_line = lines
-            .iter()
-            .find(|line| line.contains("printf '%s\\n' \"${article}\""))
-            .expect("print line");
-        assert!(print_line.contains("__ush_runtime_map_track "));
+        let script =
+            compact_runtime_snapshot(&instrument_compiled_script("example.ush".as_ref(), &compiled));
+        assert_eq!(script, include_str!("fixtures/runtime_diagnostics_multiline.sh"));
     }
 
     #[test]
     fn generated_line_groups_render_as_shell_line_spans() {
         assert_eq!(format_generated_lines(&[7]), "G0007");
         assert_eq!(format_generated_lines(&[7, 8, 11]), "G0007, G0008, G0011");
+    }
+
+    fn compact_runtime_snapshot(script: &str) -> String {
+        let lines = script.lines().collect::<Vec<_>>();
+        let shell_start = lines
+            .iter()
+            .position(|line| *line == "#!/bin/sh")
+            .expect("shell start");
+        let tail_start = lines.len().saturating_sub(12);
+        let mut out = String::new();
+        let _ = writeln!(out, "[runtime prelude]");
+        out.push_str(&lines[..shell_start].join("\n"));
+        out.push('\n');
+        let _ = writeln!(out);
+        let _ = writeln!(out, "[tail]");
+        out.push_str(&lines[tail_start..].join("\n"));
+        out.push('\n');
+        out
     }
 }

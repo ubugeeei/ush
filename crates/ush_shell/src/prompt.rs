@@ -201,8 +201,10 @@ mod tests {
 
     #[test]
     fn renders_starship_style_prompt_when_config_is_present() {
-        let mut starship = StarshipPromptConfig::default();
-        starship.add_newline = true;
+        let mut starship = StarshipPromptConfig {
+            add_newline: true,
+            ..StarshipPromptConfig::default()
+        };
         starship.directory.truncation_length = 2;
         starship.character.success_symbol = "❯".into();
 

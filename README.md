@@ -51,8 +51,9 @@ Implemented today:
 - Installer patterns such as `curl -fsSL https://... | sh` are detected from the parsed pipeline and executed through POSIX `/bin/sh`
 - `.ush` inline shell escapes via `$ command ...`, alongside `shell expr` for dynamic command strings
 - Builtins: `:`, `.`, `cd`, `pwd`, `echo`, `true`, `false`, `alias`, `unalias`, `history`, `export`, `unset`, `confirm`, `input`, `select`, `env`, `command`, `which`, `type`, `test`, `[`, `help`, `source`, `rm`
+- Login/profile startup loading via `--login`, `--profile-file`, `--rc-file`, `~/.ush_profile`, and `~/.ushrc`
 - Builtin utility: `sammary` for recursive file and type summaries across paths and globs, with lockfiles excluded by default
-- Safety prompt for dangerous `rm -rf` unless `--yes` or `USH_INTERACTION=false`
+- Safety prompt for dangerous recursive `rm` unless `--yes` or `USH_INTERACTION=false`
 - Stylish renderers for `pwd`, `ls`, `cat`, `ps`, and `kill`
 - Structured helpers: `len`, `lines`, `json`, `xml`, `html`, `car`, `cdr`, `head`, `tail`, `take`, `drop`, `nth`, `enumerate`, `swap`, `fst`, `snd`, `frev`, `fsort`, `funiq`, `fjoin`, `map`, `fmap`, `flat`, `ffmap`, `fzip`, `each`, `filter`, `ffilter`, `any`, `fany`, `some`, `fsome`
 - Environment-variable expansion, `~` expansion, and simple glob expansion
@@ -135,6 +136,14 @@ Disable interactive confirmations:
 
 ```bash
 export USH_INTERACTION=false
+```
+
+Load login/profile startup files explicitly:
+
+```bash
+cargo run -p ush -- --login
+cargo run -p ush -- --profile-file ~/.config/ush/profile.sh -c 'echo $PWD'
+cargo run -p ush -- --rc-file ~/.config/ush/dev.rc
 ```
 
 ## Interactive Editing
@@ -351,7 +360,7 @@ Start here for more detail:
 `install.sh` downloads the matching GitHub Releases archive and installs `ush` plus `ush_lsp`.
 By default it picks the first writable personal bin directory already on `PATH`.
 If none is available, it falls back to `~/.local/bin` and updates your shell rc automatically on POSIX shells.
-When `sha256sum` or `shasum` is available, it also verifies the archive against the release `sha256sums.txt`.
+It refuses to install unless it can verify the archive against the release `sha256sums.txt` with `sha256sum`, `shasum`, `openssl`, or `python3`.
 Release archives are currently published for:
 
 - macOS `x86_64`

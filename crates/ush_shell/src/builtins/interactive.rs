@@ -105,10 +105,10 @@ fn parse_confirm_args(
             }
         }
     }
-    if prompt.is_empty() {
-        if let Some(value) = first_stream_line(input)? {
-            prompt.push(value);
-        }
+    if prompt.is_empty()
+        && let Some(value) = first_stream_line(input)?
+    {
+        prompt.push(value);
     }
     Ok((join_prompt(prompt), default))
 }

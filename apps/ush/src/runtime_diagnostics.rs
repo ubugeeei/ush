@@ -46,8 +46,7 @@ pub fn instrument_compiled_script(origin: &Path, compiled: &CompiledScript) -> S
     for line in &compiled.sourcemap.lines {
         let started_inside_multiline_literal = quote_state.is_open();
         quote_state.observe(&line.generated_text);
-        let touches_multiline_literal =
-            started_inside_multiline_literal || quote_state.is_open();
+        let touches_multiline_literal = started_inside_multiline_literal || quote_state.is_open();
 
         if line.source_line.is_some()
             && !touches_multiline_literal
@@ -67,7 +66,10 @@ fn append_tracking_prefix(out: &mut String, line: &SourceMapLine) {
     out.push_str(&shell_quote(&line.generated_line.to_string()));
     out.push(' ');
     out.push_str(&shell_quote(
-        &line.source_line.map(|value| value.to_string()).unwrap_or_default(),
+        &line
+            .source_line
+            .map(|value| value.to_string())
+            .unwrap_or_default(),
     ));
     out.push(' ');
     out.push_str(&shell_quote(line.source_text.as_deref().unwrap_or("")));
@@ -80,7 +82,10 @@ fn should_inline_track(line: &str) -> bool {
     if trimmed.is_empty() || trimmed.starts_with('#') {
         return false;
     }
-    if matches!(trimmed, "then" | "do" | "else" | "fi" | "done" | "esac" | "}" | ";;") {
+    if matches!(
+        trimmed,
+        "then" | "do" | "else" | "fi" | "done" | "esac" | "}" | ";;"
+    ) {
         return false;
     }
     if trimmed.starts_with("elif ") || trimmed == "elif" {
@@ -144,7 +149,7 @@ mod tests {
 
     #[test]
     fn instrumented_script_reports_mapped_source_lines() {
-        let compiled = UshCompiler::default()
+        let compiled = UshCompiler
             .compile_source_with_sourcemap("print \"hello\"\n")
             .expect("compile");
 
@@ -168,7 +173,7 @@ mod tests {
 
     #[test]
     fn multiline_shell_literals_are_left_uninstrumented() {
-        let compiled = UshCompiler::default()
+        let compiled = UshCompiler
             .compile_source_with_sourcemap(
                 "let article = \"\"\"\n  <article>\n    hello\n  </article>\n\"\"\"\nprint article\n",
             )

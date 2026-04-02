@@ -67,7 +67,7 @@ fn main() -> Result<()> {
                 if script_docs::handle_script_doc_request(script, &cli.script_args)? {
                     return Ok(());
                 }
-                let compiler = UshCompiler::default();
+                let compiler = UshCompiler;
                 let compiled = compiler.compile_file_with_sourcemap(script)?;
                 let instrumented =
                     runtime_diagnostics::instrument_compiled_script(script, &compiled);
@@ -91,7 +91,7 @@ fn main() -> Result<()> {
 }
 
 fn compile_action(input: &Path, output: Option<&Path>, sourcemap: Option<&Path>) -> Result<()> {
-    let compiled = UshCompiler::default().compile_file_with_sourcemap(input)?;
+    let compiled = UshCompiler.compile_file_with_sourcemap(input)?;
     if let Some(output) = output {
         std::fs::write(output, &compiled.shell)
             .with_context(|| format!("failed to write {}", output.display()))?;

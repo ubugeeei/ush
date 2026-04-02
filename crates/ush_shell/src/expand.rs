@@ -138,10 +138,10 @@ fn expand_home(value: &str, env: &std::collections::HashMap<String, String>) -> 
     if value == "~" {
         return env.get("HOME").cloned().unwrap_or_else(|| "~".to_string());
     }
-    if let Some(rest) = value.strip_prefix("~/") {
-        if let Some(home) = env.get("HOME") {
-            return format!("{home}/{rest}");
-        }
+    if let Some(rest) = value.strip_prefix("~/")
+        && let Some(home) = env.get("HOME")
+    {
+        return format!("{home}/{rest}");
     }
     value.to_string()
 }

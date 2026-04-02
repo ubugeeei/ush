@@ -77,10 +77,10 @@ pub(super) fn resolve_default_selection(config: &SelectConfig) -> Result<Option<
 }
 
 fn select_option(input: &str, options: &[String]) -> Option<String> {
-    if let Ok(index) = input.parse::<usize>() {
-        if (1..=options.len()).contains(&index) {
-            return options.get(index - 1).cloned();
-        }
+    if let Ok(index) = input.parse::<usize>()
+        && (1..=options.len()).contains(&index)
+    {
+        return options.get(index - 1).cloned();
     }
     options
         .iter()

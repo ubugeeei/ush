@@ -198,9 +198,7 @@ impl Shell {
             }
         }
 
-        let dangerous = filtered
-            .iter()
-            .any(|arg| arg == "-rf" || arg == "-fr" || arg == "--recursive");
+        let dangerous = rm_requests_recursive_delete(&filtered);
         if dangerous && self.options.interaction && !force_yes {
             eprint!("ush: confirm `rm {}` [y/N] ", filtered.join(" "));
             io::stderr().flush()?;
@@ -282,4 +280,35 @@ fn render_history_plain(entries: &[String], limit: Option<usize>) -> String {
         .collect::<Vec<_>>()
         .join("\n");
     with_trailing_newline(text)
+}
+
+fn rm_requests_recursive_delete(args: &[String]) -> bool {
+    let mut parsing_options = true;
+
+    for arg in args {
+        if !parsing_options {
+            continue;
+        }
+        if arg == "--" {
+            parsing_options = false;
+            continue;
+        }
+        if arg == "--recursive" || arg.starts_with("--recursive=") {
+            return true;
+        }
+        if arg.starts_with("--") {
+            continue;
+        }
+        let Some(flags) = arg.strip_prefix('-') else {
+            continue;
+        };
+        if flags.is_empty() {
+            continue;
+        }
+        if flags.chars().any(|flag| matches!(flag, 'r' | 'R')) {
+            return true;
+        }
+    }
+
+    false
 }

@@ -26,7 +26,7 @@ fn ush_examples() -> Vec<PathBuf> {
 
 #[test]
 fn all_example_scripts_compile() {
-    let compiler = UshCompiler::default();
+    let compiler = UshCompiler;
 
     for path in ush_examples() {
         compiler

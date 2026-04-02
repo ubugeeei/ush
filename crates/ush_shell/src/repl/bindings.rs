@@ -68,11 +68,11 @@ struct ClearSelectionHandler(SelectionHandle);
 
 impl ConditionalEventHandler for ClearSelectionHandler {
     fn handle(&self, evt: &Event, _: RepeatCount, _: bool, ctx: &EventContext) -> Option<Cmd> {
-        if let Some(delete) = self.0.delete_action(ctx.line()) {
-            if let Some(cmd) = selection_edit_command(evt, delete) {
-                self.0.clear();
-                return Some(cmd);
-            }
+        if let Some(delete) = self.0.delete_action(ctx.line())
+            && let Some(cmd) = selection_edit_command(evt, delete)
+        {
+            self.0.clear();
+            return Some(cmd);
         }
         if self.0.has_selection() && !should_keep_selection(evt) {
             self.0.clear();

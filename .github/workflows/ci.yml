@@ -22,7 +22,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt
+          components: rustfmt, clippy
 
       - name: Cache cargo artifacts
         uses: Swatinem/rust-cache@v2
@@ -32,6 +32,9 @@ jobs:
 
       - name: Check formatting
         run: cargo fmt --all --check
+
+      - name: Run clippy
+        run: cargo clippy -p ush -p ush_shell -p ush_config -p ush_tooling --all-targets --no-deps -- -D warnings
 
   test:
     name: Test

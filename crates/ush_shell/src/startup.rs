@@ -152,15 +152,15 @@ impl Shell {
 
     fn expand_startup_path(&self, path: &Path) -> PathBuf {
         let value = path.to_string_lossy();
-        if value == "~" {
-            if let Some(home) = self.home_dir() {
-                return home;
-            }
+        if value == "~"
+            && let Some(home) = self.home_dir()
+        {
+            return home;
         }
-        if let Some(rest) = value.strip_prefix("~/") {
-            if let Some(home) = self.home_dir() {
-                return home.join(rest);
-            }
+        if let Some(rest) = value.strip_prefix("~/")
+            && let Some(home) = self.home_dir()
+        {
+            return home.join(rest);
         }
         path.to_path_buf()
     }

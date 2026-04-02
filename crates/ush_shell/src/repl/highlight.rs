@@ -68,7 +68,7 @@ fn highlight_segments(helper: &UshHelper, line: &str) -> String {
         if matches!(ch, '\'' | '"') {
             let quote = ch;
             let mut escaped = false;
-            while let Some(next) = chars.next() {
+            for next in chars.by_ref() {
                 token.push(next);
                 if quote == '"' && !escaped && next == '\\' {
                     escaped = true;

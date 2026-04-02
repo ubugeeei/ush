@@ -280,6 +280,16 @@ sha256_tool() {
     return
   fi
 
+  if command -v openssl >/dev/null 2>&1; then
+    printf 'openssl\n'
+    return
+  fi
+
+  if command -v python3 >/dev/null 2>&1; then
+    printf 'python3\n'
+    return
+  fi
+
   printf '\n'
 }
 
@@ -294,6 +304,21 @@ compute_sha256() {
     "shasum -a 256")
       shasum -a 256 "$1" | awk '{print $1}'
       ;;
+    openssl)
+      openssl dgst -sha256 "$1" | awk '{print $NF}'
+      ;;
+    python3)
+      python3 - "$1" <<'PY'
+import hashlib
+import sys
+
+digest = hashlib.sha256()
+with open(sys.argv[1], "rb") as handle:
+    for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+        digest.update(chunk)
+print(digest.hexdigest())
+PY
+      ;;
   esac
 }
 
@@ -305,8 +330,8 @@ verify_archive() {
 
   tool="$(sha256_tool)"
   if [ -z "$tool" ]; then
-    echo "install.sh: sha256sum or shasum not found; skipping checksum verification" >&2
-    return
+    echo "install.sh: no supported sha256 tool found (sha256sum, shasum, openssl, python3); refusing to install without checksum verification" >&2
+    exit 1
   fi
 
   sums_url="$(build_checksum_url "$repo" "$version")"

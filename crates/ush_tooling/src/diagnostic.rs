@@ -16,7 +16,7 @@ pub fn check_file(path: &Path) -> Result<Vec<UshDiagnostic>> {
 }
 
 pub fn check_source(source: &str) -> Vec<UshDiagnostic> {
-    match UshCompiler::default().compile_source(source) {
+    match UshCompiler.compile_source(source) {
         Ok(_) => Vec::new(),
         Err(error) => vec![parse_diagnostic(&error.to_string())],
     }

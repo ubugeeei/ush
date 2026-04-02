@@ -717,14 +717,14 @@ fn parse_grep_output(stdout: &str) -> GrepReport {
 }
 
 fn push_grep_match(groups: &mut Vec<GrepGroup>, row: GrepMatch) {
-    if let Some(group) = groups.last_mut() {
-        if group.source == row.source {
-            group.rows.push(GrepMatchRow {
-                line_number: row.line_number,
-                text: row.text,
-            });
-            return;
-        }
+    if let Some(group) = groups.last_mut()
+        && group.source == row.source
+    {
+        group.rows.push(GrepMatchRow {
+            line_number: row.line_number,
+            text: row.text,
+        });
+        return;
     }
 
     groups.push(GrepGroup {
@@ -994,14 +994,14 @@ fn parse_unified_diff(stdout: &str) -> DiffReport {
             None
         };
 
-        if let Some(kind) = line_kind {
-            if let Some(hunk) = current_hunk.as_mut() {
-                hunk.lines.push(DiffLine {
-                    kind,
-                    text: line.to_string(),
-                });
-                continue;
-            }
+        if let Some(kind) = line_kind
+            && let Some(hunk) = current_hunk.as_mut()
+        {
+            hunk.lines.push(DiffLine {
+                kind,
+                text: line.to_string(),
+            });
+            continue;
         }
 
         if line.starts_with("diff ") {

@@ -47,10 +47,10 @@ impl Shell {
                 .map(|(name, value)| Ok((name.clone(), self.expand_value(value)?)))
                 .collect::<Result<HashMap<_, _>>>()?,
         };
-        if self.options.stylish {
-            if let Some((rendered, status)) = self.try_stylish(&resolved, &input)? {
-                return Ok((rendered, status));
-            }
+        if self.options.stylish
+            && let Some((rendered, status)) = self.try_stylish(&resolved, &input)?
+        {
+            return Ok((rendered, status));
         }
         self.spawn_external(&resolved, input, capture)
     }

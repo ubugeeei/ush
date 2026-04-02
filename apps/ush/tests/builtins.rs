@@ -13,8 +13,13 @@ fn ush() -> Command {
 }
 
 fn run_with_stdin(args: &[&str], stdin: &str) -> std::process::Output {
+    run_with_stdin_in_dir(args, stdin, None)
+}
+
+fn run_with_stdin_in_dir(args: &[&str], stdin: &str, dir: Option<&Path>) -> std::process::Output {
     let mut child = ush()
         .args(args)
+        .current_dir(dir.unwrap_or_else(|| Path::new(".")))
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -252,6 +257,37 @@ fn glob_builtin_returns_one_when_nothing_matches() {
 fn bracket_test_builtin_returns_zero_for_true_expression() {
     let output = ush().args(["-c", "[ -d . ]"]).output().expect("run ush");
     assert!(output.status.success());
+}
+
+#[test]
+fn rm_guard_rejects_split_recursive_short_flags_without_yes() {
+    let dir = tempdir().expect("tempdir");
+    let target = dir.path().join("target");
+    fs::create_dir_all(target.join("nested")).expect("mkdir target");
+    fs::write(target.join("nested/file.txt"), "keep\n").expect("write target");
+
+    let output = run_with_stdin_in_dir(&["-c", "rm -r -f target"], "n\n", Some(dir.path()));
+
+    assert_eq!(output.status.code(), Some(130));
+    assert!(target.exists());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("confirm `rm -r -f target` [y/N]"));
+}
+
+#[test]
+fn rm_guard_allows_recursive_delete_with_yes() {
+    let dir = tempdir().expect("tempdir");
+    let target = dir.path().join("target");
+    fs::create_dir_all(target.join("nested")).expect("mkdir target");
+    fs::write(target.join("nested/file.txt"), "remove\n").expect("write target");
+
+    let output = ush()
+        .args(["-c", "rm --yes -r -f target"])
+        .current_dir(dir.path())
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    assert!(!target.exists());
 }
 
 #[test]

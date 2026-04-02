@@ -15,6 +15,8 @@ on:
 
 permissions:
   contents: write
+  attestations: write
+  id-token: write
 
 env:
   RELEASE_TAG: ${{ inputs.version || github.ref_name }}
@@ -72,6 +74,11 @@ jobs:
           name: ${{ matrix.asset_name }}
           path: ${{ matrix.asset_name }}
           if-no-files-found: error
+
+      - name: Attest release archive provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ matrix.asset_name }}
 
   publish:
     name: Publish release

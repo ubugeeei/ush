@@ -58,7 +58,7 @@ fn parse_request(args: &[String]) -> Option<DocRequest> {
 }
 
 fn render_doc_request(script: &Path, request: DocRequest) -> Result<()> {
-    let compiler = UshCompiler::default();
+    let compiler = UshCompiler;
     let compiled = compiler.compile_file(script)?;
     let temp = env::temp_dir().join(format!("ush-doc-{}.sh", std::process::id()));
     fs::write(&temp, compiled)?;

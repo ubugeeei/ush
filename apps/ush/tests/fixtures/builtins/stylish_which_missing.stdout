@@ -1,0 +1,4 @@
+[1;34mwhich[0m [2m1 target[0m
+[2m1 missing target[0m
+[2mcurrent match follows alias, builtin, then PATH order[0m
+[1;36mdefinitely-not-a-real-command[0m [1;31m[not found][0m [2munavailable on PATH[0m

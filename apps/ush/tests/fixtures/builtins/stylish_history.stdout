@@ -1,0 +1,5 @@
+[1;34mhistory[0m [2m3 entries[0m
+[2mshowing all 3, latest `cargo test -p ush`[0m
+[1;36m[1][0m [1mecho hello[0m
+[1;36m[2][0m [1mgit status[0m
+[1;36m[3][0m [1mcargo test -p ush[0m

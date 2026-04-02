@@ -1,0 +1,5 @@
+[1;34mgrep[0m [1;36mfoo[0m
+[2m2 matches, 1 source[0m
+[1msample.txt[0m [1;34m[2 matches][0m
+  [1;36m[line 2][0m [1mfoo first[0m
+  [1;36m[line 4][0m [1mfoo second[0m

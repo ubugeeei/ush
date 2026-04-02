@@ -1,9 +1,16 @@
 use std::{fs, process::Command};
 
+mod support;
+
 use tempfile::tempdir;
+use support::assert_snapshot;
 
 fn ush() -> Command {
     Command::new(env!("CARGO_BIN_EXE_ush"))
+}
+
+fn normalize_path(text: &str, path: &std::path::Path, marker: &str) -> String {
+    text.replace(&path.display().to_string(), marker)
 }
 
 #[test]
@@ -28,10 +35,9 @@ fn login_flag_loads_explicit_profile_before_running_a_command() {
         .expect("run ush");
 
     assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("profile\n"));
-    assert!(stdout.contains("ll is aliased to"));
-    assert!(stdout.contains("profile-loaded"));
+    assert!(output.stderr.is_empty());
+    let stdout = normalize_path(&String::from_utf8_lossy(&output.stdout), &profile, "<PROFILE_SH>");
+    assert_snapshot("startup/login_profile.stdout", &stdout);
 }
 
 #[test]
@@ -51,5 +57,7 @@ fn rc_file_loads_before_running_a_command() {
         .expect("run ush");
 
     assert!(output.status.success());
-    assert_eq!(String::from_utf8_lossy(&output.stdout), "loaded\n");
+    assert!(output.stderr.is_empty());
+    let stdout = normalize_path(&String::from_utf8_lossy(&output.stdout), &rc, "<RC_SH>");
+    assert_snapshot("startup/rc.stdout", &stdout);
 }

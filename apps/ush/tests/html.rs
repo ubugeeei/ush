@@ -3,10 +3,17 @@ use std::{fs, process::Command};
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
+mod support;
+
+use support::assert_snapshot;
 use tempfile::tempdir;
 
 fn ush() -> Command {
     Command::new(env!("CARGO_BIN_EXE_ush"))
+}
+
+fn fixture(name: &str) -> String {
+    format!("html/{name}.stdout")
 }
 
 #[test]
@@ -23,9 +30,10 @@ fn html_helper_opens_pipeline_output_in_browser() {
 
     assert!(output.status.success());
     assert_eq!(String::from_utf8_lossy(&output.stdout), "");
+    assert!(output.stderr.is_empty());
     let opened = fs::read_to_string(&log).expect("read log");
     let html = fs::read_to_string(opened.trim()).expect("read html");
-    assert!(html.contains("<body>ok</body>"));
+    assert_snapshot(&fixture("html_helper"), &html);
 }
 
 #[test]
@@ -42,9 +50,10 @@ fn json_helper_falls_back_to_browser_for_html_input() {
 
     assert!(output.status.success());
     assert_eq!(String::from_utf8_lossy(&output.stdout), "");
+    assert!(output.stderr.is_empty());
     let opened = fs::read_to_string(&log).expect("read log");
     let html = fs::read_to_string(opened.trim()).expect("read html");
-    assert!(html.contains("<div>fallback</div>"));
+    assert_snapshot(&fixture("json_fallback"), &html);
 }
 
 #[test]
@@ -55,9 +64,9 @@ fn xml_helper_pretty_prints_valid_xml() {
         .expect("run ush");
 
     assert!(output.status.success());
+    assert!(output.stderr.is_empty());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("<root>"));
-    assert!(stdout.contains("  <item>ok</item>"));
+    assert_snapshot(&fixture("xml_pretty"), &stdout);
 }
 
 #[test]
@@ -74,9 +83,10 @@ fn xml_helper_falls_back_to_browser_for_invalid_xml() {
 
     assert!(output.status.success());
     assert_eq!(String::from_utf8_lossy(&output.stdout), "");
+    assert!(output.stderr.is_empty());
     let opened = fs::read_to_string(&log).expect("read log");
     let html = fs::read_to_string(opened.trim()).expect("read html");
-    assert!(html.contains("<div></span>"));
+    assert_snapshot(&fixture("xml_fallback"), &html);
 }
 
 fn install_fake_openers(bin_dir: &std::path::Path, log: &std::path::Path) {

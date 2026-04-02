@@ -1,0 +1,15 @@
+NAME
+docs.ush greet
+
+SIGNATURE
+fn greet(name: String) -> String
+
+DESCRIPTION
+Demo script.
+Greet a user.
+
+PARAMETERS
+name - target user
+
+RETURNS
+greeting text

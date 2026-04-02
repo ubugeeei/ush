@@ -1,9 +1,16 @@
 use std::{fs, process::Command};
 
+mod support;
+
+use support::assert_snapshot;
 use tempfile::tempdir;
 
 fn ush() -> Command {
     Command::new(env!("CARGO_BIN_EXE_ush"))
+}
+
+fn fixture(name: &str) -> String {
+    format!("bin/{name}.stdout")
 }
 
 #[test]
@@ -81,9 +88,7 @@ fn bin_script_completion_includes_generated_flags() {
         .expect("run completion");
 
     assert!(output.status.success());
+    assert!(output.stderr.is_empty());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("--name"));
-    assert!(stdout.contains("-n"));
-    assert!(stdout.contains("--count"));
-    assert!(stdout.contains("--verbose"));
+    assert_snapshot(&fixture("completion"), &stdout);
 }

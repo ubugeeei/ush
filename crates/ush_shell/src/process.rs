@@ -1,5 +1,5 @@
 mod state;
-use self::state::StatefulShellRun;
+use self::state::{StatefulShellRun, render_alias_prelude};
 use super::{Shell, ValueStream, commands, signal, style};
 use anyhow::{Context, Result, anyhow, bail};
 use std::{
@@ -26,7 +26,6 @@ pub(crate) struct Job {
     pid: u32,
     child: Child,
     state: JobState,
-    _runner: StatefulShellRun,
 }
 
 #[derive(Debug)]
@@ -129,16 +128,17 @@ impl Shell {
     }
 
     pub(crate) fn spawn_background_job(&mut self, source: &str) -> Result<String> {
-        let runner = StatefulShellRun::new(source, &self.aliases)?;
         let mut command = Command::new("/bin/sh");
+        let mut script = render_alias_prelude(&self.aliases);
+        script.push_str(source);
         command
-            .arg(runner.runner_path())
+            .arg("-c")
+            .arg(script)
             .current_dir(&self.cwd)
             .envs(&self.env)
             .stdin(Stdio::null())
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit());
-        runner.populate_command_env(&mut command);
         signal::prepare_background_command(&mut command);
 
         let child = command
@@ -153,7 +153,6 @@ impl Shell {
             pid,
             child,
             state: JobState::Running,
-            _runner: runner,
         });
         Ok(format!("[{id}] {pid}\n"))
     }

@@ -1,0 +1,7 @@
+[1;34mdiff[0m [1;36mbefore.txt[0m [1;35mafter.txt[0m
+[2m1 changed file, 1 hunk, +1, -1[0m
+[1mbefore.txt[0m [1;36m->[0m [1mafter.txt[0m [1;34m[1 hunk][0m [1;32m[+1][0m [1;31m[-1][0m
+[1;36m@@ -1,2 +1,2 @@[0m
+[2m alpha[0m
+[1;31m-beta[0m
+[1;32m+gamma[0m

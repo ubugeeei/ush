@@ -1,0 +1,10 @@
+docs.ush
+
+Usage:
+  docs.ush [--help]
+  docs.ush [--man [ITEM]]
+  docs.ush [--complete [PREFIX]]
+
+Documented items:
+  fn greet(name: String) -> String
+      Demo script.

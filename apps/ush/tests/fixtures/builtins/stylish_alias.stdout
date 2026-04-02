@@ -1,0 +1,4 @@
+[1;34malias[0m [2m2 aliases[0m
+[2mshell shortcuts expanded before command lookup[0m
+[1;36mgs[0m [1;34m[alias][0m [1mgit status[0m
+[1;36mll[0m [1;34m[alias][0m [1mls -lah[0m

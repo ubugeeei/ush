@@ -1,0 +1,10 @@
+lines	bytes	path
+1	4	Cargo.lock
+1	13	main.rs
+1	4	package-lock.json
+3	21	TOTAL (3 files)
+
+type	files	lines	bytes
+lock	2	2	8
+rs	1	1	13
+TOTAL	3	3	21

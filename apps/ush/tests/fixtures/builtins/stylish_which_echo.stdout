@@ -1,0 +1,6 @@
+[1;34mwhich[0m [2m1 target[0m
+[2m1 alias, 1 builtin, 1 external command[0m
+[2mcurrent match follows alias, builtin, then PATH order[0m
+[1;36m<ECHO_PATH>[0m [1;35m[current][0m [1;34m[alias][0m [1mprintf[0m
+[1;36m<ECHO_PATH>[0m [1;33m[builtin][0m [2mshell builtin[0m
+[1;36m<ECHO_PATH>[0m [1;32m[external][0m [2m/bin/<ECHO_PATH>[0m

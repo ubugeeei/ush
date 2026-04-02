@@ -1,5 +1,8 @@
 use std::{fs, process::Command};
 
+mod support;
+
+use support::assert_snapshot;
 use tempfile::tempdir;
 
 fn ush() -> Command {
@@ -8,6 +11,14 @@ fn ush() -> Command {
 
 fn shell_quote(value: &str) -> String {
     format!("'{}'", value.replace('\'', r#"'\''"#))
+}
+
+fn fixture(name: &str) -> String {
+    format!("smoke/{name}.stdout")
+}
+
+fn normalize_path(text: &str, path: &std::path::Path, marker: &str) -> String {
+    text.replace(&path.display().to_string(), marker)
 }
 
 #[test]
@@ -123,10 +134,9 @@ fn source_builtin_applies_fallback_state_changes_to_following_commands() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains(&format!("{}\n", target.display())));
-    assert!(stdout.contains("bar\n"));
-    assert!(stdout.contains("ll is aliased to"));
-    assert!(stdout.contains("ls -la"));
+    assert!(output.stderr.is_empty());
+    let stdout = normalize_path(&stdout, &target, "<WORKSPACE>");
+    assert_snapshot(&fixture("source_state"), &stdout);
 }
 
 #[test]
@@ -134,7 +144,13 @@ fn stylish_pwd_emits_ansi() {
     let output = ush().args(["-s", "-c", "pwd"]).output().expect("run ush");
 
     assert!(output.status.success());
-    assert!(String::from_utf8_lossy(&output.stdout).contains("\u{1b}[1;34m"));
+    assert!(output.stderr.is_empty());
+    let stdout = normalize_path(
+        &String::from_utf8_lossy(&output.stdout),
+        &std::env::current_dir().expect("cwd"),
+        "<CWD>",
+    );
+    assert_snapshot(&fixture("stylish_pwd"), &stdout);
 }
 
 #[test]
@@ -301,9 +317,11 @@ fn ush_script_exposes_generated_docs() {
         .expect("run completion");
 
     assert!(help.status.success());
-    assert!(String::from_utf8_lossy(&help.stdout).contains("Documented items:"));
+    assert!(help.stderr.is_empty());
+    assert_snapshot(&fixture("script_help"), &String::from_utf8_lossy(&help.stdout));
     assert!(man.status.success());
-    assert!(String::from_utf8_lossy(&man.stdout).contains("PARAMETERS"));
+    assert!(man.stderr.is_empty());
+    assert_snapshot(&fixture("script_man"), &String::from_utf8_lossy(&man.stdout));
     assert!(complete.status.success());
     assert_eq!(String::from_utf8_lossy(&complete.stdout), "greet\n");
 }

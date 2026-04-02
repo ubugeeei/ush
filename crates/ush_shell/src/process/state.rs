@@ -84,6 +84,18 @@ impl StatefulShellRun {
     }
 }
 
+pub(super) fn render_alias_prelude(aliases: &BTreeMap<String, String>) -> String {
+    let mut prelude = String::new();
+    for (name, value) in aliases {
+        prelude.push_str("alias ");
+        prelude.push_str(name);
+        prelude.push('=');
+        prelude.push_str(&shell_quote(value));
+        prelude.push('\n');
+    }
+    prelude
+}
+
 fn render_runner_script(aliases: &BTreeMap<String, String>) -> String {
     let mut script = String::from(
         "#!/bin/sh\n\
@@ -104,14 +116,7 @@ __ush_dump_state() {\n\
 trap '__ush_dump_state' 0\n",
     );
 
-    for (name, value) in aliases {
-        script.push_str("alias ");
-        script.push_str(name);
-        script.push('=');
-        script.push_str(&shell_quote(value));
-        script.push('\n');
-    }
-
+    script.push_str(&render_alias_prelude(aliases));
     script.push_str("eval \"$(cat \"$USH_INTERNAL_CHUNK_FILE\")\"\n");
     script
 }

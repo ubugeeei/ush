@@ -6,10 +6,17 @@ use std::{
     process::{Command, Stdio},
 };
 
+mod support;
+
 use tempfile::tempdir;
+use support::assert_snapshot;
 
 fn ush() -> Command {
     Command::new(env!("CARGO_BIN_EXE_ush"))
+}
+
+fn fixture(name: &str) -> String {
+    format!("builtins/{name}.stdout")
 }
 
 fn run_with_stdin(args: &[&str], stdin: &str) -> std::process::Output {
@@ -62,6 +69,68 @@ fn history_file(home: &Path) -> PathBuf {
     home.join("Library/Caches/dev.ubugeeei.ush/history.txt")
 }
 
+fn normalize_command_paths(text: &str, names: &[&str]) -> String {
+    let mut out = text.to_string();
+    for name in names {
+        let output = Command::new("/bin/sh")
+            .args(["-c", &format!("command -v {name}")])
+            .output()
+            .expect("resolve command path");
+        let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if !path.is_empty() {
+            out = out.replace(&path, &format!("<{}_PATH>", name.to_ascii_uppercase()));
+        }
+    }
+    out
+}
+
+fn normalize_git_hashes(text: &str) -> String {
+    let mut out = String::new();
+    let mut token = String::new();
+
+    for ch in text.chars() {
+        if ch.is_ascii_hexdigit() {
+            token.push(ch);
+            continue;
+        }
+        flush_token(&mut out, &mut token);
+        out.push(ch);
+    }
+    flush_token(&mut out, &mut token);
+    out
+}
+
+fn flush_token(out: &mut String, token: &mut String) {
+    if token.len() >= 7 && token.chars().all(|ch| ch.is_ascii_hexdigit()) {
+        out.push_str("<SHA>");
+    } else {
+        out.push_str(token);
+    }
+    token.clear();
+}
+
+fn normalize_ls_output(text: &str) -> String {
+    let normalized = text
+        .lines()
+        .map(|line| {
+            let mut line = line.to_string();
+            if let Some(index) = line.find(" items, updated ") {
+                let mut start = index;
+                while start > 0 && line.as_bytes()[start - 1].is_ascii_digit() {
+                    start -= 1;
+                }
+                line.replace_range(start..index, "<ITEMS>");
+            }
+            if let Some(index) = line.find("updated ") {
+                line.replace_range(index + "updated ".len()..line.len(), "<TIMESTAMP>");
+            }
+            line
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!("{normalized}\n")
+}
+
 fn write_history(home: &Path, entries: &[&str]) {
     let path = history_file(home);
     fs::create_dir_all(path.parent().expect("history dir")).expect("create history dir");
@@ -90,7 +159,9 @@ fn command_v_reports_existing_commands() {
         .output()
         .expect("run ush");
     assert!(output.status.success());
-    assert!(String::from_utf8_lossy(&output.stdout).contains("/"));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.starts_with('/'));
+    assert!(stdout.trim_end().ends_with("/sh"));
 }
 
 #[test]
@@ -120,14 +191,9 @@ fn stylish_command_v_renders_lookup_categories() {
         .expect("run ush");
 
     assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("command -v"));
-    assert!(stdout.contains("3 targets"));
-    assert!(stdout.contains("[alias]"));
-    assert!(stdout.contains("[builtin]"));
-    assert!(stdout.contains("[external]"));
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    assert!(output.stderr.is_empty());
+    let stdout = normalize_command_paths(&String::from_utf8_lossy(&output.stdout), &["sh"]);
+    assert_snapshot(&fixture("stylish_command_v"), &stdout);
 }
 
 #[test]
@@ -138,15 +204,9 @@ fn stylish_type_marks_missing_targets() {
         .expect("run ush");
 
     assert_eq!(output.status.code(), Some(1));
+    assert!(output.stderr.is_empty());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("type"));
-    assert!(stdout.contains("2 targets"));
-    assert!(stdout.contains("echo"));
-    assert!(stdout.contains("[builtin]"));
-    assert!(stdout.contains("[not found]"));
-    assert!(stdout.contains("definitely-not-a-real-command"));
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    assert_snapshot(&fixture("stylish_type_missing"), &stdout);
 }
 
 #[test]
@@ -159,21 +219,13 @@ fn stylish_env_renders_sorted_variables_without_tables() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("env"));
-    assert!(stdout.contains("variables"));
-    assert!(stdout.contains("FOO"));
-    assert!(stdout.contains("bar"));
-    assert!(stdout.contains("HELLO"));
-    assert!(stdout.contains("ush"));
-    assert!(stdout.contains("EMPTY"));
-    assert!(stdout.contains("(empty)"));
     let empty_index = stdout.find("EMPTY").expect("EMPTY");
     let foo_index = stdout.find("FOO").expect("FOO");
     let hello_index = stdout.find("HELLO").expect("HELLO");
     assert!(empty_index < foo_index);
     assert!(foo_index < hello_index);
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    assert!(output.stderr.is_empty());
+    assert_snapshot(&fixture("stylish_env_sorted"), &stdout);
 }
 
 #[test]
@@ -186,12 +238,8 @@ fn stylish_env_handles_cleared_process_environment() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("env"));
-    assert!(stdout.contains("variables"));
-    assert!(stdout.contains("USH_STYLISH"));
-    assert!(stdout.contains("true"));
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    assert!(output.stderr.is_empty());
+    assert_snapshot(&fixture("stylish_env_cleared"), &stdout);
 }
 
 #[test]
@@ -234,9 +282,8 @@ fn glob_builtin_reads_patterns_from_stdin() {
     let output = child.wait_with_output().expect("wait ush");
 
     assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("a.txt"));
-    assert!(stdout.contains("note.md"));
+    assert!(output.stderr.is_empty());
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "a.txt\nnote.md\n");
 }
 
 #[test]
@@ -270,7 +317,8 @@ fn rm_guard_rejects_split_recursive_short_flags_without_yes() {
 
     assert_eq!(output.status.code(), Some(130));
     assert!(target.exists());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("confirm `rm -r -f target` [y/N]"));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_snapshot("builtins/rm_guard_reject.stderr", &stderr);
 }
 
 #[test]
@@ -353,15 +401,9 @@ fn stylish_ls_a_includes_dot_entries_and_hidden_files() {
         .expect("run ush");
 
     assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("ls"));
-    assert!(stdout.contains("4 entries"));
-    assert!(stdout.contains("./"));
-    assert!(stdout.contains("../"));
-    assert!(stdout.contains(".hidden"));
-    assert!(stdout.contains("visible"));
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    let stdout = normalize_ls_output(&String::from_utf8_lossy(&output.stdout));
+    assert!(output.stderr.is_empty());
+    assert_snapshot(&fixture("stylish_ls_all"), &stdout);
 }
 
 #[test]
@@ -377,15 +419,9 @@ fn stylish_ls_combined_short_flags_keep_rich_output() {
         .expect("run ush");
 
     assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("ls"));
-    assert!(stdout.contains("4 entries"));
-    assert!(stdout.contains("./"));
-    assert!(stdout.contains("../"));
-    assert!(stdout.contains(".hidden"));
-    assert!(stdout.contains("visible"));
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    let stdout = normalize_ls_output(&String::from_utf8_lossy(&output.stdout));
+    assert!(output.stderr.is_empty());
+    assert_snapshot(&fixture("stylish_ls_lah"), &stdout);
 }
 
 #[test]
@@ -401,15 +437,9 @@ fn stylish_ls_almost_all_shows_hidden_without_dot_entries() {
         .expect("run ush");
 
     assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("ls"));
-    assert!(stdout.contains("2 entries"));
-    assert!(stdout.contains(".hidden"));
-    assert!(stdout.contains("visible"));
-    assert!(!stdout.contains("./"));
-    assert!(!stdout.contains("../"));
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    let stdout = normalize_ls_output(&String::from_utf8_lossy(&output.stdout));
+    assert!(output.stderr.is_empty());
+    assert_snapshot(&fixture("stylish_ls_almost_all"), &stdout);
 }
 
 #[test]
@@ -424,11 +454,9 @@ fn stylish_ls_keeps_explicit_hidden_targets_visible_without_all_flag() {
         .expect("run ush");
 
     assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("ls"));
-    assert!(stdout.contains(".env"));
-    assert!(stdout.contains("[file]"));
-    assert!(!stdout.contains("│"));
+    let stdout = normalize_ls_output(&String::from_utf8_lossy(&output.stdout));
+    assert!(output.stderr.is_empty());
+    assert_snapshot(&fixture("stylish_ls_hidden_target"), &stdout);
 }
 
 #[test]
@@ -443,10 +471,9 @@ fn stylish_ls_handles_broken_symlinks() {
         .expect("run ush");
 
     assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("broken-link"));
-    assert!(stdout.contains("[link]"));
-    assert!(stdout.contains("-> missing-target"));
+    let stdout = normalize_ls_output(&String::from_utf8_lossy(&output.stdout));
+    assert!(output.stderr.is_empty());
+    assert_snapshot(&fixture("stylish_ls_broken_symlink"), &stdout);
 }
 
 #[test]
@@ -462,16 +489,9 @@ fn stylish_diff_renders_hunks_and_preserves_exit_code() {
         .expect("run ush");
 
     assert_eq!(output.status.code(), Some(1));
+    assert!(output.stderr.is_empty());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("diff"));
-    assert!(stdout.contains("before.txt"));
-    assert!(stdout.contains("after.txt"));
-    assert!(stdout.contains("@@ -1,2 +1,2 @@"));
-    assert!(stdout.contains("-beta"));
-    assert!(stdout.contains("+gamma"));
-    assert!(!stdout.contains("2c2"));
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    assert_snapshot(&fixture("stylish_diff"), &stdout);
 }
 
 #[test]
@@ -487,14 +507,9 @@ fn stylish_diff_unified_flag_keeps_rich_output() {
         .expect("run ush");
 
     assert_eq!(output.status.code(), Some(1));
+    assert!(output.stderr.is_empty());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("diff"));
-    assert!(stdout.contains("[1 hunk]"));
-    assert!(stdout.contains("[+1]"));
-    assert!(stdout.contains("[-1]"));
-    assert!(stdout.contains("@@ -1,2 +1,2 @@"));
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    assert_snapshot(&fixture("stylish_diff_u"), &stdout);
 }
 
 #[test]
@@ -513,17 +528,9 @@ fn stylish_grep_groups_file_matches() {
         .expect("run ush");
 
     assert!(output.status.success());
+    assert!(output.stderr.is_empty());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("grep"));
-    assert!(stdout.contains("foo"));
-    assert!(stdout.contains("sample.txt"));
-    assert!(stdout.contains("[2 matches]"));
-    assert!(stdout.contains("[line 2]"));
-    assert!(stdout.contains("foo first"));
-    assert!(stdout.contains("[line 4]"));
-    assert!(stdout.contains("foo second"));
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    assert_snapshot(&fixture("stylish_grep_file"), &stdout);
 }
 
 #[test]
@@ -534,14 +541,9 @@ fn stylish_grep_reads_pipeline_input() {
         .expect("run ush");
 
     assert!(output.status.success());
+    assert!(output.stderr.is_empty());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("grep"));
-    assert!(stdout.contains("stdin"));
-    assert!(stdout.contains("[1 match]"));
-    assert!(stdout.contains("[line 2]"));
-    assert!(stdout.contains("foo"));
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    assert_snapshot(&fixture("stylish_grep_stdin"), &stdout);
 }
 
 #[test]
@@ -556,12 +558,9 @@ fn stylish_grep_no_matches_preserves_exit_code() {
         .expect("run ush");
 
     assert_eq!(output.status.code(), Some(1));
+    assert!(output.stderr.is_empty());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("grep"));
-    assert!(stdout.contains("foo"));
-    assert!(stdout.contains("[no matches]"));
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    assert_snapshot(&fixture("stylish_grep_no_matches"), &stdout);
 }
 
 #[test]
@@ -579,15 +578,9 @@ fn stylish_history_renders_numbered_entries() {
         .expect("run ush");
 
     assert!(output.status.success());
+    assert!(output.stderr.is_empty());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("history"));
-    assert!(stdout.contains("3 entries"));
-    assert!(stdout.contains("[1]"));
-    assert!(stdout.contains("echo hello"));
-    assert!(stdout.contains("[3]"));
-    assert!(stdout.contains("cargo test -p ush"));
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    assert_snapshot(&fixture("stylish_history"), &stdout);
 }
 
 #[test]
@@ -605,17 +598,9 @@ fn stylish_history_limit_shows_latest_entries() {
         .expect("run ush");
 
     assert!(output.status.success());
+    assert!(output.stderr.is_empty());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("history"));
-    assert!(stdout.contains("showing latest 2"));
-    assert!(stdout.contains("[3]"));
-    assert!(stdout.contains("cargo test -p ush"));
-    assert!(stdout.contains("[4]"));
-    assert!(stdout.contains("history 2"));
-    assert!(!stdout.contains("[1]"));
-    assert!(!stdout.contains("echo hello"));
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    assert_snapshot(&fixture("stylish_history_limit"), &stdout);
 }
 
 #[test]
@@ -646,16 +631,9 @@ fn stylish_alias_renders_named_expansions() {
         .expect("run ush");
 
     assert!(output.status.success());
+    assert!(output.stderr.is_empty());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("alias"));
-    assert!(stdout.contains("2 aliases"));
-    assert!(stdout.contains("shell shortcuts expanded before command lookup"));
-    assert!(stdout.contains("ll"));
-    assert!(stdout.contains("ls -lah"));
-    assert!(stdout.contains("gs"));
-    assert!(stdout.contains("git status"));
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    assert_snapshot(&fixture("stylish_alias"), &stdout);
 }
 
 #[test]
@@ -685,20 +663,9 @@ fn stylish_which_renders_alias_builtin_and_external_targets() {
         .expect("run ush");
 
     assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("which"));
-    assert!(stdout.contains("3 targets"));
-    assert!(stdout.contains("[current]"));
-    assert!(stdout.contains("[alias]"));
-    assert!(stdout.contains("ll"));
-    assert!(stdout.contains("ls -lah"));
-    assert!(stdout.contains("[builtin]"));
-    assert!(stdout.contains("echo"));
-    assert!(stdout.contains("shell builtin"));
-    assert!(stdout.contains("[external]"));
-    assert!(stdout.contains("sh"));
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    assert!(output.stderr.is_empty());
+    let stdout = normalize_command_paths(&String::from_utf8_lossy(&output.stdout), &["sh"]);
+    assert_snapshot(&fixture("stylish_which_multi"), &stdout);
 }
 
 #[test]
@@ -727,18 +694,9 @@ fn which_lists_all_matches_with_current_first() {
         .expect("run ush");
 
     assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let lines = stdout.lines().collect::<Vec<_>>();
-    assert!(
-        lines
-            .first()
-            .is_some_and(|line| line.starts_with("=> alias echo='printf'"))
-    );
-    assert!(lines.iter().any(|line| line.trim() == "echo"));
-    assert!(
-        lines.iter()
-            .any(|line| line.starts_with("   /") && line.contains("echo"))
-    );
+    assert!(output.stderr.is_empty());
+    let stdout = normalize_command_paths(&String::from_utf8_lossy(&output.stdout), &["echo"]);
+    assert_snapshot(&fixture("which_echo_plain"), &stdout);
 }
 
 #[test]
@@ -768,15 +726,10 @@ fn stylish_which_highlights_current_match_while_showing_all_candidates() {
         .expect("run ush");
 
     assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("which"));
-    assert!(stdout.contains("1 target"));
+    assert!(output.stderr.is_empty());
+    let stdout = normalize_command_paths(&String::from_utf8_lossy(&output.stdout), &["echo"]);
     assert_eq!(stdout.matches("[current]").count(), 1);
-    assert!(stdout.contains("[alias]"));
-    assert!(stdout.contains("printf"));
-    assert!(stdout.contains("[builtin]"));
-    assert!(stdout.contains("shell builtin"));
-    assert!(stdout.contains("[external]"));
+    assert_snapshot(&fixture("stylish_which_echo"), &stdout);
 }
 
 #[test]
@@ -787,14 +740,9 @@ fn stylish_which_marks_missing_targets_and_preserves_exit_code() {
         .expect("run ush");
 
     assert_eq!(output.status.code(), Some(1));
+    assert!(output.stderr.is_empty());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("which"));
-    assert!(stdout.contains("1 target"));
-    assert!(stdout.contains("[not found]"));
-    assert!(stdout.contains("definitely-not-a-real-command"));
-    assert!(stdout.contains("unavailable on PATH"));
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    assert_snapshot(&fixture("stylish_which_missing"), &stdout);
 }
 
 #[test]
@@ -812,16 +760,9 @@ fn stylish_git_status_renders_rich_output() {
         .expect("run ush");
 
     assert!(output.status.success());
+    assert!(output.stderr.is_empty());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("git"));
-    assert!(stdout.contains("status"));
-    assert!(stdout.contains("stylish-status"));
-    assert!(stdout.contains("tracked.txt"));
-    assert!(stdout.contains("[unstaged modified]"));
-    assert!(stdout.contains("fresh.txt"));
-    assert!(stdout.contains("[untracked]"));
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    assert_snapshot(&fixture("stylish_git_status"), &stdout);
 }
 
 #[test]
@@ -838,14 +779,9 @@ fn stylish_git_branch_renders_current_branch_without_tables() {
         .expect("run ush");
 
     assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("git"));
-    assert!(stdout.contains("branch"));
-    assert!(stdout.contains("stylish-branch"));
-    assert!(stdout.contains("feature/ui"));
-    assert!(stdout.contains("[current]"));
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    assert!(output.stderr.is_empty());
+    let stdout = normalize_git_hashes(&String::from_utf8_lossy(&output.stdout));
+    assert_snapshot(&fixture("stylish_git_branch"), &stdout);
 }
 
 #[test]
@@ -863,12 +799,7 @@ fn stylish_git_log_renders_recent_commits() {
         .expect("run ush");
 
     assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("git"));
-    assert!(stdout.contains("log"));
-    assert!(stdout.contains("second pass"));
-    assert!(stdout.contains("initial commit"));
-    assert!(stdout.contains("HEAD -> stylish-log"));
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    assert!(output.stderr.is_empty());
+    let stdout = normalize_git_hashes(&String::from_utf8_lossy(&output.stdout));
+    assert_snapshot(&fixture("stylish_git_log"), &stdout);
 }

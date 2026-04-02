@@ -1,0 +1,8 @@
+lines	bytes	path
+1	5	src/bin/main.rs
+1	4	src/lib.rs
+2	9	TOTAL (2 files)
+
+type	files	lines	bytes
+rs	2	2	9
+TOTAL	2	2	9

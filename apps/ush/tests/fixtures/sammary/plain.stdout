@@ -1,0 +1,8 @@
+lines	bytes	path
+2	4	a.txt
+1	2	b.txt
+3	6	TOTAL (2 files)
+
+type	files	lines	bytes
+txt	2	3	6
+TOTAL	2	3	6

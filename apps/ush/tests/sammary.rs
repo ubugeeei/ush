@@ -1,9 +1,16 @@
 use std::{fs, process::Command};
 
+mod support;
+
+use support::assert_snapshot;
 use tempfile::tempdir;
 
 fn ush() -> Command {
     Command::new(env!("CARGO_BIN_EXE_ush"))
+}
+
+fn fixture(name: &str) -> String {
+    format!("sammary/{name}.stdout")
 }
 
 #[test]
@@ -19,13 +26,9 @@ fn sammary_summarizes_globbed_files_and_totals() {
         .expect("run ush");
 
     assert!(output.status.success());
+    assert!(output.stderr.is_empty());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("lines\tbytes\tpath"));
-    assert!(stdout.contains("2\t4\ta.txt"));
-    assert!(stdout.contains("1\t2\tb.txt"));
-    assert!(stdout.contains("3\t6\tTOTAL (2 files)"));
-    assert!(stdout.contains("type\tfiles\tlines\tbytes"));
-    assert!(stdout.contains("txt\t2\t3\t6"));
+    assert_snapshot(&fixture("plain"), &stdout);
 }
 
 #[test]
@@ -40,14 +43,9 @@ fn sammary_uses_rich_output_in_stylish_mode() {
         .expect("run ush");
 
     assert!(output.status.success());
+    assert!(output.stderr.is_empty());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("sammary"));
-    assert!(stdout.contains("files"));
-    assert!(stdout.contains("types"));
-    assert!(stdout.contains("app.rs"));
-    assert!(stdout.contains("[rs]"));
-    assert!(!stdout.contains("┌"));
-    assert!(!stdout.contains("│"));
+    assert_snapshot(&fixture("stylish"), &stdout);
 }
 
 #[test]
@@ -69,11 +67,9 @@ fn sammary_recurse_walks_directories_and_directory_globs() {
     ] {
         let output = output.expect("run ush");
         assert!(output.status.success());
+        assert!(output.stderr.is_empty());
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("1\t5\tsrc/bin/main.rs"));
-        assert!(stdout.contains("1\t4\tsrc/lib.rs"));
-        assert!(stdout.contains("2\t9\tTOTAL (2 files)"));
-        assert!(stdout.contains("rs\t2\t2\t9"));
+        assert_snapshot(&fixture("recurse"), &stdout);
     }
 }
 
@@ -97,13 +93,11 @@ fn sammary_excludes_lock_files_by_default_and_can_restore_them() {
 
     let default_stdout = String::from_utf8_lossy(&default.stdout);
     assert!(default.status.success());
-    assert!(!default_stdout.contains("Cargo.lock"));
-    assert!(!default_stdout.contains("package-lock.json"));
-    assert!(default_stdout.contains("rs\t1\t1\t13"));
+    assert!(default.stderr.is_empty());
+    assert_snapshot(&fixture("default_excludes_lock"), &default_stdout);
 
     let included_stdout = String::from_utf8_lossy(&included.stdout);
     assert!(included.status.success());
-    assert!(included_stdout.contains("Cargo.lock"));
-    assert!(included_stdout.contains("package-lock.json"));
-    assert!(included_stdout.contains("lock\t2\t2\t8"));
+    assert!(included.stderr.is_empty());
+    assert_snapshot(&fixture("include_lock"), &included_stdout);
 }

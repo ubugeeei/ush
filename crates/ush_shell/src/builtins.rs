@@ -86,7 +86,7 @@ fn help_text() -> String {
         "  select [--prompt text] [--default value] [option ...]",
         "  env [NAME=value] [command ...]",
         "  command -v <name>",
-        "  which <name>",
+        "  which <name>            # show all matches and mark the current resolution",
         "  type <name>",
         "  test EXPR / [ EXPR ]",
         "  history [N]",

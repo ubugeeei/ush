@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::commands::{CommandLookup, lookup_command};
+use crate::commands::{CommandLookup, lookup_all_commands, lookup_command};
 
 pub(super) enum LookupStyle {
     Path,
@@ -33,6 +33,37 @@ pub(super) fn describe_commands(
                 eprintln!("ush: {name}: not found");
                 status = 1;
             }
+        }
+    }
+
+    let text = if lines.is_empty() {
+        String::new()
+    } else {
+        format!("{}\n", lines.join("\n"))
+    };
+    (text, status)
+}
+
+pub(super) fn describe_which(aliases: &BTreeMap<String, String>, names: &[String]) -> (String, i32) {
+    let mut lines = Vec::new();
+    let mut status = 0;
+
+    for name in names {
+        let matches = lookup_all_commands(name, aliases);
+        if matches.is_empty() {
+            eprintln!("ush: {name}: not found");
+            status = 1;
+            continue;
+        }
+
+        for (index, result) in matches.iter().enumerate() {
+            let marker = if index == 0 { "=> " } else { "   " };
+            let line = match result {
+                CommandLookup::Alias(alias) => format!("{}{}", marker, format_alias(name, alias)),
+                CommandLookup::Builtin => format!("{marker}{name}"),
+                CommandLookup::External(path) => format!("{}{}", marker, path.display()),
+            };
+            lines.push(line);
         }
     }
 

@@ -688,6 +688,7 @@ fn stylish_which_renders_alias_builtin_and_external_targets() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("which"));
     assert!(stdout.contains("3 targets"));
+    assert!(stdout.contains("[current]"));
     assert!(stdout.contains("[alias]"));
     assert!(stdout.contains("ll"));
     assert!(stdout.contains("ls -lah"));
@@ -698,6 +699,84 @@ fn stylish_which_renders_alias_builtin_and_external_targets() {
     assert!(stdout.contains("sh"));
     assert!(!stdout.contains("┌"));
     assert!(!stdout.contains("│"));
+}
+
+#[test]
+fn which_lists_all_matches_with_current_first() {
+    let dir = tempdir().expect("tempdir");
+    let config_path = dir.path().join("config.json");
+    fs::write(
+        &config_path,
+        r#"{
+  "aliases": {
+    "echo": "printf"
+  }
+}
+"#,
+    )
+    .expect("write config");
+
+    let output = ush()
+        .args([
+            "--config",
+            config_path.to_str().expect("utf8 path"),
+            "-c",
+            "which echo",
+        ])
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let lines = stdout.lines().collect::<Vec<_>>();
+    assert!(
+        lines
+            .first()
+            .is_some_and(|line| line.starts_with("=> alias echo='printf'"))
+    );
+    assert!(lines.iter().any(|line| line.trim() == "echo"));
+    assert!(
+        lines.iter()
+            .any(|line| line.starts_with("   /") && line.contains("echo"))
+    );
+}
+
+#[test]
+fn stylish_which_highlights_current_match_while_showing_all_candidates() {
+    let dir = tempdir().expect("tempdir");
+    let config_path = dir.path().join("config.json");
+    fs::write(
+        &config_path,
+        r#"{
+  "aliases": {
+    "echo": "printf"
+  }
+}
+"#,
+    )
+    .expect("write config");
+
+    let output = ush()
+        .args([
+            "--config",
+            config_path.to_str().expect("utf8 path"),
+            "-s",
+            "-c",
+            "which echo",
+        ])
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("which"));
+    assert!(stdout.contains("1 target"));
+    assert_eq!(stdout.matches("[current]").count(), 1);
+    assert!(stdout.contains("[alias]"));
+    assert!(stdout.contains("printf"));
+    assert!(stdout.contains("[builtin]"));
+    assert!(stdout.contains("shell builtin"));
+    assert!(stdout.contains("[external]"));
 }
 
 #[test]

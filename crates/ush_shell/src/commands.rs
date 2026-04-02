@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
 use anyhow::{Result, anyhow};
-use which::which;
+use which::{Error as WhichError, which, which_all};
 
 pub(crate) const BUILTIN_COMMANDS: &[&str] = &[
     ":", ".", "[", "alias", "bg", "cd", "command", "confirm", "disown", "echo", "env", "exit",
@@ -25,17 +25,44 @@ pub(crate) fn lookup_command(
     command: &str,
     aliases: &BTreeMap<String, String>,
 ) -> Option<CommandLookup> {
+    lookup_all_commands(command, aliases).into_iter().next()
+}
+
+pub(crate) fn lookup_all_commands(
+    command: &str,
+    aliases: &BTreeMap<String, String>,
+) -> Vec<CommandLookup> {
+    let mut lookups = Vec::new();
+
     if let Some(alias) = aliases.get(command) {
-        return Some(CommandLookup::Alias(alias.clone()));
+        lookups.push(CommandLookup::Alias(alias.clone()));
     }
     if is_builtin(command) {
-        return Some(CommandLookup::Builtin);
+        lookups.push(CommandLookup::Builtin);
     }
-    find_external_command(command).map(CommandLookup::External)
+    lookups.extend(find_all_external_commands(command).into_iter().map(CommandLookup::External));
+
+    lookups
 }
 
 pub(crate) fn find_external_command(command: &str) -> Option<PathBuf> {
     which(command).ok()
+}
+
+pub(crate) fn find_all_external_commands(command: &str) -> Vec<PathBuf> {
+    match which_all(command) {
+        Ok(paths) => {
+            let mut unique = Vec::new();
+            for path in paths {
+                if !unique.contains(&path) {
+                    unique.push(path);
+                }
+            }
+            unique
+        }
+        Err(WhichError::CannotFindBinaryPath) => Vec::new(),
+        Err(_) => Vec::new(),
+    }
 }
 
 pub(crate) fn ensure_external_command(command: &str) -> Result<()> {

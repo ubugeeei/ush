@@ -55,6 +55,7 @@ Implemented today:
 - Builtin utility: `sammary` for recursive file and type summaries across paths and globs, with lockfiles excluded by default
 - Safety prompt for dangerous recursive `rm` unless `--yes` or `USH_INTERACTION=false`
 - Stylish renderers for `pwd`, `ls`, `cat`, `ps`, and `kill`
+- Stylish command introspection for `which`, `type`, `command -v`, and `command -V`, with `which` listing every candidate and marking the one `ush` will run
 - Structured helpers: `len`, `lines`, `json`, `xml`, `html`, `car`, `cdr`, `head`, `tail`, `take`, `drop`, `nth`, `enumerate`, `swap`, `fst`, `snd`, `frev`, `fsort`, `funiq`, `fjoin`, `map`, `fmap`, `flat`, `ffmap`, `fzip`, `each`, `filter`, `ffilter`, `any`, `fany`, `some`, `fsome`
 - Environment-variable expansion, `~` expansion, and simple glob expansion
 - Criterion benchmark skeleton for parser/profiling work
@@ -118,6 +119,12 @@ Kill the process that is listening on a port:
 
 ```bash
 cargo run -p ush -- -c 'port 3341 | stop'
+```
+
+Inspect command resolution order and see which candidate is current:
+
+```bash
+cargo run -p ush -- -s -c 'which echo'
 ```
 
 Enable stylish mode:

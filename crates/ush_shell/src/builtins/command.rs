@@ -1,6 +1,6 @@
 use anyhow::{Result, bail};
 
-use super::introspection::{LookupStyle, describe_commands};
+use super::introspection::{LookupStyle, describe_commands, describe_which};
 use crate::{Shell, ValueStream, commands, parser::CommandSpec, style};
 
 impl Shell {
@@ -72,7 +72,20 @@ impl Shell {
             bail!("{name} requires at least one command name");
         }
 
-        if self.options.stylish && matches!(name, "which" | "type" | "command -v" | "command -V") {
+        if self.options.stylish && name == "which" {
+            let mut rows = Vec::new();
+            let mut status = 0;
+            for arg in args {
+                let matches = commands::lookup_all_commands(arg, &self.aliases);
+                if matches.is_empty() {
+                    status = 1;
+                }
+                rows.push((arg.clone(), matches));
+            }
+            return Ok((ValueStream::Text(style::render_which(name, &rows)), status));
+        }
+
+        if self.options.stylish && matches!(name, "type" | "command -v" | "command -V") {
             let mut rows = Vec::new();
             let mut status = 0;
             for arg in args {
@@ -83,6 +96,11 @@ impl Shell {
                 rows.push((arg.clone(), result));
             }
             return Ok((ValueStream::Text(style::render_lookup(name, &rows)), status));
+        }
+
+        if name == "which" {
+            let (text, status) = describe_which(&self.aliases, args);
+            return Ok((ValueStream::Text(text), status));
         }
 
         let (text, status) = describe_commands(&self.aliases, args, style);

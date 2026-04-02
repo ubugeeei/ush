@@ -230,6 +230,75 @@ pub fn render_lookup(command: &str, rows: &[(String, Option<CommandLookup>)]) ->
     out
 }
 
+pub fn render_which(command: &str, rows: &[(String, Vec<CommandLookup>)]) -> String {
+    let mut alias_count = 0usize;
+    let mut builtin_count = 0usize;
+    let mut external_count = 0usize;
+    let mut missing_count = 0usize;
+
+    for (_, matches) in rows {
+        if matches.is_empty() {
+            missing_count += 1;
+            continue;
+        }
+
+        for result in matches {
+            match result {
+                CommandLookup::Alias(_) => alias_count += 1,
+                CommandLookup::Builtin => builtin_count += 1,
+                CommandLookup::External(_) => external_count += 1,
+            }
+        }
+    }
+
+    let mut out = String::new();
+    let _ = writeln!(
+        out,
+        "{} {}",
+        paint(BLUE_BOLD, command),
+        dim(pluralize(rows.len(), "target", "targets"))
+    );
+
+    let mut meta = Vec::new();
+    if alias_count > 0 {
+        meta.push(pluralize(alias_count, "alias", "aliases"));
+    }
+    if builtin_count > 0 {
+        meta.push(pluralize(builtin_count, "builtin", "builtins"));
+    }
+    if external_count > 0 {
+        meta.push(pluralize(
+            external_count,
+            "external command",
+            "external commands",
+        ));
+    }
+    if missing_count > 0 {
+        meta.push(pluralize(
+            missing_count,
+            "missing target",
+            "missing targets",
+        ));
+    }
+    if !meta.is_empty() {
+        let _ = writeln!(out, "{}", dim(meta.join(", ")));
+    }
+    let _ = writeln!(out, "{}", dim("current match follows alias, builtin, then PATH order"));
+
+    for (name, matches) in rows {
+        if matches.is_empty() {
+            render_which_match_row(&mut out, name, None, false);
+            continue;
+        }
+
+        for (index, result) in matches.iter().enumerate() {
+            render_which_match_row(&mut out, name, Some(result), index == 0);
+        }
+    }
+
+    out
+}
+
 pub fn render_env_map(env: &HashMap<String, String>) -> String {
     let mut entries = env.iter().collect::<Vec<_>>();
     entries.sort_by(|(left, _), (right, _)| left.cmp(right));
@@ -1561,6 +1630,54 @@ fn render_which_row(out: &mut String, name: &str, result: Option<&CommandLookup>
                 badge("external", GREEN_BOLD),
                 dim(path.display())
             );
+        }
+        None => {
+            let _ = writeln!(
+                out,
+                "{} {} {}",
+                paint(CYAN_BOLD, name),
+                badge("not found", RED_BOLD),
+                dim("unavailable on PATH")
+            );
+        }
+    }
+}
+
+fn render_which_match_row(
+    out: &mut String,
+    name: &str,
+    result: Option<&CommandLookup>,
+    current: bool,
+) {
+    let current_badge = current.then(|| badge("current", MAGENTA_BOLD));
+
+    match result {
+        Some(CommandLookup::Alias(value)) => {
+            let mut parts = vec![paint(CYAN_BOLD, name)];
+            if let Some(current_badge) = current_badge.as_ref() {
+                parts.push(current_badge.clone());
+            }
+            parts.push(badge("alias", BLUE_BOLD));
+            parts.push(paint(BOLD, value));
+            let _ = writeln!(out, "{}", parts.join(" "));
+        }
+        Some(CommandLookup::Builtin) => {
+            let mut parts = vec![paint(CYAN_BOLD, name)];
+            if let Some(current_badge) = current_badge.as_ref() {
+                parts.push(current_badge.clone());
+            }
+            parts.push(badge("builtin", YELLOW_BOLD));
+            parts.push(dim("shell builtin"));
+            let _ = writeln!(out, "{}", parts.join(" "));
+        }
+        Some(CommandLookup::External(path)) => {
+            let mut parts = vec![paint(CYAN_BOLD, name)];
+            if let Some(current_badge) = current_badge.as_ref() {
+                parts.push(current_badge.clone());
+            }
+            parts.push(badge("external", GREEN_BOLD));
+            parts.push(dim(path.display()));
+            let _ = writeln!(out, "{}", parts.join(" "));
         }
         None => {
             let _ = writeln!(

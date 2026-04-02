@@ -11,6 +11,7 @@ use fallback::needs_posix_fallback;
 #[derive(Debug, Clone)]
 pub enum ParsedLine {
     Empty,
+    Background(String),
     Fallback(String),
     Pipeline(Pipeline),
 }
@@ -41,6 +42,10 @@ pub fn parse_line(line: &str, aliases: &BTreeMap<String, String>) -> Result<Pars
     let stripped = strip_comment(line).trim().to_string();
     if stripped.is_empty() {
         return Ok(ParsedLine::Empty);
+    }
+
+    if let Some(background) = split_background_job(&stripped) {
+        return Ok(ParsedLine::Background(background));
     }
 
     if needs_posix_fallback(&stripped) {
@@ -197,6 +202,76 @@ fn is_identifier(source: &str) -> bool {
     chars.all(|ch| ch == '_' || ch.is_ascii_alphanumeric())
 }
 
+fn split_background_job(line: &str) -> Option<String> {
+    let mut single = false;
+    let mut double = false;
+    let mut escaped = false;
+    let mut background_index = None;
+
+    for (index, ch) in line.char_indices() {
+        match ch {
+            '\\' if !single => escaped = !escaped,
+            '\'' if !double && !escaped => {
+                single = !single;
+                background_index = None;
+                escaped = false;
+            }
+            '"' if !single && !escaped => {
+                double = !double;
+                background_index = None;
+                escaped = false;
+            }
+            _ if single || double => escaped = false,
+            '&' => {
+                background_index = Some(index);
+                escaped = false;
+            }
+            _ if ch.is_whitespace() => escaped = false,
+            _ => {
+                background_index = None;
+                escaped = false;
+            }
+        }
+    }
+
+    let index = background_index?;
+    let command = line[..index].trim_end();
+    if command.is_empty() {
+        return None;
+    }
+    if command.ends_with('&') {
+        return None;
+    }
+    Some(command.to_string())
+}
+
 pub fn is_builtin(command: &str) -> bool {
     commands::is_builtin(command)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use super::{ParsedLine, parse_line};
+
+    #[test]
+    fn parses_trailing_background_jobs_before_fallback() {
+        let parsed = parse_line("sleep 1 &", &BTreeMap::new()).expect("parse");
+
+        match parsed {
+            ParsedLine::Background(source) => assert_eq!(source, "sleep 1"),
+            other => panic!("expected background line, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn keeps_boolean_and_as_posix_fallback() {
+        let parsed = parse_line("true && false", &BTreeMap::new()).expect("parse");
+
+        match parsed {
+            ParsedLine::Fallback(source) => assert_eq!(source, "true && false"),
+            other => panic!("expected fallback line, got {other:?}"),
+        }
+    }
 }

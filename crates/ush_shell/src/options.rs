@@ -71,6 +71,8 @@ impl Shell {
             options,
             env: env_map,
             cwd,
+            jobs: Vec::new(),
+            next_job_id: 1,
             last_status: 0,
             paths,
         })

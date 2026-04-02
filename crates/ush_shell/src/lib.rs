@@ -32,6 +32,8 @@ pub struct Shell {
     env: HashMap<String, String>,
     aliases: BTreeMap<String, String>,
     cwd: PathBuf,
+    jobs: Vec<process::Job>,
+    next_job_id: usize,
     last_status: i32,
     paths: RuntimePaths,
 }

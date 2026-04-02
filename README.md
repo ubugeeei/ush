@@ -50,7 +50,7 @@ Implemented today:
 - `apps/ush` and `crates/ush_shell` remain `std`-based by design
 - Installer patterns such as `curl -fsSL https://... | sh` are detected from the parsed pipeline and executed through POSIX `/bin/sh`
 - `.ush` inline shell escapes via `$ command ...`, alongside `shell expr` for dynamic command strings
-- Builtins: `:`, `.`, `cd`, `pwd`, `echo`, `true`, `false`, `alias`, `unalias`, `history`, `export`, `unset`, `confirm`, `input`, `select`, `env`, `command`, `which`, `type`, `test`, `[`, `help`, `source`, `rm`
+- Builtins: `:`, `.`, `cd`, `pwd`, `echo`, `true`, `false`, `alias`, `unalias`, `jobs`, `wait`, `disown`, `fg`, `bg`, `history`, `export`, `unset`, `confirm`, `input`, `select`, `env`, `command`, `which`, `type`, `test`, `[`, `help`, `source`, `rm`
 - Login/profile startup loading via `--login`, `--profile-file`, `--rc-file`, `~/.ush_profile`, and `~/.ushrc`
 - Builtin utility: `sammary` for recursive file and type summaries across paths and globs, with lockfiles excluded by default
 - Safety prompt for dangerous recursive `rm` unless `--yes` or `USH_INTERACTION=false`

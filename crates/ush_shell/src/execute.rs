@@ -10,6 +10,12 @@ impl Shell {
     pub fn execute(&mut self, line: &str) -> Result<i32> {
         match super::parse_line(line, &self.aliases)? {
             ParsedLine::Empty => Ok(self.last_status),
+            ParsedLine::Background(source) => {
+                let text = self.spawn_background_job(&source)?;
+                print!("{text}");
+                io::stdout().flush()?;
+                self.finish((ValueStream::Empty, 0))
+            }
             ParsedLine::Fallback(source) => {
                 let result = self.run_fallback(&source, ValueStream::Empty, false)?;
                 self.finish(result)

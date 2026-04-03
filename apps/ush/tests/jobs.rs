@@ -18,7 +18,10 @@ fn normalize_job_output(text: &str) -> String {
         .lines()
         .map(|line| {
             let mut parts = line.split_whitespace().collect::<Vec<_>>();
-            if parts.len() >= 2 && parts[0].starts_with('[') && parts[1].chars().all(|ch| ch.is_ascii_digit()) {
+            if parts.len() >= 2
+                && parts[0].starts_with('[')
+                && parts[1].chars().all(|ch| ch.is_ascii_digit())
+            {
                 parts[1] = "<PID>";
                 parts.join(" ")
             } else {

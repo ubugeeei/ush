@@ -6,8 +6,8 @@ use std::{
 use crate::commands::CommandLookup;
 
 use super::common::{
-    BLUE_BOLD, BOLD, CYAN_BOLD, GREEN_BOLD, MAGENTA_BOLD, RED_BOLD, YELLOW_BOLD, badge, dim,
-    paint, pluralize,
+    BLUE_BOLD, BOLD, CYAN_BOLD, GREEN_BOLD, MAGENTA_BOLD, RED_BOLD, YELLOW_BOLD, badge, dim, paint,
+    pluralize,
 };
 
 pub fn render_aliases(aliases: &BTreeMap<String, String>) -> String {

@@ -40,7 +40,11 @@ pub(crate) fn lookup_all_commands(
     if is_builtin(command) {
         lookups.push(CommandLookup::Builtin);
     }
-    lookups.extend(find_all_external_commands(command).into_iter().map(CommandLookup::External));
+    lookups.extend(
+        find_all_external_commands(command)
+            .into_iter()
+            .map(CommandLookup::External),
+    );
 
     lookups
 }

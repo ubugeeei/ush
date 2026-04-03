@@ -27,7 +27,9 @@ impl SourceMap {
     pub fn generated_lines_for_source(&self, source_line: usize) -> Vec<usize> {
         self.lines
             .iter()
-            .filter_map(|line| (line.source_line == Some(source_line)).then_some(line.generated_line))
+            .filter_map(|line| {
+                (line.source_line == Some(source_line)).then_some(line.generated_line)
+            })
             .collect()
     }
 
@@ -37,11 +39,13 @@ impl SourceMap {
             let Some(source_line) = line.source_line else {
                 continue;
             };
-            let entry = grouped.entry(source_line).or_insert_with(|| SourceMapSourceLine {
-                source_line,
-                source_text: line.source_text.clone(),
-                generated_lines: Vec::new(),
-            });
+            let entry = grouped
+                .entry(source_line)
+                .or_insert_with(|| SourceMapSourceLine {
+                    source_line,
+                    source_text: line.source_text.clone(),
+                    generated_lines: Vec::new(),
+                });
             if entry.source_text.is_none() {
                 entry.source_text = line.source_text.clone();
             }
@@ -54,24 +58,23 @@ impl SourceMap {
         let mut mapped_line_count = 0usize;
         let mut first_mapped_generated_line = None::<usize>;
         let mut last_mapped_generated_line = None::<usize>;
-        let mut section_counts =
-            BTreeMap::<SourceMapSection, SourceMapSectionSummary>::new();
+        let mut section_counts = BTreeMap::<SourceMapSection, SourceMapSectionSummary>::new();
 
         for line in &self.lines {
-            let entry = section_counts
-                .entry(line.section)
-                .or_insert_with(|| SourceMapSectionSummary {
-                    section: line.section,
-                    generated_line_count: 0,
-                    mapped_line_count: 0,
-                });
+            let entry =
+                section_counts
+                    .entry(line.section)
+                    .or_insert_with(|| SourceMapSectionSummary {
+                        section: line.section,
+                        generated_line_count: 0,
+                        mapped_line_count: 0,
+                    });
             entry.generated_line_count += 1;
 
             if line.source_line.is_some() {
                 mapped_line_count += 1;
                 entry.mapped_line_count += 1;
-                first_mapped_generated_line
-                    .get_or_insert(line.generated_line);
+                first_mapped_generated_line.get_or_insert(line.generated_line);
                 last_mapped_generated_line = Some(line.generated_line);
             }
         }
@@ -108,9 +111,7 @@ impl SourceMap {
             let _ = writeln!(
                 out,
                 "mapped {} / {} generated lines across {} source lines",
-                summary.mapped_line_count,
-                summary.generated_line_count,
-                summary.source_line_count
+                summary.mapped_line_count, summary.generated_line_count, summary.source_line_count
             );
         } else {
             let _ = writeln!(

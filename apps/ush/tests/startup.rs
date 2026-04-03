@@ -2,8 +2,8 @@ use std::{fs, process::Command};
 
 mod support;
 
-use tempfile::tempdir;
 use support::assert_snapshot;
+use tempfile::tempdir;
 
 fn ush() -> Command {
     Command::new(env!("CARGO_BIN_EXE_ush"))
@@ -36,7 +36,11 @@ fn login_flag_loads_explicit_profile_before_running_a_command() {
 
     assert!(output.status.success());
     assert!(output.stderr.is_empty());
-    let stdout = normalize_path(&String::from_utf8_lossy(&output.stdout), &profile, "<PROFILE_SH>");
+    let stdout = normalize_path(
+        &String::from_utf8_lossy(&output.stdout),
+        &profile,
+        "<PROFILE_SH>",
+    );
     assert_snapshot("startup/login_profile.stdout", &stdout);
 }
 

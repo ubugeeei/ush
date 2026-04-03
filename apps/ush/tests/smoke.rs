@@ -318,10 +318,16 @@ fn ush_script_exposes_generated_docs() {
 
     assert!(help.status.success());
     assert!(help.stderr.is_empty());
-    assert_snapshot(&fixture("script_help"), &String::from_utf8_lossy(&help.stdout));
+    assert_snapshot(
+        &fixture("script_help"),
+        &String::from_utf8_lossy(&help.stdout),
+    );
     assert!(man.status.success());
     assert!(man.stderr.is_empty());
-    assert_snapshot(&fixture("script_man"), &String::from_utf8_lossy(&man.stdout));
+    assert_snapshot(
+        &fixture("script_man"),
+        &String::from_utf8_lossy(&man.stdout),
+    );
     assert!(complete.status.success());
     assert_eq!(String::from_utf8_lossy(&complete.stdout), "greet\n");
 }

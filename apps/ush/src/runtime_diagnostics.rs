@@ -9,7 +9,12 @@ pub fn instrument_compiled_script(origin: &Path, compiled: &CompiledScript) -> S
         .sourcemap
         .source_index()
         .into_iter()
-        .map(|line| (line.source_line, format_generated_lines(&line.generated_lines)))
+        .map(|line| {
+            (
+                line.source_line,
+                format_generated_lines(&line.generated_lines),
+            )
+        })
         .collect::<BTreeMap<_, _>>();
     out.push_str("__ush_runtime_map_origin=");
     out.push_str(&shell_quote(&origin.display().to_string()));
@@ -37,9 +42,7 @@ pub fn instrument_compiled_script(origin: &Path, compiled: &CompiledScript) -> S
     out.push_str(
         "    printf '\\nush runtime map: %s:%s\\n' \"$__ush_runtime_map_origin\" \"$__ush_runtime_map_source_line\" >&2\n",
     );
-    out.push_str(
-        "    printf '  section: %s\\n' \"$__ush_runtime_map_section\" >&2\n",
-    );
+    out.push_str("    printf '  section: %s\\n' \"$__ush_runtime_map_section\" >&2\n");
     out.push_str(
         "    printf '  shell  : G%04d | %s\\n' \"$__ush_runtime_map_generated\" \"$__ush_runtime_map_shell\" >&2\n",
     );
@@ -47,9 +50,7 @@ pub fn instrument_compiled_script(origin: &Path, compiled: &CompiledScript) -> S
     out.push_str("    printf '  mapped : %s\\n' \"$__ush_runtime_map_mapped\" >&2\n");
     out.push_str("  elif [ -n \"$__ush_runtime_map_generated\" ]; then\n");
     out.push_str("    printf '\\nush runtime map: %s\\n' \"$__ush_runtime_map_origin\" >&2\n");
-    out.push_str(
-        "    printf '  section: %s\\n' \"$__ush_runtime_map_section\" >&2\n",
-    );
+    out.push_str("    printf '  section: %s\\n' \"$__ush_runtime_map_section\" >&2\n");
     out.push_str(
         "    printf '  shell  : G%04d | %s\\n' \"$__ush_runtime_map_generated\" \"$__ush_runtime_map_shell\" >&2\n",
     );
@@ -192,9 +193,15 @@ mod tests {
             .compile_source_with_sourcemap("print \"hello\"\n")
             .expect("compile");
 
-        let script = compact_runtime_snapshot(&instrument_compiled_script("example.ush".as_ref(), &compiled));
+        let script = compact_runtime_snapshot(&instrument_compiled_script(
+            "example.ush".as_ref(),
+            &compiled,
+        ));
 
-        assert_eq!(script, include_str!("fixtures/runtime_diagnostics_simple.sh"));
+        assert_eq!(
+            script,
+            include_str!("fixtures/runtime_diagnostics_simple.sh")
+        );
     }
 
     #[test]
@@ -217,9 +224,14 @@ mod tests {
             )
             .expect("compile");
 
-        let script =
-            compact_runtime_snapshot(&instrument_compiled_script("example.ush".as_ref(), &compiled));
-        assert_eq!(script, include_str!("fixtures/runtime_diagnostics_multiline.sh"));
+        let script = compact_runtime_snapshot(&instrument_compiled_script(
+            "example.ush".as_ref(),
+            &compiled,
+        ));
+        assert_eq!(
+            script,
+            include_str!("fixtures/runtime_diagnostics_multiline.sh")
+        );
     }
 
     #[test]

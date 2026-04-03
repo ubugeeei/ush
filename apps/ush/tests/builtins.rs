@@ -8,8 +8,8 @@ use std::{
 
 mod support;
 
-use tempfile::tempdir;
 use support::assert_snapshot;
+use tempfile::tempdir;
 
 fn ush() -> Command {
     Command::new(env!("CARGO_BIN_EXE_ush"))

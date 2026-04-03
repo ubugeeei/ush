@@ -411,7 +411,10 @@ fn listening_pids_for_port(port: u16) -> Result<Vec<i32>> {
 
 fn run_lsof(args: &[String]) -> Result<Vec<i32>> {
     let output = Command::new("lsof").args(args).output().with_context(|| {
-        format!("failed to run lsof; install it to use `port` ({})", args.join(" "))
+        format!(
+            "failed to run lsof; install it to use `port` ({})",
+            args.join(" ")
+        )
     })?;
 
     if !output.status.success() && output.status.code() != Some(1) {

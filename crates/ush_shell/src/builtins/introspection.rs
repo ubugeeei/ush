@@ -44,7 +44,10 @@ pub(super) fn describe_commands(
     (text, status)
 }
 
-pub(super) fn describe_which(aliases: &BTreeMap<String, String>, names: &[String]) -> (String, i32) {
+pub(super) fn describe_which(
+    aliases: &BTreeMap<String, String>,
+    names: &[String],
+) -> (String, i32) {
     let mut lines = Vec::new();
     let mut status = 0;
 

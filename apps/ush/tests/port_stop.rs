@@ -28,7 +28,11 @@ fn port_builtin_reports_listening_process_ids() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.lines().any(|line| line.trim() == server.id().to_string()));
+    assert!(
+        stdout
+            .lines()
+            .any(|line| line.trim() == server.id().to_string())
+    );
 }
 
 #[test]

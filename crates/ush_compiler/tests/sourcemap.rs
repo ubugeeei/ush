@@ -108,7 +108,10 @@ fn sourcemap_summary_and_source_index_group_related_lines() {
             .map(|line| line.generated_lines.as_slice()),
         Some(condition_lines.as_slice())
     );
-    assert_eq!(user_code.mapped_line_count, condition_lines.len() + print_lines.len());
+    assert_eq!(
+        user_code.mapped_line_count,
+        condition_lines.len() + print_lines.len()
+    );
     assert!(user_code.generated_line_count >= user_code.mapped_line_count);
 }
 
@@ -120,7 +123,10 @@ fn sourcemap_render_mapped_listing_matches_snapshot() {
 
     let listing = compiled.sourcemap.render_mapped_listing();
 
-    assert_eq!(listing, include_str!("fixtures/sourcemap_mapped_listing.txt"));
+    assert_eq!(
+        listing,
+        include_str!("fixtures/sourcemap_mapped_listing.txt")
+    );
 }
 
 fn compact_sourcemap_snapshot(compiled: &CompiledScript) -> String {
@@ -129,9 +135,17 @@ fn compact_sourcemap_snapshot(compiled: &CompiledScript) -> String {
     let mut out = String::new();
 
     let _ = writeln!(out, "summary:");
-    let _ = writeln!(out, "  generated_line_count: {}", summary.generated_line_count);
+    let _ = writeln!(
+        out,
+        "  generated_line_count: {}",
+        summary.generated_line_count
+    );
     let _ = writeln!(out, "  mapped_line_count: {}", summary.mapped_line_count);
-    let _ = writeln!(out, "  unmapped_line_count: {}", summary.unmapped_line_count);
+    let _ = writeln!(
+        out,
+        "  unmapped_line_count: {}",
+        summary.unmapped_line_count
+    );
     let _ = writeln!(out, "  source_line_count: {}", summary.source_line_count);
     let _ = writeln!(
         out,

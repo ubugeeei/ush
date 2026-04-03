@@ -66,11 +66,18 @@ impl Shell {
             resolved_keymap(self.config.shell.keymap),
             self.command_names(),
             self.env.keys().cloned().collect(),
+            self.cwd.clone(),
         )?;
 
         loop {
             if let Some(helper) = editor.helper_mut() {
-                helper.refresh(self.command_names(), self.env.keys().cloned().collect());
+                helper.refresh(
+                    self.command_names(),
+                    self.env.keys().cloned().collect(),
+                    self.cwd.clone(),
+                    self.aliases.keys().cloned().collect(),
+                    self.repl_job_candidates(),
+                );
             }
             match editor.readline(&self.prompt()) {
                 Ok(line) => self.handle_repl_line(&mut editor, &line)?,

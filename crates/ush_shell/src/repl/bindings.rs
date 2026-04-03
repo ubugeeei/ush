@@ -9,6 +9,7 @@ use rustyline::{
 
 use self::specs::{BindingAction, binding_specs};
 use super::{
+    completion_state::CompletionState,
     UshHelper,
     selection::{SelectionDelete, SelectionHandle},
 };
@@ -16,6 +17,7 @@ use super::{
 pub fn configure_editor(
     editor: &mut Editor<UshHelper, DefaultHistory>,
     selection: SelectionHandle,
+    completion: CompletionState,
 ) {
     for event in selection_delete_events() {
         editor.bind_sequence(
@@ -32,6 +34,18 @@ pub fn configure_editor(
             ))),
         );
     }
+    editor.bind_sequence(
+        Event::from(KeyEvent(KeyCode::Enter, Modifiers::NONE)),
+        EventHandler::Conditional(Box::new(CompletionAcceptHandler(completion.clone()))),
+    );
+    editor.bind_sequence(
+        Event::from(KeyEvent(KeyCode::Char('M'), Modifiers::CTRL)),
+        EventHandler::Conditional(Box::new(CompletionAcceptHandler(completion.clone()))),
+    );
+    editor.bind_sequence(
+        Event::from(KeyEvent(KeyCode::Char('J'), Modifiers::CTRL)),
+        EventHandler::Conditional(Box::new(CompletionAcceptHandler(completion))),
+    );
     editor.bind_sequence(
         Event::Any,
         EventHandler::Conditional(Box::new(ClearSelectionHandler(selection))),
@@ -83,12 +97,20 @@ impl ConditionalEventHandler for ClearSelectionHandler {
 
 struct SelectionDeleteHandler(SelectionHandle);
 
+struct CompletionAcceptHandler(CompletionState);
+
 impl ConditionalEventHandler for SelectionDeleteHandler {
     fn handle(&self, evt: &Event, _: RepeatCount, _: bool, ctx: &EventContext) -> Option<Cmd> {
         let range = self.0.range()?;
         let cmd = selection_delete_command(evt, ctx.line(), ctx.pos(), range)?;
         self.0.clear();
         Some(cmd)
+    }
+}
+
+impl ConditionalEventHandler for CompletionAcceptHandler {
+    fn handle(&self, _: &Event, _: RepeatCount, _: bool, ctx: &EventContext) -> Option<Cmd> {
+        self.0.accept(ctx.line(), ctx.pos()).then_some(Cmd::Noop)
     }
 }
 

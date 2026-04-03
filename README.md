@@ -185,6 +185,8 @@ The REPL is tuned around `rustyline`'s Emacs mode with extra bindings for shell-
 
 When a selection is active, typing replaces it and `Backspace` / `Delete` / `Ctrl-W` / `Ctrl-U` / `Ctrl-K` remove it, so keyboard-only editing feels closer to a native text field even inside the terminal.
 
+Tab completion is context-aware instead of just dumping filesystem entries. In particular, `git` commands now complete subcommands, common flags, branch/tag/remote/stash names, recent commits, and pathspecs relative to the current shell directory, while the inline hint shows a short usage reminder for the argument you are typing.
+
 If you opt into `USH_KEYMAP=vi` or `shell.keymap = "vi"`, `ush` switches the REPL to `rustyline`'s Vi editing mode instead. That is the recommended workaround for Codex Desktop, where `Cmd`-modified keys are often intercepted by the host app before the shell can read them.
 
 ## Structured Helpers

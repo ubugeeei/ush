@@ -54,14 +54,7 @@ impl Shell {
         let text = self
             .jobs
             .iter()
-            .map(|job| {
-                format!(
-                    "[{}] {:<7} {}\n",
-                    job.id,
-                    job.state.label(),
-                    job.command
-                )
-            })
+            .map(|job| format!("[{}] {:<7} {}\n", job.id, job.state.label(), job.command))
             .collect::<String>();
         Ok((ValueStream::Text(text), 0))
     }
@@ -125,6 +118,17 @@ impl Shell {
             .with_context(|| format!("failed to continue job %{id}"))?;
         job.state = JobState::Running;
         Ok((ValueStream::Empty, 0))
+    }
+
+    pub(crate) fn repl_job_candidates(&mut self) -> Vec<crate::repl::ReplJobCandidate> {
+        let _ = self.refresh_jobs();
+        self.jobs
+            .iter()
+            .map(|job| crate::repl::ReplJobCandidate {
+                spec: format!("%{}", job.id),
+                summary: format!("{}  {}", job.state.label(), job.command),
+            })
+            .collect()
     }
 
     pub(crate) fn spawn_background_job(&mut self, source: &str) -> Result<String> {

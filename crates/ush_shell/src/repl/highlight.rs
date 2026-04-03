@@ -16,6 +16,7 @@ const PROMPT_OK: &str = "\u{1b}[1;38;5;150m";
 const PROMPT_ERR: &str = "\u{1b}[1;38;5;203m";
 const PROMPT_FALLBACK: &str = "\u{1b}[1;38;5;250m";
 const HINT: &str = "\u{1b}[2;38;5;245m";
+const CANDIDATE_SUMMARY: &str = "\u{1b}[2;38;5;246m";
 const RESET: &str = "\u{1b}[0m";
 
 pub fn highlight_line(helper: &UshHelper, line: &str) -> String {
@@ -87,13 +88,18 @@ fn highlight_segments(helper: &UshHelper, line: &str) -> String {
 }
 
 pub fn highlight_candidate(helper: &UshHelper, candidate: &str) -> String {
-    if helper.commands.contains(candidate) || is_builtin(candidate) {
-        return color(COMMAND, candidate);
+    let (head, tail) = split_candidate_display(candidate);
+    let head = if helper.commands.contains(head) || is_builtin(head) {
+        color(COMMAND, head)
+    } else if syntax::is_keyword(head) {
+        color(KEYWORD, head)
+    } else {
+        head.to_string()
+    };
+    match tail {
+        Some(tail) => format!("{head}{}", color(CANDIDATE_SUMMARY, tail)),
+        None => head,
     }
-    if syntax::is_keyword(candidate) {
-        return color(KEYWORD, candidate);
-    }
-    candidate.to_string()
 }
 
 pub fn highlight_prompt(prompt: &str) -> String {
@@ -165,6 +171,16 @@ fn color(code: &str, value: &str) -> String {
     format!("{code}{value}{RESET}")
 }
 
+fn split_candidate_display(candidate: &str) -> (&str, Option<&str>) {
+    if let Some((head, tail)) = candidate.split_once('\t') {
+        return (head, Some(tail));
+    }
+    if let Some((head, tail)) = candidate.split_once("  ") {
+        return (head, Some(tail));
+    }
+    (candidate, None)
+}
+
 fn parse_prompt_body(prompt: &str) -> Option<(&str, &str)> {
     if let Some(body) = prompt.strip_suffix(" $ ") {
         return Some((body, PROMPT_OK));
@@ -188,6 +204,7 @@ mod tests {
         let helper = UshHelper::new(
             vec!["echo".to_string(), "grep".to_string()],
             vec!["PATH".to_string()],
+            std::path::PathBuf::from("."),
         );
         let line = highlight_line(&helper, "echo $PATH # note");
 
@@ -214,7 +231,11 @@ mod tests {
 
     #[test]
     fn highlights_selected_region() {
-        let helper = UshHelper::new(vec!["echo".to_string()], vec![]);
+        let helper = UshHelper::new(
+            vec!["echo".to_string()],
+            vec![],
+            std::path::PathBuf::from("."),
+        );
         helper
             .selection_handle()
             .extend("echo hello", 5, SelectionMove::WordRight);

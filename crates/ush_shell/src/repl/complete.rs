@@ -1,6 +1,6 @@
 use rustyline::{Context, completion::Pair};
 
-use super::{UshHelper, syntax};
+use super::{UshHelper, builtin_completion, git_completion, syntax};
 
 pub fn complete(
     helper: &UshHelper,
@@ -31,6 +31,14 @@ pub fn complete(
         if !trimmed.is_empty() {
             pairs = helper.command_pairs(word);
         }
+    } else if let Some((builtin_start, builtin_pairs)) =
+        builtin_completion::complete(helper, line, pos)?
+    {
+        helper.update_completion(line, pos, builtin_start, &builtin_pairs);
+        return Ok((builtin_start, builtin_pairs));
+    } else if let Some((git_start, git_pairs)) = git_completion::complete(helper, line, pos)? {
+        helper.update_completion(line, pos, git_start, &git_pairs);
+        return Ok((git_start, git_pairs));
     } else if wants_path_completion(prefix, start, word) {
         let (path_start, path_pairs) = helper.files.complete_path(line, pos)?;
         helper.update_completion(line, pos, path_start, &path_pairs);
@@ -71,6 +79,7 @@ mod tests {
         UshHelper::new(
             vec!["echo".to_string(), "grep".to_string(), "git".to_string()],
             vec!["HOME".to_string(), "PATH".to_string(), "PWD".to_string()],
+            std::path::PathBuf::from("."),
         )
     }
 

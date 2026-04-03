@@ -1,6 +1,8 @@
 mod bindings;
+mod builtin_completion;
 mod complete;
 mod completion_state;
+mod git_completion;
 mod highlight;
 mod selection;
 mod syntax;
@@ -8,7 +10,11 @@ mod syntax;
 mod tests;
 mod validate;
 
-use std::{borrow::Cow, collections::BTreeSet, path::Path};
+use std::{
+    borrow::Cow,
+    collections::BTreeSet,
+    path::{Path, PathBuf},
+};
 
 use anyhow::Result;
 use rustyline::{
@@ -29,17 +35,29 @@ pub(crate) use self::validate::validate_input;
 pub struct UshHelper {
     commands: BTreeSet<String>,
     env_names: BTreeSet<String>,
+    alias_names: BTreeSet<String>,
+    jobs: Vec<ReplJobCandidate>,
+    cwd: PathBuf,
     files: FilenameCompleter,
     hinter: HistoryHinter,
     completion: completion_state::CompletionState,
     selection: SelectionHandle,
 }
 
+#[derive(Clone)]
+pub(crate) struct ReplJobCandidate {
+    pub(crate) spec: String,
+    pub(crate) summary: String,
+}
+
 impl UshHelper {
-    pub fn new(commands: Vec<String>, env_names: Vec<String>) -> Self {
+    pub fn new(commands: Vec<String>, env_names: Vec<String>, cwd: PathBuf) -> Self {
         Self {
             commands: commands.into_iter().collect(),
             env_names: env_names.into_iter().collect(),
+            alias_names: BTreeSet::new(),
+            jobs: Vec::new(),
+            cwd,
             files: FilenameCompleter::new(),
             hinter: HistoryHinter::new(),
             completion: completion_state::CompletionState::default(),
@@ -47,15 +65,29 @@ impl UshHelper {
         }
     }
 
-    pub fn refresh(&mut self, commands: Vec<String>, env_names: Vec<String>) {
+    pub fn refresh(
+        &mut self,
+        commands: Vec<String>,
+        env_names: Vec<String>,
+        cwd: PathBuf,
+        alias_names: Vec<String>,
+        jobs: Vec<ReplJobCandidate>,
+    ) {
         self.commands = commands.into_iter().collect();
         self.env_names = env_names.into_iter().collect();
+        self.alias_names = alias_names.into_iter().collect();
+        self.jobs = jobs;
+        self.cwd = cwd;
         self.completion.clear();
         self.selection.clear();
     }
 
     pub fn selection_handle(&self) -> SelectionHandle {
         self.selection.clone()
+    }
+
+    pub fn completion_handle(&self) -> completion_state::CompletionState {
+        self.completion.clone()
     }
 
     pub fn selection_range(&self) -> Option<(usize, usize)> {
@@ -80,7 +112,9 @@ impl UshHelper {
             .into_iter()
             .filter(|item| item.starts_with(needle))
             .map(|item| Pair {
-                display: item.clone(),
+                display: builtin_completion::command_summary(&item)
+                    .map(|summary| format!("{item}  {summary}"))
+                    .unwrap_or_else(|| item.clone()),
                 replacement: item,
             })
             .collect()
@@ -138,7 +172,16 @@ impl Hinter for UshHelper {
         if let Some(hint) = self.completion.hint(line, pos) {
             return Some(hint);
         }
-        self.hinter.hint(line, pos, ctx)
+        if let Some(hint) = self.hinter.hint(line, pos, ctx) {
+            return Some(hint);
+        }
+        if let Some(hint) = builtin_completion::hint(self, line, pos) {
+            return Some(hint);
+        }
+        if let Some(hint) = git_completion::hint(self, line, pos) {
+            return Some(hint);
+        }
+        None
     }
 }
 
@@ -184,6 +227,7 @@ pub fn create_editor(
     keymap: ShellKeymap,
     commands: Vec<String>,
     env_names: Vec<String>,
+    cwd: PathBuf,
 ) -> Result<Editor<UshHelper, DefaultHistory>> {
     let config = Config::builder()
         .max_history_size(history_size)?
@@ -196,11 +240,12 @@ pub fn create_editor(
         .edit_mode(edit_mode(keymap))
         .auto_add_history(true)
         .build();
-    let helper = UshHelper::new(commands, env_names);
+    let helper = UshHelper::new(commands, env_names, cwd);
     let selection = helper.selection_handle();
+    let completion = helper.completion_handle();
     let mut editor = Editor::with_config(config)?;
     editor.set_helper(Some(helper));
-    bindings::configure_editor(&mut editor, selection);
+    bindings::configure_editor(&mut editor, selection, completion);
     let _ = editor.load_history(history_file);
     Ok(editor)
 }

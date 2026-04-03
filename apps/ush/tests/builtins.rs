@@ -109,6 +109,33 @@ fn flush_token(out: &mut String, token: &mut String) {
     token.clear();
 }
 
+fn normalize_iso_dates(text: &str) -> String {
+    let mut out = String::new();
+    let chars = text.chars().collect::<Vec<_>>();
+    let mut index = 0usize;
+
+    while index < chars.len() {
+        if index + 10 <= chars.len()
+            && chars[index..index + 10]
+                .iter()
+                .enumerate()
+                .all(|(offset, ch)| match offset {
+                    4 | 7 => *ch == '-',
+                    _ => ch.is_ascii_digit(),
+                })
+        {
+            out.push_str("<DATE>");
+            index += 10;
+            continue;
+        }
+
+        out.push(chars[index]);
+        index += 1;
+    }
+
+    out
+}
+
 fn normalize_ls_output(text: &str) -> String {
     let normalized = text
         .lines()
@@ -780,7 +807,9 @@ fn stylish_git_branch_renders_current_branch_without_tables() {
 
     assert!(output.status.success());
     assert!(output.stderr.is_empty());
-    let stdout = normalize_git_hashes(&String::from_utf8_lossy(&output.stdout));
+    let stdout = normalize_iso_dates(&normalize_git_hashes(&String::from_utf8_lossy(
+        &output.stdout,
+    )));
     assert_snapshot(&fixture("stylish_git_branch"), &stdout);
 }
 
@@ -800,6 +829,8 @@ fn stylish_git_log_renders_recent_commits() {
 
     assert!(output.status.success());
     assert!(output.stderr.is_empty());
-    let stdout = normalize_git_hashes(&String::from_utf8_lossy(&output.stdout));
+    let stdout = normalize_iso_dates(&normalize_git_hashes(&String::from_utf8_lossy(
+        &output.stdout,
+    )));
     assert_snapshot(&fixture("stylish_git_log"), &stdout);
 }

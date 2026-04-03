@@ -51,7 +51,7 @@ Implemented today:
 - Installer patterns such as `curl -fsSL https://... | sh` are detected from the parsed pipeline and executed through POSIX `/bin/sh`
 - `.ush` inline shell escapes via `$ command ...`, alongside `shell expr` for dynamic command strings
 - Builtins: `:`, `.`, `cd`, `pwd`, `echo`, `true`, `false`, `alias`, `unalias`, `jobs`, `wait`, `disown`, `fg`, `bg`, `port`, `stop`, `history`, `export`, `unset`, `confirm`, `input`, `select`, `env`, `command`, `which`, `type`, `test`, `[`, `help`, `source`, `rm`
-- Login/profile startup loading via `--login`, `--profile-file`, `--rc-file`, `~/.ush_profile`, and `~/.ushrc`
+- Login/profile startup loading via `--login`, `--profile-file`, `--rc-file`, legacy `~/.ush_profile` / `~/.ushrc`, and rc defaults from `~/.config/ush/.config.ush` or `~/.config.ush`
 - Builtin utility: `sammary` for recursive file and type summaries across paths and globs, with lockfiles excluded by default
 - Safety prompt for dangerous recursive `rm` unless `--yes` or `USH_INTERACTION=false`
 - Stylish renderers for `pwd`, `ls`, `cat`, `ps`, and `kill`
@@ -156,7 +156,7 @@ Load login/profile startup files explicitly:
 ```bash
 cargo run -p ush -- --login
 cargo run -p ush -- --profile-file ~/.config/ush/profile.sh -c 'echo $PWD'
-cargo run -p ush -- --rc-file ~/.config/ush/dev.rc
+cargo run -p ush -- --rc-file ~/.config.ush
 ```
 
 ## Interactive Editing
@@ -290,6 +290,8 @@ Config is resolved from:
 
 - `~/.config/ush/config.pkl`
 - `~/.config/ush/config.json`
+
+Default shell rc loading is separate from structured config. For interactive sessions, `ush` now prefers `~/.config/ush/.config.ush`, falls back to `~/.config.ush`, and still accepts legacy `rc.sh` / `.ushrc`.
 
 Example `config.pkl`:
 

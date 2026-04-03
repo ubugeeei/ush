@@ -128,7 +128,9 @@ impl Shell {
         let mut paths = vec![self.paths.config_dir.join("rc.sh")];
         if let Some(home) = self.home_dir() {
             paths.push(home.join(".ushrc"));
+            paths.push(home.join(".config.ush"));
         }
+        paths.push(self.paths.config_dir.join(".config.ush"));
         paths
     }
 
@@ -268,8 +270,20 @@ mod tests {
         .expect("write config profile");
         fs::write(home_dir.join(".ush_profile"), "export PROFILE_ORDER=home\n")
             .expect("write home profile");
-        fs::write(config_dir.join("rc.sh"), "alias ll='echo config'\n").expect("write config rc");
-        fs::write(home_dir.join(".ushrc"), "alias ll='echo home'\n").expect("write home rc");
+        fs::write(config_dir.join("rc.sh"), "alias ll='echo legacy-config'\n")
+            .expect("write legacy config rc");
+        fs::write(home_dir.join(".ushrc"), "alias ll='echo legacy-home'\n")
+            .expect("write legacy home rc");
+        fs::write(
+            config_dir.join(".config.ush"),
+            "export RC_ORDER=config-dotfile\nalias ll='echo config-dotfile'\n",
+        )
+        .expect("write config dotfile");
+        fs::write(
+            home_dir.join(".config.ush"),
+            "export RC_ORDER=home-dotfile\nalias ll='echo home-dotfile'\n",
+        )
+        .expect("write home dotfile");
 
         let mut shell = new_shell();
         shell.paths.config_dir = config_dir;
@@ -287,7 +301,8 @@ mod tests {
             .expect("load startup");
 
         assert_eq!(shell.env.get("PROFILE_ORDER"), Some(&"home".to_string()));
-        assert_eq!(shell.aliases.get("ll"), Some(&"echo home".to_string()));
+        assert_eq!(shell.env.get("RC_ORDER"), Some(&"config-dotfile".to_string()));
+        assert_eq!(shell.aliases.get("ll"), Some(&"echo config-dotfile".to_string()));
     }
 
     #[test]

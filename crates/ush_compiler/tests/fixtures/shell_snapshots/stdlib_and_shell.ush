@@ -1,0 +1,38 @@
+use std::command::{capture, status}
+use std::env::{get_or, set as env_set}
+use std::path::{join, tmpfile}
+use std::regex::capture as regex_capture
+use std::string::{replace, starts_with}
+
+let page = """
+  <div>
+    hello
+  </div>
+"""
+
+env_set "USH_STD_IMPORT" "ready"
+let path = tmpfile()
+path.write_text("alpha")
+path.append_text(":beta")
+
+let greeting = "hello"
+$ printf '%s\n' "$greeting"
+
+match greeting {
+  "hello" => $ printf '%s\n' matched
+  _ => print "fallback"
+}
+
+print page
+print $ page.starts_with("<div>")
+print $ page.ends_with("</div>")
+print $ get_or "USH_STD_IMPORT" "fallback"
+print $ join "/tmp/" "/ush"
+print $ replace "hello world" "world" "ush"
+print $ starts_with "ush" "u"
+print $ capture "printf '%s\n' hello"
+print $ status "exit 7"
+print $ regex_capture("release-v0.3.4", "v([0-9.]+)", 1)
+print $ path.read_text()
+shell "printf '%s\n' from-shell"
+path.remove()

@@ -1,0 +1,29 @@
+enum Problem {
+  Nope,
+}
+
+fn fail() -> Problem!String {
+  raise Problem::Nope
+}
+
+fn wrap(message: String) -> String {
+  "<" + message + ">"
+}
+
+fn outer() -> Problem!String {
+  let value = fail()?
+  value
+}
+
+fn mixed() -> (Problem | unknown)!String {
+  $ false
+  $ wrap $ outer ()
+}
+
+fn awaited() -> Problem!String {
+  let task = async fail ()
+  let value = task.await
+  value
+}
+
+print $ wrap $ awaited ()

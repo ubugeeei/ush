@@ -1,0 +1,23 @@
+fn worker(message: String) -> String {
+  message
+}
+
+print "main"
+let task = async worker "worker"
+let block = async {
+  let prefix = "work"
+  prefix + "bench"
+}
+let number = async {
+  if true {
+    return 40
+  }
+  0
+}
+print "after"
+let result = task.await
+let next = block.await
+let value = number.await
+print result
+print next
+print value + 2

@@ -1,0 +1,27 @@
+trait Named {}
+
+type User {
+  name: String,
+  age: Int,
+}
+
+impl Named for User {}
+
+impl Display for User {
+  fn fmt(self) -> String {
+    self.name + ":" + self.age
+  }
+}
+
+impl User {
+  fn prefixed(self, prefix: String) -> String {
+    prefix + ":" + self.name
+  }
+}
+
+let user = User { name: "ush", age: 7 }
+print user
+print format user
+print user.prefixed("id")
+print () == ()
+print "ant" < "bee"

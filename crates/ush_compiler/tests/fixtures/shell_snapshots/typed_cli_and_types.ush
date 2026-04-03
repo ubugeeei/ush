@@ -1,0 +1,18 @@
+fn greet(name: String, #[default(2)] count: Int) -> String {
+  name + ":" + count
+}
+
+type User {
+  name: String,
+  age: Int,
+}
+
+alias ll = "ls -la"
+
+let user = User { name: "ush", age: 7 }
+print $ greet count: 3 name: "ush"
+print $ greet name: "mini"
+match user {
+  User { name, age } => print name + ":" + age
+  _ => print "fallback"
+}

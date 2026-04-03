@@ -1,0 +1,18 @@
+fn trace() -> String {
+  print "trace"
+  "value"
+}
+
+fn choose(flag: Bool) -> String {
+  match flag {
+    true => "yes",
+    _ => "no",
+  }
+}
+
+fn run() -> String {
+  trace();
+  choose true
+}
+
+print $ run ()

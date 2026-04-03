@@ -1,0 +1,14 @@
+use std::http::{download, get}
+use std::path::{from_cwd, from_source, tmpfile}
+
+let source_root = from_source "."
+let payload = source_root.join("payload.txt")
+let cwd_file = from_cwd "notes.txt"
+let url = "file://" + payload.resolve()
+let copy = tmpfile()
+
+print payload
+print $ cwd_file.resolve()
+print $ get url
+download url copy
+copy.remove()

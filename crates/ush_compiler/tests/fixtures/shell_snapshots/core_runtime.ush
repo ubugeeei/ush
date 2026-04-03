@@ -1,0 +1,27 @@
+enum Response {
+  Ok(String),
+  Err(String),
+}
+
+enum Envelope {
+  Wrap(Response),
+  Empty,
+}
+
+fn greet(message: String, count: Int) -> String {
+  message + ":" + count
+}
+
+fn wrap(message: String) -> String {
+  "<" + message + ">"
+}
+
+let wrapped = Envelope::Wrap(Response::Ok("done"))
+match wrapped {
+  Envelope::Wrap(Response::Ok(message)) => print $ wrap message
+  _ => print "fallback"
+}
+
+let value = greet "hello" 2
+print value
+print $ wrap (greet "team" 3)

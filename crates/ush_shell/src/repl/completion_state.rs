@@ -10,13 +10,7 @@ pub struct CompletionState(Arc<Mutex<Option<ActiveCompletion>>>);
 #[derive(Clone)]
 struct ActiveCompletion {
     context: String,
-    candidates: Vec<CompletionCandidate>,
-}
-
-#[derive(Clone)]
-struct CompletionCandidate {
-    replacement: String,
-    summary: Option<String>,
+    candidates: Vec<String>,
 }
 
 impl CompletionState {
@@ -27,13 +21,7 @@ impl CompletionState {
         }
         *self.0.lock().expect("completion state lock poisoned") = Some(ActiveCompletion {
             context: line[..start].to_string(),
-            candidates: pairs
-                .iter()
-                .map(|pair| CompletionCandidate {
-                    replacement: pair.replacement.clone(),
-                    summary: completion_summary(pair),
-                })
-                .collect(),
+            candidates: pairs.iter().map(|pair| pair.replacement.clone()).collect(),
         });
     }
 
@@ -49,51 +37,27 @@ impl CompletionState {
         false
     }
 
-    pub fn hint(&self, line: &str, pos: usize) -> Option<String> {
-        let (active, index) = self.current_candidate(line, pos)?;
-
-        let mut hint = format!("  [{}/{}]", index + 1, active.candidates.len());
-        if let Some(summary) = &active.candidates[index].summary {
-            hint.push(' ');
-            hint.push_str(summary);
-        }
-        hint.push_str(" tab: next  shift-tab: prev  enter: accept");
-        Some(hint)
+    pub fn hint(&self, _line: &str, _pos: usize) -> Option<String> {
+        None
     }
 
     fn matches_current_word(&self, line: &str, pos: usize) -> bool {
-        self.current_candidate(line, pos).is_some()
-    }
-
-    fn current_candidate(&self, line: &str, pos: usize) -> Option<(ActiveCompletion, usize)> {
         let active = self
             .0
             .lock()
             .expect("completion state lock poisoned")
-            .clone()?;
+            .clone();
+        let Some(active) = active else {
+            return false;
+        };
         let start = syntax::word_start(line, pos);
-        let word = line.get(start..pos)?;
-
-        if start != active.context.len() || !line.starts_with(&active.context) {
-            self.clear();
-            return None;
-        }
-
-        let index = active
-            .candidates
-            .iter()
-            .position(|candidate| candidate.replacement == word)?;
-
-        Some((active, index))
+        let Some(word) = line.get(start..pos) else {
+            return false;
+        };
+        start == active.context.len()
+            && line.starts_with(&active.context)
+            && active.candidates.iter().any(|candidate| candidate == word)
     }
-}
-
-fn completion_summary(pair: &Pair) -> Option<String> {
-    pair.display
-        .strip_prefix(&pair.replacement)
-        .map(str::trim)
-        .filter(|summary| !summary.is_empty())
-        .map(ToOwned::to_owned)
 }
 
 #[cfg(test)]
@@ -111,11 +75,11 @@ mod tests {
             7,
             &[
                 Pair {
-                    display: "script.ush  path".to_string(),
+                    display: "script.ush".to_string(),
                     replacement: "script.ush".to_string(),
                 },
                 Pair {
-                    display: "scratch/  directory".to_string(),
+                    display: "scratch/".to_string(),
                     replacement: "scratch/".to_string(),
                 },
             ],

@@ -7,6 +7,8 @@ mod options;
 mod parse;
 #[cfg(test)]
 mod tests;
+mod tool_catalog;
+mod tools;
 mod types;
 
 pub(crate) use complete::complete;

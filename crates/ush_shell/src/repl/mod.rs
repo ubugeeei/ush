@@ -3,6 +3,8 @@ mod builtin_completion;
 mod complete;
 mod completion_state;
 pub(crate) mod contextual;
+mod descriptions;
+mod display;
 mod git_completion;
 mod highlight;
 mod selection;
@@ -17,6 +19,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::parser::is_builtin;
 use anyhow::Result;
 use rustyline::{
     CompletionType, Config, Context, EditMode, Editor, Helper,
@@ -116,11 +119,11 @@ impl UshHelper {
             .collect::<BTreeSet<_>>()
             .into_iter()
             .filter(|item| item.starts_with(needle))
-            .map(|item| Pair {
-                display: builtin_completion::command_summary(&item)
-                    .map(|summary| format!("{item}  {summary}"))
-                    .unwrap_or_else(|| item.clone()),
-                replacement: item,
+            .map(|item| {
+                let detail = builtin_completion::command_summary(&item).unwrap_or_else(|| {
+                    descriptions::command(&item, is_builtin(&item), syntax::is_keyword(&item))
+                });
+                display::same_pair(item, Some(detail))
             })
             .collect()
     }
@@ -135,10 +138,7 @@ impl UshHelper {
                 } else {
                     format!("${item}{suffix}")
                 };
-                Pair {
-                    display: item.clone(),
-                    replacement,
-                }
+                display::pair(item, replacement, Some(descriptions::ENV_VAR))
             })
             .collect()
     }
@@ -147,10 +147,7 @@ impl UshHelper {
         self.env_names
             .iter()
             .filter(|item| item.starts_with(needle))
-            .map(|item| Pair {
-                display: item.clone(),
-                replacement: format!("{item}="),
-            })
+            .map(|item| display::pair(item, format!("{item}="), Some(descriptions::ENV_BINDING)))
             .collect()
     }
 }
@@ -210,9 +207,22 @@ impl Highlighter for UshHelper {
     fn highlight_candidate<'c>(
         &self,
         candidate: &'c str,
-        _completion: CompletionType,
+        completion: CompletionType,
     ) -> Cow<'c, str> {
-        Cow::Owned(highlight::highlight_candidate(self, candidate))
+        Cow::Owned(highlight::highlight_candidate(
+            self, candidate, completion, false,
+        ))
+    }
+
+    fn highlight_candidate_with_state<'c>(
+        &self,
+        candidate: &'c str,
+        completion: CompletionType,
+        active: bool,
+    ) -> Cow<'c, str> {
+        Cow::Owned(highlight::highlight_candidate(
+            self, candidate, completion, active,
+        ))
     }
 
     fn highlight_char(&self, line: &str, pos: usize, kind: CmdKind) -> bool {

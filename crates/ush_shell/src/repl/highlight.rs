@@ -1,6 +1,7 @@
 use crate::parser::is_builtin;
+use rustyline::CompletionType;
 
-use super::{UshHelper, syntax};
+use super::{UshHelper, display, syntax};
 
 const COMMAND: &str = "\u{1b}[1;38;5;111m";
 const KEYWORD: &str = "\u{1b}[1;38;5;180m";
@@ -10,13 +11,14 @@ const ASSIGNMENT: &str = "\u{1b}[38;5;145m";
 const OPERATOR: &str = "\u{1b}[38;5;109m";
 const COMMENT: &str = "\u{1b}[2;38;5;244m";
 const SELECTION: &str = "\u{1b}[48;5;239;38;5;255m";
+const ACTIVE_CANDIDATE: &str = "\u{1b}[1;48;5;111;38;5;235m";
+const ACTIVE_CANDIDATE_DETAIL: &str = "\u{1b}[48;5;111;38;5;236m";
 const PROMPT_NAME: &str = "\u{1b}[38;5;109m";
 const PROMPT_PATH: &str = "\u{1b}[1;38;5;223m";
 const PROMPT_OK: &str = "\u{1b}[1;38;5;150m";
 const PROMPT_ERR: &str = "\u{1b}[1;38;5;203m";
 const PROMPT_FALLBACK: &str = "\u{1b}[1;38;5;250m";
 const HINT: &str = "\u{1b}[2;38;5;245m";
-const CANDIDATE_SUMMARY: &str = "\u{1b}[2;38;5;246m";
 const RESET: &str = "\u{1b}[0m";
 
 pub fn highlight_line(helper: &UshHelper, line: &str) -> String {
@@ -87,19 +89,43 @@ fn highlight_segments(helper: &UshHelper, line: &str) -> String {
     result
 }
 
-pub fn highlight_candidate(helper: &UshHelper, candidate: &str) -> String {
-    let (head, tail) = split_candidate_display(candidate);
-    let head = if helper.commands.contains(head) || is_builtin(head) {
-        color(COMMAND, head)
-    } else if syntax::is_keyword(head) {
-        color(KEYWORD, head)
+pub fn highlight_candidate(
+    helper: &UshHelper,
+    candidate: &str,
+    completion: CompletionType,
+    active: bool,
+) -> String {
+    let (name, detail) = display::split(candidate);
+    let mut styled = if active && matches!(completion, CompletionType::Circular) {
+        color(ACTIVE_CANDIDATE, name)
+    } else if helper.commands.contains(name) || is_builtin(name) {
+        color(COMMAND, name)
+    } else if syntax::is_keyword(name) {
+        color(KEYWORD, name)
     } else {
-        head.to_string()
+        name.to_string()
     };
-    match tail {
-        Some(tail) => format!("{head}{}", color(CANDIDATE_SUMMARY, tail)),
-        None => head,
+
+    if let Some(detail) = detail {
+        push_detail(
+            &mut styled,
+            detail,
+            active && matches!(completion, CompletionType::Circular),
+        );
     }
+
+    styled
+}
+
+fn push_detail(out: &mut String, detail: &str, active: bool) {
+    out.push_str(if active {
+        ACTIVE_CANDIDATE_DETAIL
+    } else {
+        HINT
+    });
+    out.push_str(display::DETAIL_SEPARATOR);
+    out.push_str(detail);
+    out.push_str(RESET);
 }
 
 pub fn highlight_prompt(prompt: &str) -> String {
@@ -171,16 +197,6 @@ fn color(code: &str, value: &str) -> String {
     format!("{code}{value}{RESET}")
 }
 
-fn split_candidate_display(candidate: &str) -> (&str, Option<&str>) {
-    if let Some((head, tail)) = candidate.split_once('\t') {
-        return (head, Some(tail));
-    }
-    if let Some((head, tail)) = candidate.split_once("  ") {
-        return (head, Some(tail));
-    }
-    (candidate, None)
-}
-
 fn parse_prompt_body(prompt: &str) -> Option<(&str, &str)> {
     if let Some(body) = prompt.strip_suffix(" $ ") {
         return Some((body, PROMPT_OK));
@@ -198,6 +214,7 @@ mod tests {
         UshHelper,
         highlight::{highlight_hint, highlight_line, highlight_prompt},
     };
+    use rustyline::CompletionType;
 
     #[test]
     fn highlights_commands_variables_and_comments() {
@@ -239,5 +256,13 @@ mod tests {
         let line = highlight_line(&helper, "echo hello");
 
         assert!(line.contains("\u{1b}[48;5;239;38;5;255mhello\u{1b}[0m"));
+    }
+
+    #[test]
+    fn highlights_active_circular_candidate() {
+        let helper = UshHelper::new(vec!["echo".to_string()], vec![], std::env::temp_dir());
+        let candidate = super::highlight_candidate(&helper, "echo", CompletionType::Circular, true);
+
+        assert!(candidate.contains("\u{1b}[1;48;5;111;38;5;235m"));
     }
 }

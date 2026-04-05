@@ -102,6 +102,11 @@ mod tests {
             .complete("echo hi | gr", 12, &ctx)
             .expect("complete");
         assert!(pairs.iter().any(|pair| pair.replacement == "grep"));
+        assert!(
+            pairs
+                .iter()
+                .any(|pair| pair.replacement == "grep" && pair.display.contains("command"))
+        );
     }
 
     #[test]

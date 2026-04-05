@@ -4,14 +4,15 @@ use compact_str::CompactString;
 use rustc_hash::FxHashSet;
 
 use super::{
-    candidates::candidate_pairs,
+    candidates::typed_candidate_pairs,
     catalog::{
-        GIT_GLOBAL_OPTIONS, GIT_GLOBAL_OPTION_SPECS, GIT_REMOTE_SUBCOMMANDS, GIT_SUBCOMMAND_OPTIONS,
-        GIT_SUBCOMMANDS,
+        GIT_GLOBAL_OPTION_SPECS, GIT_GLOBAL_OPTIONS, GIT_REMOTE_SUBCOMMANDS,
+        GIT_SUBCOMMAND_OPTIONS, GIT_SUBCOMMANDS,
     },
     options::{match_option, pending_value_kind, positional_args},
     types::{ContextualCompletion, Names},
 };
+use crate::repl::descriptions;
 
 pub(crate) fn complete_git(
     cwd: &Path,
@@ -32,26 +33,42 @@ pub(crate) fn complete_git(
         } else {
             GIT_SUBCOMMANDS.iter().copied()
         };
-        return Some(ContextualCompletion::Pairs(candidate_pairs(word, items)));
+        return Some(ContextualCompletion::Pairs(typed_candidate_pairs(
+            word,
+            items,
+            if word.starts_with('-') {
+                descriptions::OPTION
+            } else {
+                descriptions::GIT_COMMAND
+            },
+        )));
     };
 
     let tail = &args[index + 1..];
     if word.starts_with('-')
         && let Some(options) = GIT_SUBCOMMAND_OPTIONS.get(subcommand)
     {
-        return Some(ContextualCompletion::Pairs(candidate_pairs(word, options.iter().copied())));
+        return Some(ContextualCompletion::Pairs(typed_candidate_pairs(
+            word,
+            options.iter().copied(),
+            descriptions::OPTION,
+        )));
     }
 
     match subcommand {
         "add" | "mv" | "rm" => Some(ContextualCompletion::Path),
-        "branch" | "checkout" | "cherry-pick" | "log" | "merge" | "rebase" | "reset"
-        | "revert" | "show" | "switch" | "tag" => git_ref_or_path_completion(cwd, tail, word),
+        "branch" | "checkout" | "cherry-pick" | "log" | "merge" | "rebase" | "reset" | "revert"
+        | "show" | "switch" | "tag" => git_ref_or_path_completion(cwd, tail, word),
         "restore" => {
             if tail
                 .iter()
                 .any(|arg| arg == "--source" || arg.starts_with("--source="))
             {
-                return Some(ContextualCompletion::Pairs(candidate_pairs(word, git_refs(cwd))));
+                return Some(ContextualCompletion::Pairs(typed_candidate_pairs(
+                    word,
+                    git_refs(cwd),
+                    descriptions::GIT_REF,
+                )));
             }
             Some(ContextualCompletion::Path)
         }
@@ -59,16 +76,23 @@ pub(crate) fn complete_git(
             if word_looks_like_path(word) || tail.iter().any(|arg| arg == "--") {
                 Some(ContextualCompletion::Path)
             } else {
-                Some(ContextualCompletion::Pairs(candidate_pairs(word, git_refs(cwd))))
+                Some(ContextualCompletion::Pairs(typed_candidate_pairs(
+                    word,
+                    git_refs(cwd),
+                    descriptions::GIT_REF,
+                )))
             }
         }
-        "fetch" | "pull" | "push" => {
-            Some(ContextualCompletion::Pairs(git_remote_or_ref_pairs(cwd, tail, word)))
-        }
+        "fetch" | "pull" | "push" => Some(ContextualCompletion::Pairs(git_remote_or_ref_pairs(
+            cwd, tail, word,
+        ))),
         "remote" => git_remote_completion(cwd, tail, word),
-        "stash" => Some(ContextualCompletion::Pairs(candidate_pairs(
+        "stash" => Some(ContextualCompletion::Pairs(typed_candidate_pairs(
             word,
-            ["apply", "branch", "clear", "drop", "list", "pop", "push", "show"],
+            [
+                "apply", "branch", "clear", "drop", "list", "pop", "push", "show",
+            ],
+            descriptions::GIT_STASH,
         ))),
         _ => None,
     }
@@ -104,7 +128,11 @@ fn git_ref_or_path_completion(
     if tail.iter().any(|arg| arg == "--") || (!word.is_empty() && word_looks_like_path(word)) {
         return Some(ContextualCompletion::Path);
     }
-    Some(ContextualCompletion::Pairs(candidate_pairs(word, git_refs(cwd))))
+    Some(ContextualCompletion::Pairs(typed_candidate_pairs(
+        word,
+        git_refs(cwd),
+        descriptions::GIT_REF,
+    )))
 }
 
 fn git_remote_completion(
@@ -114,27 +142,36 @@ fn git_remote_completion(
 ) -> Option<ContextualCompletion> {
     let positionals = positional_args(tail, &[]);
     if positionals.is_empty() {
-        return Some(ContextualCompletion::Pairs(candidate_pairs(
+        return Some(ContextualCompletion::Pairs(typed_candidate_pairs(
             word,
             GIT_REMOTE_SUBCOMMANDS.iter().copied(),
+            descriptions::GIT_REMOTE_COMMAND,
         )));
     }
 
     match positionals[0].as_str() {
         "show" | "prune" | "remove" | "rename" | "set-head" | "set-url" => {
-            Some(ContextualCompletion::Pairs(candidate_pairs(word, git_remotes(cwd))))
+            Some(ContextualCompletion::Pairs(typed_candidate_pairs(
+                word,
+                git_remotes(cwd),
+                descriptions::GIT_REMOTE,
+            )))
         }
         _ => None,
     }
 }
 
-fn git_remote_or_ref_pairs(cwd: &Path, tail: &[CompactString], word: &str) -> Vec<rustyline::completion::Pair> {
+fn git_remote_or_ref_pairs(
+    cwd: &Path,
+    tail: &[CompactString],
+    word: &str,
+) -> Vec<rustyline::completion::Pair> {
     let positionals = positional_args(tail, &[]);
     if positionals.is_empty() {
-        return candidate_pairs(word, git_remotes(cwd));
+        return typed_candidate_pairs(word, git_remotes(cwd), descriptions::GIT_REMOTE);
     }
     if positionals.len() == 1 {
-        return candidate_pairs(word, git_refs(cwd));
+        return typed_candidate_pairs(word, git_refs(cwd), descriptions::GIT_REF);
     }
     Vec::new()
 }

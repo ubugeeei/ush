@@ -23,6 +23,7 @@
 mod binding;
 mod command;
 pub mod completion;
+mod completion_menu;
 pub mod config;
 mod edit;
 pub mod error;
@@ -54,7 +55,7 @@ use crate::tty::{Buffer, RawMode as _, RawReader as _, Renderer as _, Term, Term
 
 #[cfg(feature = "custom-bindings")]
 pub use crate::binding::{ConditionalEventHandler, Event, EventContext, EventHandler};
-use crate::completion::{longest_common_prefix, Candidate, Completer};
+use crate::completion::{Candidate, Completer, longest_common_prefix};
 pub use crate::config::{Behavior, ColorMode, CompletionType, Config, EditMode, HistoryDuplicates};
 use crate::edit::{RefreshKind, State};
 use crate::error::ReadlineError;
@@ -84,7 +85,7 @@ fn complete_line<H: Helper, P: Prompt + ?Sized>(
 ) -> Result<Option<Cmd>> {
     #[cfg(all(unix, feature = "with-fuzzy"))]
     use skim::prelude::{
-        unbounded, Skim, SkimItem, SkimItemReceiver, SkimItemSender, SkimOptionsBuilder,
+        Skim, SkimItem, SkimItemReceiver, SkimItemSender, SkimOptionsBuilder, unbounded,
     };
 
     let completer = s.helper.unwrap();
@@ -116,7 +117,13 @@ fn complete_line<H: Helper, P: Prompt + ?Sized>(
                 // Restore current edited line
                 s.line.update(&backup, backup_pos, &mut s.changes);
             }
-            s.refresh_line()?;
+            if i < candidates.len() && candidates.len() > 1 {
+                let menu =
+                    completion_menu::render(&candidates, i, s.out.get_rows(), s.highlighter());
+                s.refresh_with_msg(Some(menu.as_str()))?;
+            } else {
+                s.refresh_with_msg(None)?;
+            }
 
             cmd = s.next_cmd(input_state, rdr, true, true)?;
             match cmd {
@@ -138,12 +145,15 @@ fn complete_line<H: Helper, P: Prompt + ?Sized>(
                     // Re-show original buffer
                     if i < candidates.len() {
                         s.line.update(&backup, backup_pos, &mut s.changes);
-                        s.refresh_line()?;
                     }
+                    s.refresh_with_msg(None)?;
                     s.changes.truncate(mark);
                     return Ok(None);
                 }
                 _ => {
+                    if candidates.len() > 1 {
+                        s.refresh_with_msg(None)?;
+                    }
                     s.changes.end();
                     break;
                 }
@@ -250,7 +260,8 @@ fn complete_line<H: Helper, P: Prompt + ?Sized>(
                 // match the first (and only) returned option with the candidate and update the
                 // line otherwise only refresh line to clear the skim UI changes
                 if let Some(item) = selected_items.first() {
-                    let item: &Candidate = (*item).as_any() // cast to Any
+                    let item: &Candidate = (*item)
+                        .as_any() // cast to Any
                         .downcast_ref::<Candidate>() // downcast to concrete type
                         .expect("something wrong with downcast");
                     if let Some(candidate) = candidates.get(item.index) {
@@ -346,7 +357,11 @@ fn page_completions<C: Candidate, H: Helper, P: Prompt + ?Sized>(
                 let candidate = &candidates[i as usize].display();
                 let width = s.layout.width(candidate);
                 if let Some(highlighter) = s.highlighter() {
-                    ab.push_str(&highlighter.highlight_candidate(candidate, CompletionType::List));
+                    ab.push_str(&highlighter.highlight_candidate_with_state(
+                        candidate,
+                        CompletionType::List,
+                        false,
+                    ));
                 } else {
                     ab.push_str(candidate);
                 }

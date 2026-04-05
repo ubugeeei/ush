@@ -58,6 +58,19 @@ pub trait Highlighter {
         let _ = completion;
         Borrowed(candidate)
     }
+
+    /// Takes the completion `candidate` and whether it is currently selected.
+    ///
+    /// The default implementation delegates to [`Self::highlight_candidate`].
+    fn highlight_candidate_with_state<'c>(
+        &self,
+        candidate: &'c str,
+        completion: CompletionType,
+        active: bool,
+    ) -> Cow<'c, str> {
+        let _ = active;
+        self.highlight_candidate(candidate, completion)
+    }
     /// Tells if `line` needs to be highlighted when a specific char is typed or
     /// when cursor is moved under a specific char.
     ///

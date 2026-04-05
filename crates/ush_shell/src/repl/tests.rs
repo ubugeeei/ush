@@ -29,7 +29,7 @@ fn history_hint_prefers_previous_entries() {
 }
 
 #[test]
-fn tab_completion_exposes_selection_hint() {
+fn tab_completion_no_longer_overrides_hints_inline() {
     let history = rustyline::history::DefaultHistory::new();
     let ctx = Context::new(&history);
     let helper = UshHelper::new(
@@ -39,10 +39,7 @@ fn tab_completion_exposes_selection_hint() {
     );
     helper.complete("g", 1, &ctx).expect("complete");
 
-    assert_eq!(
-        helper.hint("git", 3, &ctx),
-        Some("  [1/2] tab: next  shift-tab: prev  enter: accept".to_string())
-    );
+    assert_eq!(helper.hint("git", 3, &ctx), None);
 }
 
 #[test]

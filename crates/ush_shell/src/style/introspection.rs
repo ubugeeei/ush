@@ -4,7 +4,6 @@ use std::{
 };
 
 use crate::commands::CommandLookup;
-use crate::repl::contextual::TaskEntry;
 
 use super::common::{
     BLUE_BOLD, BOLD, CYAN_BOLD, GREEN_BOLD, MAGENTA_BOLD, RED_BOLD, YELLOW_BOLD, badge, dim, paint,
@@ -197,41 +196,6 @@ pub fn render_history(entries: &[String], limit: Option<usize>) -> String {
     out
 }
 
-pub fn render_tasks(entries: &[TaskEntry]) -> String {
-    let mut out = String::new();
-    let _ = writeln!(
-        out,
-        "{} {}",
-        paint(BLUE_BOLD, "tasks"),
-        dim(pluralize(entries.len(), "task", "tasks"))
-    );
-    if entries.is_empty() {
-        let _ = writeln!(out, "{}", dim("(empty)"));
-        return out;
-    }
-
-    let mut counts = BTreeMap::<&str, usize>::new();
-    for entry in entries {
-        *counts.entry(entry.source).or_default() += 1;
-    }
-    let meta = ["make", "just", "mise", "npm", "vp"]
-        .into_iter()
-        .filter_map(|source| {
-            counts
-                .get(source)
-                .map(|count| pluralize(*count, source, &format!("{source} tasks")))
-        })
-        .collect::<Vec<_>>();
-    if !meta.is_empty() {
-        let _ = writeln!(out, "{}", dim(meta.join(", ")));
-    }
-
-    for entry in entries {
-        render_task_row(&mut out, entry);
-    }
-    out
-}
-
 fn render_alias_row(out: &mut String, name: &str, value: &str) {
     let _ = writeln!(
         out,
@@ -333,27 +297,6 @@ fn render_env_row(out: &mut String, name: &str, value: &str) {
         dim("="),
         display_value
     );
-}
-
-fn render_task_row(out: &mut String, entry: &TaskEntry) {
-    let _ = writeln!(
-        out,
-        "{} {} {}",
-        paint(CYAN_BOLD, &entry.name),
-        badge(entry.source, task_source_color(entry.source)),
-        dim(&entry.command)
-    );
-}
-
-fn task_source_color(source: &str) -> &'static str {
-    match source {
-        "make" => YELLOW_BOLD,
-        "just" => BLUE_BOLD,
-        "mise" => MAGENTA_BOLD,
-        "npm" => GREEN_BOLD,
-        "vp" => CYAN_BOLD,
-        _ => BLUE_BOLD,
-    }
 }
 
 fn truncate_history_entry(entry: &str, max_chars: usize) -> String {

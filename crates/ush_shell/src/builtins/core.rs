@@ -16,7 +16,6 @@ use crate::{
     expand::strip_outer_quotes,
     process::ResolvedCommand,
     repl,
-    repl::contextual::{TaskEntry, discover_tasks},
     signal, style,
 };
 
@@ -213,16 +212,6 @@ impl Shell {
         Ok((ValueStream::Text(text), 0))
     }
 
-    pub(super) fn handle_tasks(&self, args: &[String]) -> Result<(ValueStream, i32)> {
-        let entries = filter_tasks(discover_tasks(&self.cwd), args);
-
-        if self.options.stylish {
-            return Ok((ValueStream::Text(style::render_tasks(&entries)), 0));
-        }
-
-        Ok((ValueStream::Text(render_tasks_plain(&entries)), 0))
-    }
-
     pub(super) fn read_history(&self) -> String {
         fs::read_to_string(&self.paths.history_file).unwrap_or_default()
     }
@@ -331,38 +320,6 @@ fn render_history_plain(entries: &[String], limit: Option<usize>) -> String {
         .collect::<Vec<_>>()
         .join("\n");
     with_trailing_newline(text)
-}
-
-fn render_tasks_plain(entries: &[TaskEntry]) -> String {
-    let text = entries
-        .iter()
-        .map(|entry| entry.command.clone())
-        .collect::<Vec<_>>()
-        .join("\n");
-    with_trailing_newline(text)
-}
-
-fn filter_tasks(entries: Vec<TaskEntry>, filters: &[String]) -> Vec<TaskEntry> {
-    if filters.is_empty() {
-        return entries;
-    }
-
-    let needles = filters
-        .iter()
-        .map(|filter| filter.to_ascii_lowercase())
-        .collect::<Vec<_>>();
-
-    entries
-        .into_iter()
-        .filter(|entry| {
-            let source = entry.source.to_ascii_lowercase();
-            let name = entry.name.to_ascii_lowercase();
-            let command = entry.command.to_ascii_lowercase();
-            needles.iter().all(|needle| {
-                source.contains(needle) || name.contains(needle) || command.contains(needle)
-            })
-        })
-        .collect()
 }
 
 fn port_targets(args: &[String], input: ValueStream) -> Result<Vec<u16>> {

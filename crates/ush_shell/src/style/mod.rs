@@ -7,6 +7,7 @@ mod introspection;
 mod ls;
 mod ls_support;
 mod process;
+mod tasks;
 
 pub(crate) use self::common::{badge, dim, human_bytes, paint, pluralize};
 pub use self::{
@@ -14,9 +15,8 @@ pub use self::{
     diff::render_diff,
     git::render_git,
     grep::render_grep,
-    introspection::{
-        render_aliases, render_env_map, render_history, render_lookup, render_tasks, render_which,
-    },
+    introspection::{render_aliases, render_env_map, render_history, render_lookup, render_which},
     ls::render_ls,
     process::{render_kill, render_ps},
+    tasks::render_tasks,
 };

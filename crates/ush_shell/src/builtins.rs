@@ -5,6 +5,7 @@ mod interactive;
 mod interactive_support;
 mod introspection;
 mod sammary;
+mod tasks;
 mod test_eval;
 
 use anyhow::{Result, bail};

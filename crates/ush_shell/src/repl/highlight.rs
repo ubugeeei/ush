@@ -188,6 +188,7 @@ mod tests {
         let helper = UshHelper::new(
             vec!["echo".to_string(), "grep".to_string()],
             vec!["PATH".to_string()],
+            std::env::temp_dir(),
         );
         let line = highlight_line(&helper, "echo $PATH # note");
 
@@ -214,7 +215,7 @@ mod tests {
 
     #[test]
     fn highlights_selected_region() {
-        let helper = UshHelper::new(vec!["echo".to_string()], vec![]);
+        let helper = UshHelper::new(vec!["echo".to_string()], vec![], std::env::temp_dir());
         helper
             .selection_handle()
             .extend("echo hello", 5, SelectionMove::WordRight);

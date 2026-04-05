@@ -14,7 +14,9 @@ pub use self::{
     diff::render_diff,
     git::render_git,
     grep::render_grep,
-    introspection::{render_aliases, render_env_map, render_history, render_lookup, render_which},
+    introspection::{
+        render_aliases, render_env_map, render_history, render_lookup, render_tasks, render_which,
+    },
     ls::render_ls,
     process::{render_kill, render_ps},
 };

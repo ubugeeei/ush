@@ -12,7 +12,12 @@ use anyhow::{Context, Result, anyhow, bail};
 
 use super::test_eval;
 use crate::{
-    Shell, ValueStream, expand::strip_outer_quotes, process::ResolvedCommand, repl, signal, style,
+    Shell, ValueStream,
+    expand::strip_outer_quotes,
+    process::ResolvedCommand,
+    repl,
+    repl::contextual::{TaskEntry, discover_tasks},
+    signal, style,
 };
 
 impl Shell {
@@ -208,6 +213,16 @@ impl Shell {
         Ok((ValueStream::Text(text), 0))
     }
 
+    pub(super) fn handle_tasks(&self, args: &[String]) -> Result<(ValueStream, i32)> {
+        let entries = filter_tasks(discover_tasks(&self.cwd), args);
+
+        if self.options.stylish {
+            return Ok((ValueStream::Text(style::render_tasks(&entries)), 0));
+        }
+
+        Ok((ValueStream::Text(render_tasks_plain(&entries)), 0))
+    }
+
     pub(super) fn read_history(&self) -> String {
         fs::read_to_string(&self.paths.history_file).unwrap_or_default()
     }
@@ -318,6 +333,38 @@ fn render_history_plain(entries: &[String], limit: Option<usize>) -> String {
     with_trailing_newline(text)
 }
 
+fn render_tasks_plain(entries: &[TaskEntry]) -> String {
+    let text = entries
+        .iter()
+        .map(|entry| entry.command.clone())
+        .collect::<Vec<_>>()
+        .join("\n");
+    with_trailing_newline(text)
+}
+
+fn filter_tasks(entries: Vec<TaskEntry>, filters: &[String]) -> Vec<TaskEntry> {
+    if filters.is_empty() {
+        return entries;
+    }
+
+    let needles = filters
+        .iter()
+        .map(|filter| filter.to_ascii_lowercase())
+        .collect::<Vec<_>>();
+
+    entries
+        .into_iter()
+        .filter(|entry| {
+            let source = entry.source.to_ascii_lowercase();
+            let name = entry.name.to_ascii_lowercase();
+            let command = entry.command.to_ascii_lowercase();
+            needles.iter().all(|needle| {
+                source.contains(needle) || name.contains(needle) || command.contains(needle)
+            })
+        })
+        .collect()
+}
+
 fn port_targets(args: &[String], input: ValueStream) -> Result<Vec<u16>> {
     let raw = if args.is_empty() {
         input.into_lines()?
@@ -411,7 +458,10 @@ fn listening_pids_for_port(port: u16) -> Result<Vec<i32>> {
 
 fn run_lsof(args: &[String]) -> Result<Vec<i32>> {
     let output = Command::new("lsof").args(args).output().with_context(|| {
-        format!("failed to run lsof; install it to use `port` ({})", args.join(" "))
+        format!(
+            "failed to run lsof; install it to use `port` ({})",
+            args.join(" ")
+        )
     })?;
 
     if !output.status.success() && output.status.code() != Some(1) {

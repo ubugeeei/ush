@@ -8,7 +8,13 @@ mod syntax;
 mod tests;
 mod validate;
 
-use std::{borrow::Cow, collections::BTreeSet, path::Path};
+pub(crate) mod contextual;
+
+use std::{
+    borrow::Cow,
+    collections::BTreeSet,
+    path::{Path, PathBuf},
+};
 
 use anyhow::Result;
 use rustyline::{
@@ -29,6 +35,7 @@ pub(crate) use self::validate::validate_input;
 pub struct UshHelper {
     commands: BTreeSet<String>,
     env_names: BTreeSet<String>,
+    cwd: PathBuf,
     files: FilenameCompleter,
     hinter: HistoryHinter,
     completion: completion_state::CompletionState,
@@ -36,10 +43,11 @@ pub struct UshHelper {
 }
 
 impl UshHelper {
-    pub fn new(commands: Vec<String>, env_names: Vec<String>) -> Self {
+    pub fn new(commands: Vec<String>, env_names: Vec<String>, cwd: PathBuf) -> Self {
         Self {
             commands: commands.into_iter().collect(),
             env_names: env_names.into_iter().collect(),
+            cwd,
             files: FilenameCompleter::new(),
             hinter: HistoryHinter::new(),
             completion: completion_state::CompletionState::default(),
@@ -47,9 +55,10 @@ impl UshHelper {
         }
     }
 
-    pub fn refresh(&mut self, commands: Vec<String>, env_names: Vec<String>) {
+    pub fn refresh(&mut self, commands: Vec<String>, env_names: Vec<String>, cwd: PathBuf) {
         self.commands = commands.into_iter().collect();
         self.env_names = env_names.into_iter().collect();
+        self.cwd = cwd;
         self.completion.clear();
         self.selection.clear();
     }
@@ -68,6 +77,10 @@ impl UshHelper {
 
     pub(crate) fn update_completion(&self, line: &str, pos: usize, start: usize, pairs: &[Pair]) {
         self.completion.update(line, pos, start, pairs);
+    }
+
+    pub(crate) fn cwd(&self) -> &Path {
+        &self.cwd
     }
 
     fn command_pairs(&self, needle: &str) -> Vec<Pair> {
@@ -184,6 +197,7 @@ pub fn create_editor(
     keymap: ShellKeymap,
     commands: Vec<String>,
     env_names: Vec<String>,
+    cwd: PathBuf,
 ) -> Result<Editor<UshHelper, DefaultHistory>> {
     let config = Config::builder()
         .max_history_size(history_size)?
@@ -196,7 +210,7 @@ pub fn create_editor(
         .edit_mode(edit_mode(keymap))
         .auto_add_history(true)
         .build();
-    let helper = UshHelper::new(commands, env_names);
+    let helper = UshHelper::new(commands, env_names, cwd);
     let selection = helper.selection_handle();
     let mut editor = Editor::with_config(config)?;
     editor.set_helper(Some(helper));

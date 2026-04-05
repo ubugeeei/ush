@@ -1,6 +1,6 @@
 use rustyline::{Context, completion::Pair};
 
-use super::{UshHelper, syntax};
+use super::{UshHelper, contextual, syntax};
 
 pub fn complete(
     helper: &UshHelper,
@@ -30,6 +30,17 @@ pub fn complete(
     } else if syntax::command_position(prefix, start) {
         if !trimmed.is_empty() {
             pairs = helper.command_pairs(word);
+        }
+    } else if let Some(contextual) = contextual::complete(helper.cwd(), prefix, start, word) {
+        match contextual {
+            contextual::ContextualCompletion::Pairs(contextual_pairs) => {
+                pairs = contextual_pairs;
+            }
+            contextual::ContextualCompletion::Path => {
+                let (path_start, path_pairs) = helper.files.complete_path(line, pos)?;
+                helper.update_completion(line, pos, path_start, &path_pairs);
+                return Ok((path_start, path_pairs));
+            }
         }
     } else if wants_path_completion(prefix, start, word) {
         let (path_start, path_pairs) = helper.files.complete_path(line, pos)?;
@@ -71,6 +82,7 @@ mod tests {
         UshHelper::new(
             vec!["echo".to_string(), "grep".to_string(), "git".to_string()],
             vec!["HOME".to_string(), "PATH".to_string(), "PWD".to_string()],
+            std::env::temp_dir(),
         )
     }
 

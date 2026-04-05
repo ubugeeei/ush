@@ -6,8 +6,8 @@ use which::{Error as WhichError, which, which_all};
 pub(crate) const BUILTIN_COMMANDS: &[&str] = &[
     ":", ".", "[", "alias", "bg", "cd", "command", "confirm", "disown", "echo", "env", "exit",
     "export", "false", "fg", "fsam", "glob", "help", "history", "input", "jobs", "port", "pwd",
-    "rm", "sammary", "select", "source", "stop", "test", "true", "type", "unalias", "unset",
-    "wait", "which",
+    "rm", "sammary", "select", "source", "stop", "tasks", "test", "true", "type", "unalias",
+    "unset", "wait", "which",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -40,7 +40,11 @@ pub(crate) fn lookup_all_commands(
     if is_builtin(command) {
         lookups.push(CommandLookup::Builtin);
     }
-    lookups.extend(find_all_external_commands(command).into_iter().map(CommandLookup::External));
+    lookups.extend(
+        find_all_external_commands(command)
+            .into_iter()
+            .map(CommandLookup::External),
+    );
 
     lookups
 }

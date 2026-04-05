@@ -1,5 +1,4 @@
 use rustyline::{Context, completion::Completer, hint::Hinter, history::History};
-use std::path::PathBuf;
 use tempfile::tempdir;
 use ush_config::ShellKeymap;
 
@@ -15,7 +14,7 @@ fn history_hint_prefers_previous_entries() {
         ShellKeymap::Emacs,
         vec!["echo".to_string()],
         vec!["PATH".to_string()],
-        PathBuf::from("."),
+        dir.path().to_path_buf(),
     )
     .expect("editor");
     editor.add_history_entry("echo hello").expect("history");
@@ -23,7 +22,7 @@ fn history_hint_prefers_previous_entries() {
     let helper = UshHelper::new(
         vec!["echo".to_string()],
         vec!["PATH".to_string()],
-        PathBuf::from("."),
+        dir.path().to_path_buf(),
     );
 
     assert_eq!(helper.hint("echo h", 6, &ctx), Some("ello".to_string()));
@@ -36,7 +35,7 @@ fn tab_completion_exposes_selection_hint() {
     let helper = UshHelper::new(
         vec!["git".to_string(), "grep".to_string()],
         vec!["PATH".to_string()],
-        PathBuf::from("."),
+        std::env::temp_dir(),
     );
     helper.complete("g", 1, &ctx).expect("complete");
 
@@ -56,7 +55,7 @@ fn editor_respects_history_limit() {
         ShellKeymap::Emacs,
         vec!["echo".to_string()],
         vec!["PATH".to_string()],
-        PathBuf::from("."),
+        dir.path().to_path_buf(),
     )
     .expect("editor");
 
@@ -78,7 +77,7 @@ fn vi_keymap_can_build_an_editor() {
         ShellKeymap::Vi,
         vec!["echo".to_string()],
         vec!["PATH".to_string()],
-        PathBuf::from("."),
+        dir.path().to_path_buf(),
     )
     .expect("editor");
 }

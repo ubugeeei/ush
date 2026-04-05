@@ -12,7 +12,11 @@ use anyhow::{Context, Result, anyhow, bail};
 
 use super::test_eval;
 use crate::{
-    Shell, ValueStream, expand::strip_outer_quotes, process::ResolvedCommand, repl, signal, style,
+    Shell, ValueStream,
+    expand::strip_outer_quotes,
+    process::ResolvedCommand,
+    repl,
+    signal, style,
 };
 
 impl Shell {

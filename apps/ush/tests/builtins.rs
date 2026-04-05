@@ -664,6 +664,78 @@ fn stylish_alias_renders_named_expansions() {
 }
 
 #[test]
+fn tasks_lists_discovered_workspace_tasks() {
+    let dir = tempdir().expect("tempdir");
+    fs::write(
+        dir.path().join("Makefile"),
+        ".PHONY: build test\nbuild:\n\t@echo build\ntest:\n\t@echo test\n",
+    )
+    .expect("write makefile");
+    fs::write(dir.path().join("justfile"), "fmt:\n  echo fmt\n").expect("write justfile");
+    fs::write(
+        dir.path().join("mise.toml"),
+        "[tasks.lint]\nrun = \"cargo clippy\"\n",
+    )
+    .expect("write mise toml");
+    fs::create_dir_all(dir.path().join(".mise/tasks/frontend")).expect("mkdir mise tasks");
+    fs::write(
+        dir.path().join(".mise/tasks/frontend/dev"),
+        "#!/usr/bin/env bash\necho dev\n",
+    )
+    .expect("write task script");
+    fs::write(
+        dir.path().join("package.json"),
+        r#"{"scripts":{"build":"vite build","test:unit":"vitest"},"devDependencies":{"vite":"^7.0.0"}}"#,
+    )
+    .expect("write package");
+
+    let output = ush()
+        .args(["-c", "tasks"])
+        .current_dir(dir.path())
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "make build\nmake test\njust fmt\nmise run frontend/dev\nmise run lint\nnpm run build\nnpm run test:unit\nvp build\nvp dev\nvp optimize\nvp preview\nvp serve\n"
+    );
+}
+
+#[test]
+fn stylish_tasks_group_by_source() {
+    let dir = tempdir().expect("tempdir");
+    fs::write(
+        dir.path().join("Makefile"),
+        ".PHONY: build\nbuild:\n\t@echo build\n",
+    )
+    .expect("write makefile");
+    fs::write(dir.path().join("justfile"), "fmt:\n  echo fmt\n").expect("write justfile");
+    fs::write(
+        dir.path().join("mise.toml"),
+        "[tasks.lint]\nrun = \"cargo clippy\"\n",
+    )
+    .expect("write mise toml");
+    fs::write(
+        dir.path().join("package.json"),
+        r#"{"scripts":{"build":"vite build"},"devDependencies":{"vite":"^7.0.0"}}"#,
+    )
+    .expect("write package");
+
+    let output = ush()
+        .args(["-s", "-c", "tasks"])
+        .current_dir(dir.path())
+        .output()
+        .expect("run ush");
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert_snapshot(&fixture("stylish_tasks"), &stdout);
+}
+
+#[test]
 fn stylish_which_renders_alias_builtin_and_external_targets() {
     let dir = tempdir().expect("tempdir");
     let config_path = dir.path().join("config.json");

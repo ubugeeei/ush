@@ -2,6 +2,7 @@ mod bindings;
 mod builtin_completion;
 mod complete;
 mod completion_state;
+pub(crate) mod contextual;
 mod git_completion;
 mod highlight;
 mod selection;
@@ -100,6 +101,10 @@ impl UshHelper {
 
     pub(crate) fn update_completion(&self, line: &str, pos: usize, start: usize, pairs: &[Pair]) {
         self.completion.update(line, pos, start, pairs);
+    }
+
+    pub(crate) fn cwd(&self) -> &Path {
+        &self.cwd
     }
 
     fn command_pairs(&self, needle: &str) -> Vec<Pair> {

@@ -5,6 +5,7 @@ mod interactive;
 mod interactive_support;
 mod introspection;
 mod sammary;
+mod tasks;
 mod test_eval;
 
 use anyhow::{Result, bail};
@@ -49,6 +50,7 @@ impl Shell {
             "command" => self.handle_command_builtin(&args, input),
             "which" => self.handle_lookup(&args, LookupStyle::Path, "which"),
             "type" => self.handle_lookup(&args, LookupStyle::Verbose, "type"),
+            "tasks" => self.handle_tasks(&args),
             "test" | "[" => self.handle_test(&spec.command, &args),
             "help" => Ok((ValueStream::Text(help_text()), 0)),
             "source" => self.handle_source(&args),
@@ -88,6 +90,7 @@ fn help_text() -> String {
         "  command -v <name>",
         "  which <name>            # show all matches and mark the current resolution",
         "  type <name>",
+        "  tasks [filter ...]      # list discovered make/just/mise/npm/vp tasks",
         "  test EXPR / [ EXPR ]",
         "  history [N]",
         "  source <file>",

@@ -120,13 +120,21 @@ pub(crate) fn match_option<'a>(
 fn inline_value<'a>(arg: &'a str, name: &str) -> Option<&'a str> {
     name.strip_prefix("--")
         .filter(|_| arg.starts_with(name))
-        .and_then(|_| arg.as_bytes().get(name.len()).is_some_and(|byte| *byte == b'=').then_some(()))
+        .and_then(|_| {
+            arg.as_bytes()
+                .get(name.len())
+                .is_some_and(|byte| *byte == b'=')
+                .then_some(())
+        })
         .map(|_| &arg[name.len() + 1..])
 }
 
 fn short_inline_value<'a>(arg: &'a str, name: &str) -> Option<&'a str> {
-    (!name.starts_with("--") && arg.starts_with(name) && arg.len() > name.len())
-        .then_some(&arg[name.len()..])
+    if !name.starts_with("--") && arg.starts_with(name) && arg.len() > name.len() {
+        Some(&arg[name.len()..])
+    } else {
+        None
+    }
 }
 
 fn resolve_relative(cwd: &Path, value: &str) -> PathBuf {

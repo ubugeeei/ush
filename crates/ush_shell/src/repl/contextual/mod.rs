@@ -3,6 +3,7 @@ mod catalog;
 mod complete;
 mod discover;
 mod git;
+mod nix;
 mod options;
 mod parse;
 #[cfg(test)]

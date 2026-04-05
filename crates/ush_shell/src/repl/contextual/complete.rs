@@ -14,6 +14,7 @@ use super::{
         load_just_recipes, load_make_targets, load_mise_tasks, load_npm_scripts, load_vp_tasks,
     },
     git::complete_git,
+    nix::complete_nix,
     options::{pending_value_kind, positional_args},
     tools::{
         complete_bun, complete_cargo, complete_claude, complete_codex, complete_go, complete_moon,
@@ -35,6 +36,7 @@ pub(crate) fn complete(
 
     match command {
         "git" => complete_git(cwd, args, word),
+        "nix" => complete_nix(args, word),
         "cargo" => complete_cargo(args, word),
         "moon" => complete_moon(args, word),
         "go" => complete_go(args, word),

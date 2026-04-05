@@ -5,12 +5,13 @@ use crate::config::{CompletionType, Config, EditMode};
 use crate::edit::init_state;
 use crate::highlight::Highlighter;
 use crate::hint::Hinter;
+use crate::history::DefaultHistory;
 use crate::history::History as _;
-use crate::keymap::{Bindings, Cmd, InputState};
+use crate::keymap::{Bindings, InputState};
 use crate::keys::{KeyCode as K, KeyEvent, KeyEvent as E, Modifiers as M};
 use crate::tty::Sink;
 use crate::validate::Validator;
-use crate::{apply_backspace_direct, readline_direct, Context, DefaultEditor, Helper, Result};
+use crate::{Context, DefaultEditor, Helper, Result, apply_backspace_direct, readline_direct};
 
 mod common;
 mod emacs;
@@ -71,14 +72,24 @@ fn complete_line() {
     let keys = vec![E::ENTER];
     let mut rdr: IntoIter<KeyEvent> = keys.into_iter();
     let cmd = super::complete_line(&mut rdr, &mut s, &mut input_state, &config).unwrap();
-    assert_eq!(
-        Some(Cmd::AcceptOrInsertLine {
-            accept_in_the_middle: true
-        }),
-        cmd
-    );
+    assert_eq!(None, cmd);
     assert_eq!("rust", s.line.as_str());
     assert_eq!(4, s.line.pos());
+}
+
+#[test]
+fn enter_after_completion_keeps_editing() {
+    let config = Config::builder().edit_mode(EditMode::Emacs).build();
+    let mut editor = crate::Editor::<SimpleCompleter, DefaultHistory>::with_config(config).unwrap();
+    editor
+        .term
+        .keys
+        .extend([E::from('\t'), E::ENTER, E::from('!'), E::ENTER]);
+    editor.set_helper(Some(SimpleCompleter));
+
+    let actual_line = editor.readline_with_initial(">>", ("rus", "")).unwrap();
+
+    assert_eq!("rust!", actual_line);
 }
 
 #[test]

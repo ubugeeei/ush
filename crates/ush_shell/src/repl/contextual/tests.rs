@@ -18,6 +18,7 @@ fn helper(cwd: &Path) -> UshHelper {
             "make".to_string(),
             "mise".to_string(),
             "moon".to_string(),
+            "nix".to_string(),
             "node".to_string(),
             "npm".to_string(),
             "pnpm".to_string(),
@@ -170,6 +171,13 @@ fn completes_additional_tool_commands_and_scripts() {
         .complete("cargo bu", 8, &ctx)
         .expect("cargo commands");
     let (_, moon_pairs) = helper.complete("moon ru", 7, &ctx).expect("moon commands");
+    let (_, nix_pairs) = helper.complete("nix fl", 6, &ctx).expect("nix commands");
+    let (_, nix_flake_pairs) = helper
+        .complete("nix flake sh", 12, &ctx)
+        .expect("nix flake commands");
+    let (_, nix_store_pairs) = helper
+        .complete("nix store de", 12, &ctx)
+        .expect("nix store commands");
     let (_, go_pairs) = helper.complete("go mo", 5, &ctx).expect("go commands");
     let (_, zig_pairs) = helper.complete("zig bu", 6, &ctx).expect("zig commands");
     let (_, bun_pairs) = helper
@@ -188,6 +196,22 @@ fn completes_additional_tool_commands_and_scripts() {
 
     assert!(cargo_pairs.iter().any(|pair| pair.replacement == "build"));
     assert!(moon_pairs.iter().any(|pair| pair.replacement == "run"));
+    assert!(nix_pairs.iter().any(|pair| pair.replacement == "flake"));
+    assert!(
+        nix_pairs
+            .iter()
+            .any(|pair| pair.display.contains("manage Nix flakes"))
+    );
+    assert!(
+        nix_flake_pairs
+            .iter()
+            .any(|pair| pair.replacement == "show")
+    );
+    assert!(
+        nix_store_pairs
+            .iter()
+            .any(|pair| pair.replacement == "delete")
+    );
     assert!(go_pairs.iter().any(|pair| pair.replacement == "mod"));
     assert!(zig_pairs.iter().any(|pair| pair.replacement == "build"));
     assert!(bun_pairs.iter().any(|pair| pair.replacement == "lint"));

@@ -150,6 +150,13 @@ fn complete_line<H: Helper, P: Prompt + ?Sized>(
                     s.changes.truncate(mark);
                     return Ok(None);
                 }
+                Cmd::AcceptLine | Cmd::Newline | Cmd::AcceptOrInsertLine { .. }
+                    if i < candidates.len() =>
+                {
+                    s.refresh_with_msg(None)?;
+                    s.changes.end();
+                    return Ok(None);
+                }
                 _ => {
                     if candidates.len() > 1 {
                         s.refresh_with_msg(None)?;

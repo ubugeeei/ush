@@ -92,10 +92,15 @@ pub(crate) fn package_json_scripts(json: &JsonValue) -> Names {
 }
 
 pub(crate) fn package_json_has_name(json: &JsonValue, name: &str) -> bool {
-    ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"]
-        .into_iter()
-        .filter_map(|field| json.get(field).and_then(JsonValue::as_object))
-        .any(|table| table.contains_key(name))
+    [
+        "dependencies",
+        "devDependencies",
+        "optionalDependencies",
+        "peerDependencies",
+    ]
+    .into_iter()
+    .filter_map(|field| json.get(field).and_then(JsonValue::as_object))
+    .any(|table| table.contains_key(name))
 }
 
 pub(crate) fn package_json_uses_vp(json: &JsonValue) -> bool {
@@ -145,15 +150,12 @@ fn skip_just_line(line: &str) -> bool {
 }
 
 fn valid_just_name(name: &str) -> bool {
-    name.bytes()
-        .all(|byte| matches!(byte, b'_' | b'-' | b':' | b'/' | b'0'..=b'9' | b'A'..=b'Z' | b'a'..=b'z'))
+    name.bytes().all(
+        |byte| matches!(byte, b'_' | b'-' | b':' | b'/' | b'0'..=b'9' | b'A'..=b'Z' | b'a'..=b'z'),
+    )
 }
 
-pub(crate) fn push_unique(
-    value: &str,
-    seen: &mut FxHashSet<CompactString>,
-    names: &mut Names,
-) {
+pub(crate) fn push_unique(value: &str, seen: &mut FxHashSet<CompactString>, names: &mut Names) {
     let value = CompactString::from(value);
     if seen.insert(value.clone()) {
         names.push(value);

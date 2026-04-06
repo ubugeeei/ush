@@ -9,8 +9,8 @@ use rustyline::{
 
 use self::specs::{BindingAction, binding_specs};
 use super::{
-    completion_state::CompletionState,
     UshHelper,
+    completion_state::CompletionState,
     selection::{SelectionDelete, SelectionHandle},
 };
 

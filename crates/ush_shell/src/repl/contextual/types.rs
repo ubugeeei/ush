@@ -20,8 +20,7 @@ pub(crate) enum TaskSource {
 }
 
 impl TaskSource {
-    pub(crate) const ALL: [Self; 5] =
-        [Self::Make, Self::Just, Self::Mise, Self::Npm, Self::Vp];
+    pub(crate) const ALL: [Self; 5] = [Self::Make, Self::Just, Self::Mise, Self::Npm, Self::Vp];
 
     pub(crate) fn as_str(self) -> &'static str {
         match self {

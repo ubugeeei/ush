@@ -1,4 +1,7 @@
+mod alias;
 mod fallback;
+#[cfg(test)]
+mod tests;
 
 use std::collections::BTreeMap;
 
@@ -6,6 +9,7 @@ use anyhow::{Result, bail};
 
 use crate::commands;
 use crate::helpers::HelperInvocation;
+use alias::expand_alias;
 use fallback::needs_posix_fallback;
 
 #[derive(Debug, Clone)]
@@ -124,125 +128,6 @@ fn is_assignment(token: &str) -> bool {
     is_identifier(name)
 }
 
-fn expand_alias(stage: &str, aliases: &BTreeMap<String, String>) -> Result<String> {
-    let mut current = stage.to_string();
-    for _ in 0..8 {
-        let Some(target) = alias_expansion_target(&current)? else {
-            return Ok(current);
-        };
-        let Some(alias) = aliases.get(&target.word) else {
-            return Ok(current);
-        };
-        current = format!(
-            "{}{}{}",
-            &current[..target.start],
-            alias,
-            &current[target.end..]
-        );
-    }
-    Ok(current)
-}
-
-#[derive(Debug)]
-struct AliasExpansionTarget {
-    start: usize,
-    end: usize,
-    word: String,
-}
-
-#[derive(Clone, Copy, Debug)]
-struct ShellWordSpan {
-    start: usize,
-    end: usize,
-    quoted: bool,
-}
-
-fn alias_expansion_target(stage: &str) -> Result<Option<AliasExpansionTarget>> {
-    let mut cursor = skip_whitespace(stage, 0);
-    while let Some(span) = next_shell_word_span(stage, cursor)? {
-        let raw = &stage[span.start..span.end];
-        let word = parse_single_shell_word(raw)?;
-        if is_assignment(&word) {
-            cursor = skip_whitespace(stage, span.end);
-            continue;
-        }
-        if span.quoted {
-            return Ok(None);
-        }
-        return Ok(Some(AliasExpansionTarget {
-            start: span.start,
-            end: span.end,
-            word,
-        }));
-    }
-    Ok(None)
-}
-
-fn skip_whitespace(source: &str, from: usize) -> usize {
-    source[from..]
-        .char_indices()
-        .find_map(|(offset, ch)| (!ch.is_whitespace()).then_some(from + offset))
-        .unwrap_or(source.len())
-}
-
-fn next_shell_word_span(source: &str, from: usize) -> Result<Option<ShellWordSpan>> {
-    let start = skip_whitespace(source, from);
-    if start >= source.len() {
-        return Ok(None);
-    }
-
-    let mut single = false;
-    let mut double = false;
-    let mut escaped = false;
-    let mut quoted = false;
-
-    for (offset, ch) in source[start..].char_indices() {
-        let index = start + offset;
-        match ch {
-            '\\' if !single => {
-                escaped = !escaped;
-                quoted = true;
-            }
-            '\'' if !double && !escaped => {
-                single = !single;
-                escaped = false;
-                quoted = true;
-            }
-            '"' if !single && !escaped => {
-                double = !double;
-                escaped = false;
-                quoted = true;
-            }
-            _ if ch.is_whitespace() && !single && !double && !escaped => {
-                return Ok(Some(ShellWordSpan {
-                    start,
-                    end: index,
-                    quoted,
-                }));
-            }
-            _ => escaped = false,
-        }
-    }
-
-    if single || double {
-        bail!("unterminated quoted string");
-    }
-
-    Ok(Some(ShellWordSpan {
-        start,
-        end: source.len(),
-        quoted,
-    }))
-}
-
-fn parse_single_shell_word(raw: &str) -> Result<String> {
-    let mut tokens = shell_words::split(raw)?;
-    match tokens.len() {
-        1 => Ok(tokens.remove(0)),
-        _ => bail!("invalid shell word: {raw}"),
-    }
-}
-
 fn strip_comment(line: &str) -> String {
     let mut single = false;
     let mut double = false;
@@ -346,100 +231,4 @@ fn split_background_job(line: &str) -> Option<String> {
 
 pub fn is_builtin(command: &str) -> bool {
     commands::is_builtin(command)
-}
-
-#[cfg(test)]
-mod tests {
-    use std::collections::BTreeMap;
-
-    use super::{ParsedLine, Stage, parse_line};
-
-    #[test]
-    fn parses_trailing_background_jobs_before_fallback() {
-        let parsed = parse_line("sleep 1 &", &BTreeMap::new()).expect("parse");
-
-        match parsed {
-            ParsedLine::Background(source) => assert_eq!(source, "sleep 1"),
-            other => panic!("expected background line, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn keeps_boolean_and_as_posix_fallback() {
-        let parsed = parse_line("true && false", &BTreeMap::new()).expect("parse");
-
-        match parsed {
-            ParsedLine::Fallback(source) => assert_eq!(source, "true && false"),
-            other => panic!("expected fallback line, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn alias_expansion_preserves_quoted_suffix_arguments() {
-        let aliases = BTreeMap::from([("gm".to_string(), "git commit -m".to_string())]);
-        let parsed = parse_line("gm 'simplify readme'", &aliases).expect("parse");
-
-        match parsed {
-            ParsedLine::Pipeline(pipeline) => match &pipeline.stages[0] {
-                Stage::External(spec) => {
-                    assert_eq!(spec.raw, "git commit -m 'simplify readme'");
-                    assert_eq!(spec.command, "git");
-                    assert_eq!(
-                        spec.args,
-                        vec![
-                            "commit".to_string(),
-                            "-m".to_string(),
-                            "simplify readme".to_string()
-                        ]
-                    );
-                }
-                other => panic!("expected external stage, got {other:?}"),
-            },
-            other => panic!("expected pipeline, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn alias_expansion_runs_after_leading_assignments() {
-        let aliases = BTreeMap::from([("gm".to_string(), "git commit -m".to_string())]);
-        let parsed = parse_line("EDITOR=vim gm 'simplify readme'", &aliases).expect("parse");
-
-        match parsed {
-            ParsedLine::Pipeline(pipeline) => match &pipeline.stages[0] {
-                Stage::External(spec) => {
-                    assert_eq!(spec.raw, "EDITOR=vim git commit -m 'simplify readme'");
-                    assert_eq!(spec.assignments, vec![("EDITOR".to_string(), "vim".to_string())]);
-                    assert_eq!(spec.command, "git");
-                    assert_eq!(
-                        spec.args,
-                        vec![
-                            "commit".to_string(),
-                            "-m".to_string(),
-                            "simplify readme".to_string()
-                        ]
-                    );
-                }
-                other => panic!("expected external stage, got {other:?}"),
-            },
-            other => panic!("expected pipeline, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn quoted_command_word_does_not_trigger_alias_expansion() {
-        let aliases = BTreeMap::from([("gm".to_string(), "git commit -m".to_string())]);
-        let parsed = parse_line("'gm' 'simplify readme'", &aliases).expect("parse");
-
-        match parsed {
-            ParsedLine::Pipeline(pipeline) => match &pipeline.stages[0] {
-                Stage::External(spec) => {
-                    assert_eq!(spec.raw, "'gm' 'simplify readme'");
-                    assert_eq!(spec.command, "gm");
-                    assert_eq!(spec.args, vec!["simplify readme".to_string()]);
-                }
-                other => panic!("expected external stage, got {other:?}"),
-            },
-            other => panic!("expected pipeline, got {other:?}"),
-        }
-    }
 }

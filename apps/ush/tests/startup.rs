@@ -13,6 +13,15 @@ fn normalize_path(text: &str, path: &std::path::Path, marker: &str) -> String {
     text.replace(&path.display().to_string(), marker)
 }
 
+fn assert_only_locale_warnings(stderr: &[u8]) {
+    let stderr = String::from_utf8_lossy(stderr);
+    let unexpected = stderr
+        .lines()
+        .filter(|line| !line.contains("setlocale: LC_ALL: cannot change locale"))
+        .collect::<Vec<_>>();
+    assert!(unexpected.is_empty(), "unexpected stderr: {stderr}");
+}
+
 #[test]
 fn login_flag_loads_explicit_profile_before_running_a_command() {
     let dir = tempdir().expect("tempdir");
@@ -35,7 +44,7 @@ fn login_flag_loads_explicit_profile_before_running_a_command() {
         .expect("run ush");
 
     assert!(output.status.success());
-    assert!(output.stderr.is_empty());
+    assert_only_locale_warnings(&output.stderr);
     let stdout = normalize_path(
         &String::from_utf8_lossy(&output.stdout),
         &profile,
@@ -61,7 +70,7 @@ fn rc_file_loads_before_running_a_command() {
         .expect("run ush");
 
     assert!(output.status.success());
-    assert!(output.stderr.is_empty());
+    assert_only_locale_warnings(&output.stderr);
     let stdout = normalize_path(&String::from_utf8_lossy(&output.stdout), &rc, "<RC_SH>");
     assert_snapshot("startup/rc.stdout", &stdout);
 }

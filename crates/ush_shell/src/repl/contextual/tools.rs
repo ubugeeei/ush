@@ -18,6 +18,42 @@ use super::{
 };
 use crate::repl::descriptions;
 
+struct ScriptRunnerSpec {
+    commands: &'static [&'static str],
+    options: &'static [&'static str],
+    option_specs: &'static [OptionSpec],
+    command_detail: &'static str,
+    option_detail: &'static str,
+    script_detail: &'static str,
+}
+
+const BUN_RUNNER: ScriptRunnerSpec = ScriptRunnerSpec {
+    commands: BUN_COMMANDS,
+    options: BUN_OPTIONS,
+    option_specs: BUN_OPTION_SPECS,
+    command_detail: descriptions::BUN_COMMAND,
+    option_detail: descriptions::OPTION,
+    script_detail: descriptions::BUN_SCRIPT,
+};
+
+const PNPM_RUNNER: ScriptRunnerSpec = ScriptRunnerSpec {
+    commands: PNPM_COMMANDS,
+    options: PNPM_OPTIONS,
+    option_specs: &[],
+    command_detail: descriptions::PNPM_COMMAND,
+    option_detail: descriptions::OPTION,
+    script_detail: descriptions::PNPM_SCRIPT,
+};
+
+const YARN_RUNNER: ScriptRunnerSpec = ScriptRunnerSpec {
+    commands: YARN_COMMANDS,
+    options: YARN_OPTIONS,
+    option_specs: YARN_OPTION_SPECS,
+    command_detail: descriptions::YARN_COMMAND,
+    option_detail: descriptions::OPTION,
+    script_detail: descriptions::YARN_SCRIPT,
+};
+
 pub(crate) fn complete_cargo(args: &[CompactString], word: &str) -> Option<ContextualCompletion> {
     static_completion(
         args,
@@ -106,17 +142,7 @@ pub(crate) fn complete_bun(
     args: &[CompactString],
     word: &str,
 ) -> Option<ContextualCompletion> {
-    script_runner_completion(
-        cwd,
-        args,
-        word,
-        BUN_COMMANDS,
-        BUN_OPTIONS,
-        BUN_OPTION_SPECS,
-        descriptions::BUN_COMMAND,
-        descriptions::OPTION,
-        descriptions::BUN_SCRIPT,
-    )
+    script_runner_completion(cwd, args, word, &BUN_RUNNER)
 }
 
 pub(crate) fn complete_pnpm(
@@ -124,17 +150,7 @@ pub(crate) fn complete_pnpm(
     args: &[CompactString],
     word: &str,
 ) -> Option<ContextualCompletion> {
-    script_runner_completion(
-        cwd,
-        args,
-        word,
-        PNPM_COMMANDS,
-        PNPM_OPTIONS,
-        &[],
-        descriptions::PNPM_COMMAND,
-        descriptions::OPTION,
-        descriptions::PNPM_SCRIPT,
-    )
+    script_runner_completion(cwd, args, word, &PNPM_RUNNER)
 }
 
 pub(crate) fn complete_yarn(
@@ -142,17 +158,7 @@ pub(crate) fn complete_yarn(
     args: &[CompactString],
     word: &str,
 ) -> Option<ContextualCompletion> {
-    script_runner_completion(
-        cwd,
-        args,
-        word,
-        YARN_COMMANDS,
-        YARN_OPTIONS,
-        YARN_OPTION_SPECS,
-        descriptions::YARN_COMMAND,
-        descriptions::OPTION,
-        descriptions::YARN_SCRIPT,
-    )
+    script_runner_completion(cwd, args, word, &YARN_RUNNER)
 }
 
 pub(crate) fn complete_claude(args: &[CompactString], word: &str) -> Option<ContextualCompletion> {
@@ -211,14 +217,9 @@ fn script_runner_completion(
     cwd: &Path,
     args: &[CompactString],
     word: &str,
-    commands: &[&str],
-    options: &[&str],
-    specs: &[OptionSpec],
-    command_detail: &'static str,
-    option_detail: &'static str,
-    script_detail: &'static str,
+    spec: &ScriptRunnerSpec,
 ) -> Option<ContextualCompletion> {
-    let pending = pending_value_kind(args, specs);
+    let pending = pending_value_kind(args, spec.option_specs);
     if matches!(pending, Some(true)) {
         return Some(ContextualCompletion::Path);
     }
@@ -226,19 +227,19 @@ fn script_runner_completion(
         return None;
     }
 
-    let positionals = positional_args(args, specs);
+    let positionals = positional_args(args, spec.option_specs);
     if matches!(positionals.first().map(CompactString::as_str), Some("run")) {
         return Some(ContextualCompletion::Pairs(typed_candidate_pairs(
             word,
             load_npm_scripts(cwd),
-            script_detail,
+            spec.script_detail,
         )));
     }
 
     let (items, detail) = if word.starts_with('-') {
-        (options, option_detail)
+        (spec.options, spec.option_detail)
     } else {
-        (commands, command_detail)
+        (spec.commands, spec.command_detail)
     };
     Some(ContextualCompletion::Pairs(typed_candidate_pairs(
         word,

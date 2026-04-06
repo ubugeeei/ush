@@ -1,6 +1,6 @@
 use std::{
-    fmt::Write as _,
     ffi::OsStr,
+    fmt::Write as _,
     fs,
     path::{Path, PathBuf},
 };
@@ -130,8 +130,5 @@ fn compiled_shell_snapshots_are_listed_in_catalog() {
         render_catalog(&source, &source_text, &shell_text, &mut catalog);
     }
 
-    assert_eq!(
-        catalog,
-        include_str!("fixtures/shell_snapshots_catalog.md")
-    );
+    assert_eq!(catalog, include_str!("fixtures/shell_snapshots_catalog.md"));
 }

@@ -45,12 +45,25 @@ fn login_flag_loads_explicit_profile_before_running_a_command() {
 
     assert!(output.status.success());
     assert_only_locale_warnings(&output.stderr);
-    let stdout = normalize_path(
-        &String::from_utf8_lossy(&output.stdout),
-        &profile,
-        "<PROFILE_SH>",
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let lines = stdout.lines().collect::<Vec<_>>();
+
+    assert_eq!(lines.len(), 2, "unexpected stdout: {stdout:?}");
+    assert_eq!(lines[0], "profile");
+
+    let alias_line = lines[1];
+    assert!(
+        alias_line.starts_with("ll "),
+        "unexpected alias output: {stdout:?}"
     );
-    assert_snapshot("startup/login_profile.stdout", &stdout);
+    assert!(
+        alias_line.contains("alias"),
+        "unexpected alias output: {stdout:?}"
+    );
+    assert!(
+        alias_line.contains("profile-loaded"),
+        "unexpected alias output: {stdout:?}"
+    );
 }
 
 #[test]

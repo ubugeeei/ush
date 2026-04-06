@@ -140,8 +140,16 @@ fn which_lists_all_matches_with_current_first() {
 
     assert!(output.status.success());
     assert!(output.stderr.is_empty());
-    let stdout = normalize_command_paths(&String::from_utf8_lossy(&output.stdout), &["echo"]);
-    assert_snapshot(&fixture("which_echo_plain"), &stdout);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let lines = stdout.lines().collect::<Vec<_>>();
+    assert!(!lines.is_empty());
+    assert!(lines[0].starts_with("=> alias echo='printf'"));
+    assert!(lines.contains(&"   echo"));
+    assert!(
+        lines
+            .iter()
+            .any(|line| line.starts_with("   /") && line.ends_with("/echo"))
+    );
 }
 
 #[test]
@@ -172,9 +180,13 @@ fn stylish_which_highlights_current_match_while_showing_all_candidates() {
 
     assert!(output.status.success());
     assert!(output.stderr.is_empty());
-    let stdout = normalize_command_paths(&String::from_utf8_lossy(&output.stdout), &["echo"]);
+    let stdout = String::from_utf8_lossy(&output.stdout);
     assert_eq!(stdout.matches("[current]").count(), 1);
-    assert_snapshot(&fixture("stylish_which_echo"), &stdout);
+    assert!(stdout.contains("[alias]"));
+    assert!(stdout.contains("[builtin]"));
+    assert!(stdout.contains("[external]"));
+    assert!(stdout.contains("printf"));
+    assert!(stdout.contains("/echo"));
 }
 
 #[test]

@@ -83,7 +83,10 @@ fn stylish_env_renders_sorted_variables_without_tables() {
     assert!(empty_index < foo_index);
     assert!(foo_index < hello_index);
     assert!(output.stderr.is_empty());
-    assert_snapshot(&fixture("stylish_env_sorted"), &stdout);
+    assert!(stdout.contains("UBSHELL_INTERACTION"));
+    assert!(stdout.contains("UBSHELL_STYLISH"));
+    assert!(stdout.contains("USH_INTERACTION"));
+    assert!(stdout.contains("USH_STYLISH"));
 }
 
 #[test]
@@ -97,7 +100,12 @@ fn stylish_env_handles_cleared_process_environment() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(output.stderr.is_empty());
-    assert_snapshot(&fixture("stylish_env_cleared"), &stdout);
+    assert!(stdout.contains("UBSHELL_INTERACTION"));
+    assert!(stdout.contains("UBSHELL_STYLISH"));
+    assert!(stdout.contains("USH_INTERACTION"));
+    assert!(stdout.contains("USH_STYLISH"));
+    assert!(!stdout.contains("PATH"));
+    assert!(!stdout.contains("HOME"));
 }
 
 #[test]

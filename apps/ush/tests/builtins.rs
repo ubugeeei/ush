@@ -69,7 +69,7 @@ fn run_git(dir: &Path, args: &[&str]) {
 }
 
 fn init_git_repo(dir: &Path) {
-    run_git(dir, &["init", "-q"]);
+    run_git(dir, &["init", "-q", "-b", "main"]);
     run_git(dir, &["config", "user.name", "ush"]);
     run_git(dir, &["config", "user.email", "ush@example.com"]);
     fs::write(dir.join("tracked.txt"), "hello\n").expect("write tracked");
@@ -77,8 +77,11 @@ fn init_git_repo(dir: &Path) {
     run_git(dir, &["commit", "-q", "-m", "initial commit"]);
 }
 
-fn history_file(home: &Path) -> PathBuf {
-    home.join("Library/Caches/dev.ubugeeei.ush/history.txt")
+fn history_files(home: &Path) -> [PathBuf; 2] {
+    [
+        home.join("Library/Caches/dev.ubugeeei.ush/history.txt"),
+        home.join(".cache/ush/history.txt"),
+    ]
 }
 
 fn normalize_command_paths(text: &str, names: &[&str]) -> String {
@@ -171,12 +174,13 @@ fn normalize_ls_output(text: &str) -> String {
 }
 
 fn write_history(home: &Path, entries: &[&str]) {
-    let path = history_file(home);
-    fs::create_dir_all(path.parent().expect("history dir")).expect("create history dir");
     let body = if entries.is_empty() {
         String::new()
     } else {
         format!("{}\n", entries.join("\n"))
     };
-    fs::write(path, body).expect("write history");
+    for path in history_files(home) {
+        fs::create_dir_all(path.parent().expect("history dir")).expect("create history dir");
+        fs::write(path, &body).expect("write history");
+    }
 }

@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{path::Path, process::Command};
 
 use ush_config::StarshipPromptConfig;
 
@@ -40,9 +40,11 @@ fn starship_prompt(
     } else {
         &config.character.error_symbol
     });
+    let git_branch = current_git_branch(cwd).map(|branch| render_git_branch(&branch, config));
 
     if let Some(format) = &config.format {
-        let rendered = render_starship_format(format, &directory, &character);
+        let rendered =
+            render_starship_format(format, &directory, &character, git_branch.as_deref());
         return ensure_prompt_suffix(rendered);
     }
 
@@ -123,7 +125,49 @@ fn normalize_character(symbol: &str) -> String {
     }
 }
 
-fn render_starship_format(format: &str, directory: &str, character: &str) -> String {
+fn current_git_branch(cwd: &Path) -> Option<String> {
+    let branch = git_output(cwd, &["rev-parse", "--abbrev-ref", "HEAD"])?;
+    if branch != "HEAD" {
+        return Some(branch);
+    }
+    let commit = git_output(cwd, &["rev-parse", "--short", "HEAD"])?;
+    Some(commit)
+}
+
+fn git_output(cwd: &Path, args: &[&str]) -> Option<String> {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(cwd)
+        .args(args)
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let text = String::from_utf8(output.stdout).ok()?;
+    let trimmed = text.trim();
+    (!trimmed.is_empty()).then(|| trimmed.to_string())
+}
+
+fn render_git_branch(branch: &str, config: &StarshipPromptConfig) -> String {
+    let git_branch = &config.git_branch;
+    let format = git_branch
+        .format
+        .as_deref()
+        .unwrap_or("[$symbol$branch]($style) ");
+    let rendered = format
+        .replace("$symbol", &git_branch.symbol)
+        .replace("$branch", branch)
+        .replace("$style", &git_branch.style);
+    strip_starship_markup(&rendered)
+}
+
+fn render_starship_format(
+    format: &str,
+    directory: &str,
+    character: &str,
+    git_branch: Option<&str>,
+) -> String {
     let mut out = String::new();
     let chars = format.chars().collect::<Vec<_>>();
     let mut index = 0usize;
@@ -150,9 +194,108 @@ fn render_starship_format(format: &str, directory: &str, character: &str) -> Str
             index += "$line_break".len();
             continue;
         }
+        if rest.starts_with("$git_branch") {
+            if let Some(git_branch) = git_branch {
+                out.push_str(git_branch);
+            }
+            index += "$git_branch".len();
+            continue;
+        }
+        if chars
+            .get(index + 1)
+            .copied()
+            .is_some_and(is_starship_module_char)
+        {
+            index += 1;
+            while chars
+                .get(index)
+                .copied()
+                .is_some_and(is_starship_module_char)
+            {
+                index += 1;
+            }
+            continue;
+        }
+        out.push('$');
         index += 1;
     }
 
+    out
+}
+
+fn is_starship_module_char(ch: char) -> bool {
+    ch.is_ascii_alphanumeric() || ch == '_'
+}
+
+fn strip_starship_markup(input: &str) -> String {
+    let chars = input.chars().collect::<Vec<_>>();
+    let mut out = String::new();
+    let mut index = 0usize;
+    while index < chars.len() {
+        if chars[index] == '[' {
+            if let Some((inner, end)) = starship_style_group(&chars, index) {
+                out.push_str(&unescape_starship_text(&inner));
+                index = end;
+                continue;
+            }
+        }
+        if chars[index] == '\\' {
+            if let Some(next) = chars.get(index + 1) {
+                out.push(*next);
+                index += 2;
+                continue;
+            }
+        }
+        out.push(chars[index]);
+        index += 1;
+    }
+    out
+}
+
+fn starship_style_group(chars: &[char], start: usize) -> Option<(String, usize)> {
+    let mut inner = String::new();
+    let mut cursor = start + 1;
+    while cursor < chars.len() {
+        if chars[cursor] == '\\' {
+            if let Some(next) = chars.get(cursor + 1) {
+                inner.push(chars[cursor]);
+                inner.push(*next);
+                cursor += 2;
+                continue;
+            }
+        }
+        if chars[cursor] == ']' && chars.get(cursor + 1).copied() == Some('(') {
+            let mut style_cursor = cursor + 2;
+            while style_cursor < chars.len() {
+                if chars[style_cursor] == ')' {
+                    return Some((inner, style_cursor + 1));
+                }
+                style_cursor += 1;
+            }
+            return None;
+        }
+        inner.push(chars[cursor]);
+        cursor += 1;
+    }
+    None
+}
+
+fn unescape_starship_text(raw: &str) -> String {
+    let mut out = String::new();
+    let mut escaped = false;
+    for ch in raw.chars() {
+        if escaped {
+            out.push(ch);
+            escaped = false;
+        } else if ch == '\\' {
+            escaped = true;
+        } else {
+            out.push(ch);
+        }
+    }
+    if escaped {
+        out.push('\\');
+    }
     out
 }
 
@@ -232,5 +375,30 @@ mod tests {
         );
 
         assert_eq!(prompt, "~home/project ✗ ");
+    }
+
+    #[test]
+    fn renders_git_branch_from_starship_format() {
+        let mut starship = StarshipPromptConfig::default();
+        starship.git_branch.symbol = "|- ".into();
+        starship.git_branch.format = Some(" [$symbol$branch]($style)".into());
+
+        let branch = super::render_git_branch("main", &starship);
+        let prompt = super::render_starship_format(
+            "$directory$git_branch$line_break$character",
+            "~/repo",
+            "$ ",
+            Some(&branch),
+        );
+
+        assert_eq!(prompt, "~/repo |- main\n$ ");
+    }
+
+    #[test]
+    fn strips_starship_markup_and_escapes() {
+        assert_eq!(
+            super::strip_starship_markup(r" [\(main\)](cyan)"),
+            " (main)"
+        );
     }
 }

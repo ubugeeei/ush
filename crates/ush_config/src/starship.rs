@@ -10,6 +10,7 @@ pub struct StarshipPromptConfig {
     pub add_newline: bool,
     pub directory: DirectoryConfig,
     pub character: CharacterConfig,
+    pub git_branch: GitBranchConfig,
 }
 
 #[derive(Debug, Clone)]
@@ -44,6 +45,23 @@ impl Default for CharacterConfig {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct GitBranchConfig {
+    pub format: Option<String>,
+    pub symbol: String,
+    pub style: String,
+}
+
+impl Default for GitBranchConfig {
+    fn default() -> Self {
+        Self {
+            format: None,
+            symbol: String::new(),
+            style: "cyan".to_string(),
+        }
+    }
+}
+
 #[derive(Debug, Default, Deserialize)]
 struct StarshipToml {
     format: Option<String>,
@@ -53,6 +71,8 @@ struct StarshipToml {
     directory: DirectoryToml,
     #[serde(default)]
     character: CharacterToml,
+    #[serde(default)]
+    git_branch: GitBranchToml,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -66,6 +86,13 @@ struct DirectoryToml {
 struct CharacterToml {
     success_symbol: Option<String>,
     error_symbol: Option<String>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct GitBranchToml {
+    format: Option<String>,
+    symbol: Option<String>,
+    style: Option<String>,
 }
 
 pub fn load_starship_prompt() -> Result<Option<StarshipPromptConfig>> {
@@ -114,6 +141,15 @@ fn parse_starship_prompt(source: &str) -> Result<StarshipPromptConfig> {
     if let Some(symbol) = parsed.character.error_symbol {
         config.character.error_symbol = extract_symbol(&symbol);
     }
+    if let Some(format) = parsed.git_branch.format {
+        config.git_branch.format = Some(format);
+    }
+    if let Some(symbol) = parsed.git_branch.symbol {
+        config.git_branch.symbol = extract_symbol(&symbol);
+    }
+    if let Some(style) = parsed.git_branch.style {
+        config.git_branch.style = style;
+    }
 
     Ok(config)
 }
@@ -124,9 +160,28 @@ fn extract_symbol(raw: &str) -> String {
         .strip_prefix('[')
         .and_then(|rest| rest.split_once(']'))
     {
-        return inner.0.to_string();
+        return unescape_starship_text(inner.0);
     }
-    trimmed.to_string()
+    unescape_starship_text(raw)
+}
+
+fn unescape_starship_text(raw: &str) -> String {
+    let mut out = String::new();
+    let mut escaped = false;
+    for ch in raw.chars() {
+        if escaped {
+            out.push(ch);
+            escaped = false;
+        } else if ch == '\\' {
+            escaped = true;
+        } else {
+            out.push(ch);
+        }
+    }
+    if escaped {
+        out.push('\\');
+    }
+    out
 }
 
 #[cfg(test)]
@@ -148,6 +203,10 @@ home_symbol = "~home"
 [character]
 success_symbol = "[❯](bold green)"
 error_symbol = "[✗](bold red)"
+
+[git_branch]
+format = " [$symbol$branch]($style)"
+symbol = "|- "
 "#,
         )
         .expect("parse");
@@ -162,5 +221,10 @@ error_symbol = "[✗](bold red)"
         assert_eq!(config.directory.home_symbol, "~home");
         assert_eq!(config.character.success_symbol, "❯");
         assert_eq!(config.character.error_symbol, "✗");
+        assert_eq!(
+            config.git_branch.format.as_deref(),
+            Some(" [$symbol$branch]($style)")
+        );
+        assert_eq!(config.git_branch.symbol, "|- ");
     }
 }

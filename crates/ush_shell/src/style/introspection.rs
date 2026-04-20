@@ -149,7 +149,7 @@ pub fn render_which(command: &str, rows: &[(String, Vec<CommandLookup>)]) -> Str
 
 pub fn render_env_map(env: &HashMap<String, String>) -> String {
     let mut entries = env.iter().collect::<Vec<_>>();
-    entries.sort_by(|(left, _), (right, _)| left.cmp(right));
+    entries.sort_by_key(|(name, _)| *name);
 
     let mut out = String::new();
     let _ = writeln!(

@@ -165,7 +165,7 @@ fn make_spec(args: &[String]) -> CommandSpec {
 
 fn render_env(env: &std::collections::HashMap<String, String>) -> String {
     let mut entries = env.iter().collect::<Vec<_>>();
-    entries.sort_by(|(left, _), (right, _)| left.cmp(right));
+    entries.sort_by_key(|(name, _)| *name);
     let mut text = entries
         .into_iter()
         .map(|(name, value)| format!("{name}={value}"))

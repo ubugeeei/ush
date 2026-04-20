@@ -34,10 +34,8 @@ fn has_open_blocks(tokens: &[String]) -> bool {
             "do" => stack.push("done"),
             "{" => stack.push("}"),
             "(" => stack.push(")"),
-            "fi" | "done" | "esac" | "}" | ")" => {
-                if stack.pop() != Some(token.as_str()) {
-                    return false;
-                }
+            "fi" | "done" | "esac" | "}" | ")" if stack.pop() != Some(token.as_str()) => {
+                return false;
             }
             _ => {}
         }

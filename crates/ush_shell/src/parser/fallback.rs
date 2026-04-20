@@ -14,11 +14,7 @@ pub(super) fn needs_posix_fallback(line: &str) -> bool {
             '"' if !single => double = !double,
             _ if single || double => {}
             ';' | '`' | '&' | '<' => return true,
-            '>' => {
-                if line.get(index.saturating_sub(1)..index + 1) != Some("->") {
-                    return true;
-                }
-            }
+            '>' if line.get(index.saturating_sub(1)..index + 1) != Some("->") => return true,
             '$' if matches!(chars.peek(), Some((_, '('))) => return true,
             _ => {}
         }

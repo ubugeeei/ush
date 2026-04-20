@@ -393,7 +393,7 @@ curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | sh
 Pin a release version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | sh -s -- --version v0.5.5
+curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | sh -s -- --version v0.6.0
 ```
 
 Install into a custom bin directory:

@@ -12,7 +12,8 @@ RUN apt-get update \
     curl \
     jq \
     procps \
-  && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/* \
+  && useradd --create-home --uid 1000 --shell /usr/local/bin/ush ush
 
 COPY --from=builder /app/target/release/ush /usr/local/bin/ush
 COPY --from=builder /app/target/release/ush_lsp /usr/local/bin/ush_lsp
@@ -20,6 +21,11 @@ COPY examples /usr/local/share/ush/examples
 
 ENV SHELL=/usr/local/bin/ush
 WORKDIR /workspace
+RUN chown ush:ush /workspace
+
+# Drop privileges. Anyone who needs root inside the container can still
+# pass `--user 0` at run time.
+USER ush
 
 SHELL ["/usr/local/bin/ush", "-c"]
 CMD ["/usr/local/bin/ush"]

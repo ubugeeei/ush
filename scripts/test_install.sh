@@ -176,6 +176,34 @@ test_cli_flags() {
   rm -rf "$tmpdir"
 }
 
+test_checksum_lookup_requires_exact_asset_name() {
+  tmpdir="$(mktemp -d)"
+
+  target="$(detect_target)"
+  make_archive "$tmpdir" "$target"
+  archive="$tmpdir/ush.tar.gz"
+  checksum="$(compute_sha256 "$archive")"
+  printf '%s  %s\n' "$checksum" "ush-$target.tarXgz" > "$tmpdir/sha256sums.txt"
+
+  home_dir="$tmpdir/home"
+  output_file="$(mktemp "${TMPDIR:-/tmp}/ush_install_exact_checksum.XXXXXX")"
+  mkdir -p "$home_dir"
+  if HOME="$home_dir" \
+    PATH="/usr/bin:/bin" \
+    SHELL=/bin/zsh \
+    USH_DOWNLOAD_URL="file://$archive" \
+    USH_CHECKSUM_URL="file://$tmpdir/sha256sums.txt" \
+    sh "$INSTALL_SH" >"$output_file" 2>&1
+  then
+    echo "test_install.sh: installer accepted a near-miss checksum filename" >&2
+    cat "$output_file" >&2
+    rm -rf "$tmpdir" "$output_file"
+    exit 1
+  fi
+
+  rm -rf "$tmpdir" "$output_file"
+}
+
 main() {
   need_cmd mktemp
   need_cmd tar
@@ -184,6 +212,7 @@ main() {
   test_auto_path_update
   test_auto_path_disabled
   test_cli_flags
+  test_checksum_lookup_requires_exact_asset_name
 }
 
 main "$@"

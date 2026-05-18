@@ -15,6 +15,7 @@ use super::{
     FunctionErrorRegistry, TaskErrorRegistry, analyze::block_errors, support::expr_errors,
 };
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn match_errors(
     expr: &Expr,
     arms: &[(Pattern, Box<Statement>)],

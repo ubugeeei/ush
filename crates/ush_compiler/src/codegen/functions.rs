@@ -64,6 +64,7 @@ pub(crate) fn analyze_globals(
     Ok(env)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn compile_function(
     def: &FunctionDef,
     globals: &Env,
@@ -130,6 +131,7 @@ pub(crate) fn push_wait_footer(out: &mut OutputBuffer) {
     out.push_str("fi\n");
 }
 
+#[allow(clippy::too_many_arguments)]
 fn compile_many(
     statements: &[Statement],
     env: &mut Env,

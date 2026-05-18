@@ -11,6 +11,7 @@ use super::{
 };
 use crate::{sourcemap::OutputBuffer, traits::TraitImplRegistry};
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn compile_alias(
     name: &str,
     value: &Expr,

@@ -79,12 +79,11 @@ fn parse_statement(
     if let Some(kind) = parse_shell_escape(trimmed)? {
         return Ok(Statement::new(line_no, kind));
     }
-    if allow_declarations {
-        if let Some(kind) =
+    if allow_declarations
+        && let Some(kind) =
             declaration::parse_declaration(line_no, trimmed, lines, cursor, attrs, tail_position)?
-        {
-            return Ok(Statement::new(line_no, kind));
-        }
+    {
+        return Ok(Statement::new(line_no, kind));
     }
     if let Some(rest) = trimmed.strip_prefix("let ") {
         return Ok(Statement::new(

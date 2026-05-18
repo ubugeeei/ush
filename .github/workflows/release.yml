@@ -14,9 +14,11 @@ on:
         type: string
 
 permissions:
-  contents: write
-  attestations: write
-  id-token: write
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.version || github.ref_name }}
+  cancel-in-progress: false
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -24,9 +26,53 @@ env:
   SOURCE_REF: ${{ inputs.target_ref || github.ref }}
 
 jobs:
+  preflight:
+    name: Preflight
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_REF }}
+
+      - name: Validate release tag
+        run: |
+          version="${RELEASE_TAG}"
+
+          if ! printf '%s\n' "$version" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$'; then
+            echo "release tag must be a semantic version tag, for example v0.1.0" >&2
+            exit 1
+          fi
+
+          cargo_version="$(awk '
+            /^\[workspace.package\]$/ { in_workspace_package = 1; next }
+            /^\[/ { in_workspace_package = 0 }
+            in_workspace_package && $1 == "version" {
+              gsub(/"/, "", $3)
+              print $3
+              exit
+            }
+          ' Cargo.toml
+          )"
+          if [ -z "$cargo_version" ]; then
+            echo "could not read workspace package version from Cargo.toml" >&2
+            exit 1
+          fi
+
+          expected="v$cargo_version"
+          if [ "$version" != "$expected" ]; then
+            echo "release tag must match workspace package version: expected $expected, got $version" >&2
+            exit 1
+          fi
+
   build:
     name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
+    needs: preflight
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -56,7 +102,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Build release binaries
-        run: cargo build --release --target "${{ matrix.target }}" -p ush -p ush_lsp
+        run: cargo build --locked --release --target "${{ matrix.target }}" -p ush -p ush_lsp
 
       - name: Package release archive
         env:
@@ -85,6 +131,8 @@ jobs:
     name: Publish release
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -105,6 +153,28 @@ jobs:
 
       - name: Smoke test installer with release artifact
         run: |
+          cd release-artifacts
+          for target in \
+            x86_64-unknown-linux-gnu \
+            x86_64-apple-darwin \
+            aarch64-apple-darwin
+          do
+            asset="ush-$target.tar.gz"
+            package_dir="ush-$target"
+
+            test -f "$asset"
+            grep -F "  $asset" sha256sums.txt >/dev/null
+
+            tmpdir="$(mktemp -d)"
+            tar -xzf "$asset" -C "$tmpdir"
+            test -x "$tmpdir/$package_dir/ush"
+            test -x "$tmpdir/$package_dir/ush_lsp"
+            test -f "$tmpdir/$package_dir/README.md"
+            test -f "$tmpdir/$package_dir/LICENSE"
+            rm -rf "$tmpdir"
+          done
+
+          cd ..
           archive_path="$PWD/release-artifacts/ush-x86_64-unknown-linux-gnu.tar.gz"
           checksum_path="$PWD/release-artifacts/sha256sums.txt"
           home_dir="$(mktemp -d)"
@@ -119,6 +189,7 @@ jobs:
             --checksum-url "file://$checksum_path"
 
           "$home_dir/bin/ush" --version
+          test -x "$home_dir/bin/ush_lsp"
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2

@@ -50,12 +50,10 @@ fn parse_multiline_string(body: &str) -> String {
 
 fn strip_indent(line: &str, indent: usize) -> &str {
     let mut offset = 0usize;
-    let mut removed = 0usize;
-    for ch in line.chars() {
+    for (removed, ch) in line.chars().enumerate() {
         if removed == indent || !matches!(ch, ' ' | '\t') {
             break;
         }
-        removed += 1;
         offset += ch.len_utf8();
     }
     &line[offset..]

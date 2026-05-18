@@ -18,6 +18,7 @@ use super::super::{
     statement::compile_statement,
 };
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn compile_async_block(
     body: &[Statement],
     env: &Env,
@@ -75,6 +76,7 @@ pub(crate) fn compile_async_block(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn compile_body(
     body: &[Statement],
     env: &mut Env,

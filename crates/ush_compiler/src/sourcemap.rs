@@ -167,10 +167,11 @@ impl SourceMap {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SourceMapSection {
     RuntimeSupport,
     DocSupport,
+    #[default]
     UserCode,
 }
 
@@ -185,12 +186,6 @@ impl SourceMapSection {
             Self::DocSupport => "doc-support",
             Self::UserCode => "user-code",
         }
-    }
-}
-
-impl Default for SourceMapSection {
-    fn default() -> Self {
-        Self::UserCode
     }
 }
 

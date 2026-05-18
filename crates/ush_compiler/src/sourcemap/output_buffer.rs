@@ -66,7 +66,7 @@ impl OutputBuffer {
 
     pub(crate) fn append_buffer(&mut self, other: &Self, indent: usize) {
         let metadata = other.completed_line_metadata();
-        for (line, (origin, section)) in other.text.lines().zip(metadata.into_iter()) {
+        for (line, (origin, section)) in other.text.lines().zip(metadata) {
             let previous_origin = self.set_origin(origin);
             let previous_section = self.set_section(section);
             if indent > 0 {

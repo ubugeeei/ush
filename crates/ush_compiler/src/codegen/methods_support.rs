@@ -13,6 +13,7 @@ use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
 use crate::types::{AstVec as Vec, OutputString as String};
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn bind_method_args(
     args: &[Expr],
     def: &FunctionDef,
@@ -104,6 +105,7 @@ pub(super) fn resolve_method_args<'a>(
         .collect()
 }
 
+#[allow(clippy::too_many_arguments)]
 fn materialize_named_value(
     name: &str,
     expr: &Expr,

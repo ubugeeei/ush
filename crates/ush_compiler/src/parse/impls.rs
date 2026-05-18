@@ -17,7 +17,7 @@ pub(super) fn parse_trait(
     cursor: &mut usize,
 ) -> Result<StatementKind> {
     let name = parse_empty_item(header, lines, cursor, "trait declaration")?;
-    Ok(StatementKind::Trait(TraitDef { name: name.into() }))
+    Ok(StatementKind::Trait(TraitDef { name }))
 }
 
 pub(super) fn parse_impl(

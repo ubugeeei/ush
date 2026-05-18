@@ -26,14 +26,14 @@ pub(super) fn parse_named_type_list(source: &str) -> Result<Vec<NamedFieldType>>
 }
 
 pub(super) fn parse_variant_expr(source: &str) -> Result<Option<VariantExpr>> {
-    if let Some((head, inner)) = parse_paren_body(source) {
-        if let Some((enum_name, variant_name)) = split_variant_path(head) {
-            return Ok(Some(VariantExpr {
-                enum_name,
-                variant_name,
-                fields: ExprFields::Tuple(parse_list(inner, parse_expr)?),
-            }));
-        }
+    if let Some((head, inner)) = parse_paren_body(source)
+        && let Some((enum_name, variant_name)) = split_variant_path(head)
+    {
+        return Ok(Some(VariantExpr {
+            enum_name,
+            variant_name,
+            fields: ExprFields::Tuple(parse_list(inner, parse_expr)?),
+        }));
     }
     if let Some((head, inner)) = parse_brace_body(source) {
         if let Some((enum_name, variant_name)) = split_variant_path(head) {
@@ -62,14 +62,14 @@ pub(super) fn parse_variant_expr(source: &str) -> Result<Option<VariantExpr>> {
 }
 
 pub(super) fn parse_variant_pattern(source: &str) -> Result<Option<VariantPattern>> {
-    if let Some((head, inner)) = parse_paren_body(source) {
-        if let Some((enum_name, variant_name)) = split_variant_path(head) {
-            return Ok(Some(VariantPattern {
-                enum_name,
-                variant_name,
-                fields: PatternFields::Tuple(parse_list(inner, parse_pattern)?),
-            }));
-        }
+    if let Some((head, inner)) = parse_paren_body(source)
+        && let Some((enum_name, variant_name)) = split_variant_path(head)
+    {
+        return Ok(Some(VariantPattern {
+            enum_name,
+            variant_name,
+            fields: PatternFields::Tuple(parse_list(inner, parse_pattern)?),
+        }));
     }
     if let Some((head, inner)) = parse_brace_body(source) {
         if let Some((enum_name, variant_name)) = split_variant_path(head) {

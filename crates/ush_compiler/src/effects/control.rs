@@ -128,6 +128,7 @@ pub(super) fn iterable_item_type(ty: &Type) -> Result<Type> {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn body_errors_with_binding(
     name: &str,
     ty: Type,

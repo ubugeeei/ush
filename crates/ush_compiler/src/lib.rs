@@ -33,7 +33,12 @@ use anyhow::Context;
 use std::{fs, path::Path};
 
 #[derive(Debug, Clone, Default)]
-pub struct UshCompiler;
+pub struct UshCompiler {
+    _private: (),
+}
+
+#[allow(non_upper_case_globals)]
+pub const UshCompiler: UshCompiler = UshCompiler { _private: () };
 
 impl UshCompiler {
     #[cfg(feature = "std")]

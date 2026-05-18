@@ -12,6 +12,7 @@ use super::{
     methods::compile_display_expr,
 };
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn push_print(
     expr: &Expr,
     env: &Env,
@@ -38,6 +39,7 @@ pub(crate) fn push_print(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn compile_shell(
     expr: &Expr,
     env: &Env,

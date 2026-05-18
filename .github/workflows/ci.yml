@@ -124,6 +124,49 @@ jobs:
       - name: Run cargo audit
         run: cargo audit --deny warnings
 
+  bench:
+    name: Benchmark
+    runs-on: ubuntu-latest
+    needs:
+      - clippy
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: bench
+
+      - name: Run parser bench
+        run: cargo bench --locked -p ush_shell --bench parser -- --output-format bencher | tee bench-output.txt
+
+      - name: Run compile bench
+        run: cargo bench --locked -p ush_compiler --bench compile -- --output-format bencher | tee -a bench-output.txt
+
+      - name: Compare against baseline on main
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Criterion microbenchmarks
+          tool: cargo
+          output-file-path: bench-output.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          gh-pages-branch: gh-pages
+          benchmark-data-dir-path: bench
+          summary-always: true
+          alert-threshold: "125%"
+          fail-on-alert: ${{ github.event_name == 'pull_request' }}
+          comment-on-alert: true
+          alert-comment-cc-users: "@ubugeeei"
+
   test:
     name: Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -164,7 +207,9 @@ jobs:
         run: cargo test --locked --workspace --release
 
       - name: Build benches
-        run: cargo bench --locked -p ush_shell --no-run
+        run: |
+          cargo bench --locked -p ush_shell --no-run
+          cargo bench --locked -p ush_compiler --no-run
 
       - name: Run async example
         run: |

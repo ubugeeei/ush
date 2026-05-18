@@ -20,4 +20,9 @@ rustc-hash.workspace = true
 smallvec.workspace = true
 
 [dev-dependencies]
+criterion.workspace = true
 tempfile.workspace = true
+
+[[bench]]
+name = "compile"
+harness = false

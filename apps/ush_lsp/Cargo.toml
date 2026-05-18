@@ -19,3 +19,6 @@ lsp-types.workspace = true
 serde_json.workspace = true
 ush_tooling = { path = "../../crates/ush_tooling" }
 
+
+[lints]
+workspace = true

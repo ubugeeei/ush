@@ -16,3 +16,6 @@ categories.workspace = true
 anyhow.workspace = true
 ush_compiler = { path = "../ush_compiler" }
 
+
+[lints]
+workspace = true

@@ -26,3 +26,6 @@ ush_tooling = { path = "../../crates/ush_tooling" }
 [dev-dependencies]
 libc.workspace = true
 tempfile.workspace = true
+
+[lints]
+workspace = true

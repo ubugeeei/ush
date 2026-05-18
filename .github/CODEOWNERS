@@ -1,0 +1,30 @@
+# Code owners for the ush repository.
+#
+# GitHub auto-requests review from the listed owners when a PR
+# touches the matching paths. Keep the entries narrow so that
+# changes to one subsystem don't unnecessarily pull in unrelated
+# reviewers.
+
+# Default: anything not matched by a more specific rule.
+*                                @ubugeeei
+
+# CI / release pipelines are security-sensitive; the project owner
+# always reviews them.
+/.github/                        @ubugeeei
+/install.sh                      @ubugeeei
+/scripts/                        @ubugeeei
+
+# Compiler + language surface.
+/crates/ush_compiler/            @ubugeeei
+
+# Shell runtime + helpers.
+/crates/ush_shell/               @ubugeeei
+/crates/ush_config/              @ubugeeei
+/crates/ush_tooling/             @ubugeeei
+
+# Apps.
+/apps/ush/                       @ubugeeei
+/apps/ush_lsp/                   @ubugeeei
+
+# Vendored upstream — touch carefully.
+/vendor/                         @ubugeeei

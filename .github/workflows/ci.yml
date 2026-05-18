@@ -87,6 +87,9 @@ jobs:
       - name: Check no_std compiler core
         run: cargo check --locked -p ush_compiler --no-default-features
 
+      - name: Run no_std compiler tests
+        run: cargo test --locked -p ush_compiler --no-default-features --lib
+
       - name: Run release tests
         run: cargo test --locked --workspace --release
 

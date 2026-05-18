@@ -11,7 +11,11 @@ on:
     - cron: "0 6 * * 1"
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  # On PR pushes we want the newest run to cancel the previous one
+  # (group by ref). On main pushes we want every commit to actually
+  # finish, so we expand the group with `run_id` to make each run
+  # unique and turn cancel-in-progress into a no-op.
+  group: ci-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_id || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:

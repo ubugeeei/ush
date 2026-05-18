@@ -4,7 +4,7 @@ set -eu
 limit=250
 failed=0
 
-tmp_file="${TMPDIR:-/tmp}/ush_rs_line_limit.$$"
+tmp_file="$(mktemp "${TMPDIR:-/tmp}/ush_rs_line_limit.XXXXXX")"
 trap 'rm -f "$tmp_file"' EXIT INT TERM
 
 find apps crates -type f -name '*.rs' | sort > "$tmp_file"

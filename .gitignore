@@ -1,6 +1,30 @@
+# Rust build artefacts
 /target
-.DS_Store
-.direnv/
+**/target/
+**/*.rs.bk
+
+# Tooling caches
+.cargo/
+.cargo-lock
+.crates.toml
+.crates2.json
+
+# Editor / IDE state
 .idea/
 .vscode/
+.direnv/
+.claude/
+
+# Local environment overrides
+.env
+.env.*
 *.log
+
+# Benchmark / profiling output
+flamegraph.svg
+perf.data
+perf.data.old
+
+# OS junk
+.DS_Store
+Thumbs.db

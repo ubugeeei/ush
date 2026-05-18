@@ -340,7 +340,16 @@ verify_archive() {
   echo "install.sh: downloading $sums_url" >&2
   fetch "$sums_url" "$sums_file"
 
-  line="$(grep "[[:space:]]$asset\$" "$sums_file" || true)"
+  line="$(awk -v asset="$asset" '
+    {
+      name = $2
+      sub(/^\*/, "", name)
+      if (name == asset) {
+        print
+        exit
+      }
+    }
+  ' "$sums_file")"
   if [ -z "$line" ]; then
     echo "install.sh: could not find checksum for $asset" >&2
     exit 1

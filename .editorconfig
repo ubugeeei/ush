@@ -1,0 +1,31 @@
+# https://editorconfig.org
+# Top-level: this file is the root of the editorconfig search.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{rs,toml}]
+indent_size = 4
+
+[*.{yml,yaml}]
+indent_size = 2
+
+[*.{md,markdown}]
+# Markdown is sensitive to trailing whitespace (line break = "  \n"),
+# so we keep the rest of the rules but skip trimming.
+trim_trailing_whitespace = false
+
+[*.{sh,bash}]
+indent_size = 2
+
+[*.ush]
+indent_size = 2
+
+[Makefile]
+indent_style = tab

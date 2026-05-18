@@ -477,6 +477,8 @@ GitHub Actions provides two release paths:
 
 `Cut Release` asks for a version like `v0.2.0` and a target ref such as `main`.
 
+See [`docs/release-process.md`](./docs/release-process.md) for the full pre-flight checklist, the matrix of published artefacts, and the rollback procedure.
+
 ## CI
 
 GitHub Actions runs formatting, the Rust 250-line file limit check, workspace tests, release tests, bench build checks, and the `.ush` async / ADT examples on every pull request and push to `main`.

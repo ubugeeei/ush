@@ -73,7 +73,31 @@ fn brace_delta(line: &str) -> usize {
 
     while let Some(ch) = chars.next() {
         match ch {
-            '#' if !single && !double => break,
+            '#' if !single && !double => {
+                // `#[…]` is an attribute, not a comment. Skip past
+                // its matching `]` (handling nested brackets) so
+                // braces inside the attribute do not throw off the
+                // outer indent counter, and so the rest of the line
+                // is still inspected.
+                if chars.peek() == Some(&'[') {
+                    chars.next();
+                    let mut depth = 1isize;
+                    for inner in chars.by_ref() {
+                        match inner {
+                            '[' => depth += 1,
+                            ']' => {
+                                depth -= 1;
+                                if depth == 0 {
+                                    break;
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                } else {
+                    break;
+                }
+            }
             '\'' if !double => single = !single,
             '"' if !single => double = !double,
             '\\' if double => {
@@ -123,6 +147,24 @@ mod tests {
         assert_eq!(
             formatted,
             "let page = \"\"\"\n  <div>\n    ok\n  </div>\n\"\"\"\n"
+        );
+    }
+
+    #[test]
+    fn attributes_do_not_swallow_following_braces() {
+        // `#[default(2)]` used to be parsed as a comment, which made
+        // `brace_delta` return 0 for the `fn` line — the body never
+        // got indented.
+        let formatted = format_source(
+            "fn bin(#[default(2)] count: Int) {\nprint count\n}\n",
+        );
+        assert_eq!(
+            formatted,
+            concat!(
+                "fn bin(#[default(2)] count: Int) {\n",
+                "  print count\n",
+                "}\n",
+            ),
         );
     }
 }

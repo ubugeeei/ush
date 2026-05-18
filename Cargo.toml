@@ -19,6 +19,12 @@ edition = "2024"
 # the smallest version that satisfies the current dependency graph.
 rust-version = "1.88"
 license = "MIT"
+authors = ["Ubugeeei <ubuge1122@gmail.com>"]
+repository = "https://github.com/ubugeeei/ush"
+homepage = "https://github.com/ubugeeei/ush"
+readme = "README.md"
+keywords = ["shell", "posix", "rust", "compiler", "cli"]
+categories = ["command-line-utilities", "command-line-interface"]
 
 [workspace.dependencies]
 anyhow = "1.0.102"

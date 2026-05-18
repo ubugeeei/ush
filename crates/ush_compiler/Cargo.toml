@@ -1,9 +1,16 @@
 [package]
 name = "ush_compiler"
+description = "Core compiler that lowers .ush programs to POSIX sh (no_std + alloc capable)"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [features]
 default = ["std"]

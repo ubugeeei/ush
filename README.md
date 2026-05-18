@@ -1,5 +1,10 @@
 # ush
 
+[![CI](https://github.com/ubugeeei/ush/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ubugeeei/ush/actions/workflows/ci.yml)
+[![Shellcheck](https://github.com/ubugeeei/ush/actions/workflows/shellcheck.yml/badge.svg?branch=main)](https://github.com/ubugeeei/ush/actions/workflows/shellcheck.yml)
+[![Dependencies](https://github.com/ubugeeei/ush/actions/workflows/dependencies.yml/badge.svg?branch=main)](https://github.com/ubugeeei/ush/actions/workflows/dependencies.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
 `ush` is an experimental Rust shell with a simple idea:
 
 - Be POSIX-first. Existing shell scripts and one-liners should keep working.

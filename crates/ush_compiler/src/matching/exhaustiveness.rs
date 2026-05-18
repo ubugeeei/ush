@@ -1,4 +1,4 @@
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 
 use crate::ast::{Pattern, Type};
 use crate::env::EnumRegistry;
@@ -25,9 +25,7 @@ pub(crate) fn check_exhaustive(
             {
                 Ok(())
             } else {
-                bail!(
-                    "non-exhaustive `match` on Unit: add `()` or a wildcard arm",
-                );
+                bail!("non-exhaustive `match` on Unit: add `()` or a wildcard arm",);
             }
         }
         Type::Bool => check_bool(arms),
@@ -81,9 +79,7 @@ fn check_adt(
             .map(|name| format!("{enum_name}::{name}"))
             .collect::<alloc::vec::Vec<_>>()
             .join(", ");
-        bail!(
-            "non-exhaustive `match` on enum {enum_name}: missing variant(s): {formatted}",
-        );
+        bail!("non-exhaustive `match` on enum {enum_name}: missing variant(s): {formatted}",);
     }
 
     Ok(())
@@ -105,9 +101,7 @@ fn check_bool(arms: &[(Pattern, alloc::boxed::Box<crate::ast::Statement>)]) -> R
         Ok(())
     } else {
         let missing = if has_true { "false" } else { "true" };
-        bail!(
-            "non-exhaustive `match` on Bool: missing `{missing}` arm or wildcard",
-        );
+        bail!("non-exhaustive `match` on Bool: missing `{missing}` arm or wildcard",);
     }
 }
 

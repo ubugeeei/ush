@@ -2,11 +2,11 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use rustyline::{
-    CompletionType, Config, EditMode, Editor, error::ReadlineError, history::DefaultHistory,
+    error::ReadlineError, history::DefaultHistory, CompletionType, Config, EditMode, Editor,
 };
 use ush_config::ShellKeymap;
 
-use super::{UshHelper, bindings};
+use super::{bindings, UshHelper};
 
 pub fn create_editor(
     history_file: &Path,

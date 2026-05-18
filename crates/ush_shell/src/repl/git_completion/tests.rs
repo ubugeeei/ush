@@ -3,7 +3,7 @@ use std::{
     process::Command,
 };
 
-use rustyline::{Context, completion::Completer, hint::Hinter, history::DefaultHistory};
+use rustyline::{completion::Completer, hint::Hinter, history::DefaultHistory, Context};
 use tempfile::tempdir;
 
 use crate::repl::UshHelper;
@@ -87,16 +87,12 @@ fn completes_remotes_branches_and_stashes_from_repo_state() {
         .expect("stash complete");
 
     assert!(push_pairs.iter().any(|pair| pair.replacement == "origin"));
-    assert!(
-        switch_pairs
-            .iter()
-            .any(|pair| pair.replacement == "feature/git-hints")
-    );
-    assert!(
-        stash_pairs
-            .iter()
-            .any(|pair| pair.replacement.starts_with("stash@{"))
-    );
+    assert!(switch_pairs
+        .iter()
+        .any(|pair| pair.replacement == "feature/git-hints"));
+    assert!(stash_pairs
+        .iter()
+        .any(|pair| pair.replacement.starts_with("stash@{")));
 }
 
 #[test]

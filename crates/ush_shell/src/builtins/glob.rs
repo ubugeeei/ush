@@ -1,6 +1,6 @@
 use std::io::{self, IsTerminal, Read};
 
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 
 use crate::{Shell, ValueStream};
 

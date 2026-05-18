@@ -1,4 +1,4 @@
-use crate::repl::contextual::options::{OptionSpec, option_spec};
+use crate::repl::contextual::options::{option_spec, OptionSpec};
 
 pub(crate) const MAKE_OPTION_SPECS: &[OptionSpec] = &[
     option_spec(&["-C", "--directory"], 1, true, false),

@@ -1,8 +1,8 @@
 use std::fs;
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 
-use crate::{Shell, ValueStream, style};
+use crate::{style, Shell, ValueStream};
 
 use super::with_trailing_newline;
 

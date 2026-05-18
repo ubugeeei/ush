@@ -1,7 +1,7 @@
 use std::fmt::Write as _;
 
 use super::{
-    super::common::{BLUE_BOLD, BOLD, CYAN_BOLD, YELLOW_BOLD, badge, dim, paint, pluralize},
+    super::common::{badge, dim, paint, pluralize, BLUE_BOLD, BOLD, CYAN_BOLD, YELLOW_BOLD},
     model::{GrepGroup, GrepMatch, GrepMatchRow, GrepOptions, GrepReport},
 };
 

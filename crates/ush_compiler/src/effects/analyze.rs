@@ -1,20 +1,20 @@
 use alloc::boxed::Box;
 
-use anyhow::{Result, anyhow, bail};
+use anyhow::{anyhow, bail, Result};
 
 use crate::traits::TraitImplRegistry;
 use crate::{
     ast::{Expr, Statement, StatementKind, Type},
-    codegen::{FunctionRegistry, infer, infer_async_block_type},
+    codegen::{infer, infer_async_block_type, FunctionRegistry},
     env::{EnumRegistry, Env},
     errors::{ErrorSet, ErrorType},
 };
 
 use super::{
-    FunctionErrorRegistry, TaskErrorRegistry,
     control::{analyze_condition, body_errors_with_binding, iterable_item_type},
     matching::match_errors,
     support::{binding_for_type, call_arg_errors, call_errors, expr_errors, raised_error},
+    FunctionErrorRegistry, TaskErrorRegistry,
 };
 
 pub(super) fn block_errors(

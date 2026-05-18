@@ -6,8 +6,8 @@ use rustc_hash::FxHashSet;
 use super::{
     candidates::typed_candidate_pairs,
     catalog::{
-        GIT_GLOBAL_OPTION_SPECS, GIT_GLOBAL_OPTIONS, GIT_REMOTE_SUBCOMMANDS,
-        GIT_SUBCOMMAND_OPTIONS, GIT_SUBCOMMANDS,
+        GIT_GLOBAL_OPTIONS, GIT_GLOBAL_OPTION_SPECS, GIT_REMOTE_SUBCOMMANDS, GIT_SUBCOMMANDS,
+        GIT_SUBCOMMAND_OPTIONS,
     },
     options::{match_option, pending_value_kind, positional_args},
     types::{ContextualCompletion, Names},

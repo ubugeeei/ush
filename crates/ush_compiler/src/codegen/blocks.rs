@@ -1,6 +1,6 @@
 use alloc::boxed::Box;
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 
 use super::{
     super::{

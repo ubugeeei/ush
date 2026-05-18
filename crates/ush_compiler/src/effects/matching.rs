@@ -5,14 +5,14 @@ use anyhow::Result;
 use crate::traits::TraitImplRegistry;
 use crate::{
     ast::{Expr, Pattern, Statement, Type},
-    codegen::{FunctionRegistry, infer},
+    codegen::{infer, FunctionRegistry},
     env::{Binding, EnumRegistry, Env, Storage},
     errors::ErrorSet,
     matching::{check_exhaustive, compile_pattern},
 };
 
 use super::{
-    FunctionErrorRegistry, TaskErrorRegistry, analyze::block_errors, support::expr_errors,
+    analyze::block_errors, support::expr_errors, FunctionErrorRegistry, TaskErrorRegistry,
 };
 
 #[allow(clippy::too_many_arguments)]

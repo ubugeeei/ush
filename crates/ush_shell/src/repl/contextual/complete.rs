@@ -6,7 +6,7 @@ use rustc_hash::FxHashSet;
 use super::{
     candidates::{described_candidate_pairs, typed_candidate_pairs},
     catalog::{
-        JUST_OPTION_SPECS, JUST_OPTIONS, MAKE_OPTION_SPECS, MAKE_OPTIONS, MISE_OPTION_SPECS,
+        JUST_OPTIONS, JUST_OPTION_SPECS, MAKE_OPTIONS, MAKE_OPTION_SPECS, MISE_OPTION_SPECS,
         MISE_TASKS_SUBCOMMANDS, MISE_TOP_LEVEL, NPM_COMMANDS, NPM_OPTION_SPECS, VP_COMMANDS,
         VP_OPTIONS,
     },

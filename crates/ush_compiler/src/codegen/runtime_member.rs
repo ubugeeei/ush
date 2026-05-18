@@ -6,9 +6,10 @@ use super::{
         env::{Binding, CodegenState, EnumRegistry, Env, Storage},
         matching::materialize_expr,
     },
-    FunctionRegistry, infer,
+    infer,
     method_fields::field_binding,
     methods::compile_display_expr,
+    FunctionRegistry,
 };
 use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;

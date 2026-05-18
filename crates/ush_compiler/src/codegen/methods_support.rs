@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow, bail};
+use anyhow::{anyhow, bail, Result};
 
 use super::{
     super::{
@@ -6,8 +6,9 @@ use super::{
         env::{Binding, CodegenState, EnumRegistry, Env, Storage},
         matching::materialize_expr,
     },
-    FunctionRegistry, compile_runtime_primitive_expr, infer,
+    compile_runtime_primitive_expr, infer,
     statement::compile_statement,
+    FunctionRegistry,
 };
 use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;

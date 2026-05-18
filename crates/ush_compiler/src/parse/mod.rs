@@ -16,10 +16,10 @@ mod statement;
 mod statement_support;
 mod use_decl;
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use bumpalo::{
-    Bump,
     collections::{String as BumpString, Vec as BumpVec},
+    Bump,
 };
 
 use super::ast::Statement;

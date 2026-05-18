@@ -1,4 +1,4 @@
-use rustyline::{Context, completion::Completer, history::DefaultHistory};
+use rustyline::{completion::Completer, history::DefaultHistory, Context};
 use tempfile::tempdir;
 
 use super::*;
@@ -45,29 +45,21 @@ fn completes_additional_tool_commands_and_scripts() {
     assert!(cargo_pairs.iter().any(|pair| pair.replacement == "build"));
     assert!(moon_pairs.iter().any(|pair| pair.replacement == "run"));
     assert!(nix_pairs.iter().any(|pair| pair.replacement == "flake"));
-    assert!(
-        nix_pairs
-            .iter()
-            .any(|pair| pair.display.contains("manage Nix flakes"))
-    );
-    assert!(
-        nix_flake_pairs
-            .iter()
-            .any(|pair| pair.replacement == "show")
-    );
-    assert!(
-        nix_store_pairs
-            .iter()
-            .any(|pair| pair.replacement == "delete")
-    );
+    assert!(nix_pairs
+        .iter()
+        .any(|pair| pair.display.contains("manage Nix flakes")));
+    assert!(nix_flake_pairs
+        .iter()
+        .any(|pair| pair.replacement == "show"));
+    assert!(nix_store_pairs
+        .iter()
+        .any(|pair| pair.replacement == "delete"));
     assert!(go_pairs.iter().any(|pair| pair.replacement == "mod"));
     assert!(zig_pairs.iter().any(|pair| pair.replacement == "build"));
     assert!(bun_pairs.iter().any(|pair| pair.replacement == "lint"));
-    assert!(
-        pnpm_pairs
-            .iter()
-            .any(|pair| pair.replacement == "test:unit")
-    );
+    assert!(pnpm_pairs
+        .iter()
+        .any(|pair| pair.replacement == "test:unit"));
     assert!(yarn_pairs.iter().any(|pair| pair.replacement == "run"));
     assert!(claude_pairs.iter().any(|pair| pair.replacement == "update"));
     assert!(codex_pairs.iter().any(|pair| pair.replacement == "review"));
@@ -97,15 +89,11 @@ fn discovers_tasks_across_supported_sources() {
 
     assert!(entries.iter().any(|entry| entry.command() == "make build"));
     assert!(entries.iter().any(|entry| entry.command() == "just fmt"));
-    assert!(
-        entries
-            .iter()
-            .any(|entry| entry.command() == "mise run lint")
-    );
-    assert!(
-        entries
-            .iter()
-            .any(|entry| entry.command() == "npm run build")
-    );
+    assert!(entries
+        .iter()
+        .any(|entry| entry.command() == "mise run lint"));
+    assert!(entries
+        .iter()
+        .any(|entry| entry.command() == "npm run build"));
     assert!(entries.iter().any(|entry| entry.command() == "vp dev"));
 }

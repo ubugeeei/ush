@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 
 pub(super) fn parse_call(source: &str) -> Result<(&str, Vec<String>)> {
     let open = source

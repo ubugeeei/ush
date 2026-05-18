@@ -177,16 +177,10 @@ mod tests {
         assert!(output.starts_with("#!/bin/sh\nset -eu\n"));
         assert!(output.contains("ush_fn_worker()"));
         assert!(output.contains("__ush_task_seq='0'"));
-        assert!(
-            output.contains(
-                "__ush_task_0__result=\"${TMPDIR:-/tmp}/__ush_task_0.$$.$__ush_task_seq\""
-            )
-        );
-        assert!(
-            output.contains(
-                "( __ush_return_path=\"${__ush_task_0__result}\"; ush_fn_worker 'ok' ) &"
-            )
-        );
+        assert!(output
+            .contains("__ush_task_0__result=\"${TMPDIR:-/tmp}/__ush_task_0.$$.$__ush_task_seq\""));
+        assert!(output
+            .contains("( __ush_return_path=\"${__ush_task_0__result}\"; ush_fn_worker 'ok' ) &"));
         assert!(output.contains("result=\"$(cat \"${__ush_task_0__result}\")\""));
         assert!(output.contains("rm -f \"$__ush_task_file\""));
         assert!(!output.contains("mktemp"));
@@ -208,15 +202,10 @@ mod tests {
             )
             .expect("compile");
 
-        assert!(
-            output.contains("__ush_value_0=\"$(__ush_capture_return='1' ush_fn_greet 'ush')\"")
-        );
+        assert!(output.contains("__ush_value_0=\"$(__ush_capture_return='1' ush_fn_greet 'ush')\""));
         assert!(output.contains("value=\"${__ush_value_0}\""));
-        assert!(
-            output.contains(
-                "__ush_value_1=\"$(__ush_capture_return='1' ush_fn_greet \"${value}\")\""
-            )
-        );
+        assert!(output
+            .contains("__ush_value_1=\"$(__ush_capture_return='1' ush_fn_greet \"${value}\")\""));
         assert!(output.contains("printf '%s\\n' \"${__ush_value_1}\""));
     }
 }

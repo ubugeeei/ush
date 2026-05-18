@@ -1,5 +1,5 @@
 use super::super::ast::CompareOp;
-use crate::scan::{ScanState, advance};
+use crate::scan::{advance, ScanState};
 
 pub(super) fn split_compare(source: &str) -> Option<(&str, CompareOp, &str)> {
     let bytes = source.as_bytes();

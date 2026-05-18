@@ -6,10 +6,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 
 use self::report::{
-    SummaryRow, count_lines, is_lock_file, render_plain, render_stylish, summarize_types, type_name,
+    count_lines, is_lock_file, render_plain, render_stylish, summarize_types, type_name, SummaryRow,
 };
 use crate::{Shell, ValueStream};
 

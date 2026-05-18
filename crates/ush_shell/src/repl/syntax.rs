@@ -194,9 +194,7 @@ mod tests {
     fn tokenizes_keywords_and_operators() {
         assert_eq!(
             tokenize("FOO=1 echo hi | grep h && printf ok"),
-            [
-                "FOO=1", "echo", "hi", "|", "grep", "h", "&&", "printf", "ok"
-            ]
+            ["FOO=1", "echo", "hi", "|", "grep", "h", "&&", "printf", "ok"]
         );
     }
 

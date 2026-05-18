@@ -1,7 +1,7 @@
 use crate::parser::is_builtin;
 use rustyline::CompletionType;
 
-use super::{UshHelper, display, syntax};
+use super::{display, syntax, UshHelper};
 
 const COMMAND: &str = "\u{1b}[1;38;5;111m";
 const KEYWORD: &str = "\u{1b}[1;38;5;180m";

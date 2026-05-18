@@ -5,7 +5,7 @@ use anyhow::Result;
 use crate::helpers::ValueStream;
 
 use super::{
-    super::common::{BLUE_BOLD, BOLD, CYAN_BOLD, MAGENTA_BOLD, badge, dim, paint, pluralize},
+    super::common::{badge, dim, paint, pluralize, BLUE_BOLD, BOLD, CYAN_BOLD, MAGENTA_BOLD},
     git_capture,
     model::{GitBranchRow, GitRefScope},
 };

@@ -1,8 +1,8 @@
-use rustyline::{Context, completion::Completer, hint::Hinter, history::History};
+use rustyline::{completion::Completer, hint::Hinter, history::History, Context};
 use tempfile::tempdir;
 use ush_config::ShellKeymap;
 
-use super::{UshHelper, create_editor};
+use super::{create_editor, UshHelper};
 
 #[test]
 fn history_hint_prefers_previous_entries() {

@@ -1,4 +1,4 @@
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 
 use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
@@ -8,8 +8,9 @@ use super::{
         ast::{Expr, Type},
         env::{CodegenState, EnumRegistry, Env},
     },
-    FunctionRegistry, compile_runtime_primitive_expr, infer,
+    compile_runtime_primitive_expr, infer,
     methods::compile_display_expr,
+    FunctionRegistry,
 };
 
 #[allow(clippy::too_many_arguments)]

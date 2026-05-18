@@ -1,4 +1,4 @@
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 
 use crate::{
     ast::{Condition, Type},
@@ -10,9 +10,9 @@ use crate::{
 };
 
 use super::{
-    FunctionErrorRegistry, TaskErrorRegistry,
     analyze::block_errors,
     support::{binding_for_type, expr_errors},
+    FunctionErrorRegistry, TaskErrorRegistry,
 };
 use crate::codegen::FunctionRegistry;
 use crate::env::EnumRegistry;

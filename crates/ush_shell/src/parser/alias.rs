@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 
 use super::is_assignment;
 

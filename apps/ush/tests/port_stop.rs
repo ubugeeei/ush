@@ -29,11 +29,9 @@ fn port_builtin_reports_listening_process_ids() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        stdout
-            .lines()
-            .any(|line| line.trim() == server.id().to_string())
-    );
+    assert!(stdout
+        .lines()
+        .any(|line| line.trim() == server.id().to_string()));
 }
 
 #[test]
@@ -88,9 +86,7 @@ fn read_port_file(path: &Path) -> u16 {
         }
         false
     });
-    if observed
-        && let Some(port) = port
-    {
+    if observed && let Some(port) = port {
         return port;
     }
     panic!("python server did not write port file");

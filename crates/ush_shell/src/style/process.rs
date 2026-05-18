@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 
 use crate::helpers::ValueStream;
 
-use super::common::{BLUE_BOLD, CYAN_BOLD, YELLOW_BOLD, badge, dim, paint, pluralize};
+use super::common::{badge, dim, paint, pluralize, BLUE_BOLD, CYAN_BOLD, YELLOW_BOLD};
 
 struct PsRow {
     pid: String,

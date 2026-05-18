@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow, bail};
+use anyhow::{anyhow, bail, Result};
 
 use super::{
     super::{
@@ -6,16 +6,16 @@ use super::{
         env::{CodegenState, EnumRegistry, Env},
         matching::materialize_expr,
     },
-    FunctionRegistry,
     builtin_methods::{capture_builtin_method, infer_builtin_method},
     calls::ensure_value_type,
     compile_runtime_primitive_expr, infer,
     method_fields::struct_field,
     methods_support::{bind_method_args, compile_method_body, resolve_method_args},
-    runtime_support::{FailureMode, hoist_expr},
+    runtime_support::{hoist_expr, FailureMode},
+    FunctionRegistry,
 };
 use crate::sourcemap::OutputBuffer;
-use crate::traits::{TraitImplRegistry, ensure_trait, lookup_method};
+use crate::traits::{ensure_trait, lookup_method, TraitImplRegistry};
 use crate::types::{HeapVec as Vec, OutputString as String};
 
 pub(crate) fn infer_field_expr(

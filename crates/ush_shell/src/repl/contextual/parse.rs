@@ -1,4 +1,4 @@
-use bumpalo::{Bump, collections::String as BumpString};
+use bumpalo::{collections::String as BumpString, Bump};
 use compact_str::CompactString;
 use memchr::{memchr, memmem};
 use rustc_hash::FxHashSet;

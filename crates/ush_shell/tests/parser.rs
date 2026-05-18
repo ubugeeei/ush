@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use ush_shell::{ParsedLine, parse_line};
+use ush_shell::{parse_line, ParsedLine};
 
 #[test]
 fn parses_pipeline_with_helper_stage() {

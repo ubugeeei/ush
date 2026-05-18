@@ -4,9 +4,8 @@ use smallvec::SmallVec;
 use anyhow::Result;
 
 use crate::{
-    Shell, ValueStream,
-    repl::contextual::{TaskEntry, discover_tasks},
-    style,
+    repl::contextual::{discover_tasks, TaskEntry},
+    style, Shell, ValueStream,
 };
 
 impl Shell {

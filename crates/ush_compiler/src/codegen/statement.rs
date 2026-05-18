@@ -18,6 +18,7 @@ use super::{
 use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn compile_statement(
     statement: &Statement,
     env: &mut Env,

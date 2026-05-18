@@ -18,6 +18,7 @@ use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
 use crate::types::{AstVec as Vec, OutputString as String};
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn compile_call(
     call: &Call,
     env: &Env,
@@ -54,6 +55,7 @@ pub(crate) fn compile_call(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn compile_try_call(
     call: &Call,
     env: &Env,

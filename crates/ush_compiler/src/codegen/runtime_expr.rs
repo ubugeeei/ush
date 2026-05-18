@@ -14,6 +14,7 @@ use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
 use crate::types::OutputString as String;
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn compile_runtime_primitive_expr(
     expr: &Expr,
     env: &Env,
@@ -39,6 +40,7 @@ pub(crate) fn compile_runtime_primitive_expr(
     compile_primitive_expr(&prepared, &runtime_env, functions, impls, enums)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn rendered_call_runtime(
     call: &Call,
     env: &Env,

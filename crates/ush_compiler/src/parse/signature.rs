@@ -14,14 +14,14 @@ use super::{
 use crate::scan::{ScanState, advance};
 use crate::types::{AstString as String, HeapVec as Vec};
 
-pub(super) fn parse_function_header(
-    header: &str,
-) -> Result<(
+type ParsedFunctionHeader = (
     String,
     Vec<FunctionParam>,
     Option<super::super::ast::Type>,
     Option<ErrorSet>,
-)> {
+);
+
+pub(super) fn parse_function_header(header: &str) -> Result<ParsedFunctionHeader> {
     let (name, inner, tail) =
         split_paren_form(header).ok_or_else(|| anyhow!("functions must use `fn name(args)`"))?;
     let (return_type, declared_errors) = parse_function_return(tail)?;
@@ -205,13 +205,13 @@ fn parse_call_tokens(parts: &[&str]) -> Result<Vec<CallArg>> {
 }
 
 fn parse_call_arg(source: &str) -> Result<CallArg> {
-    if let Some((name, expr)) = split_once_top_level(source, ':') {
-        if super::path::looks_like_call_target(name) {
-            return Ok(CallArg {
-                label: Some(parse_identifier(name)?),
-                expr: parse_expr(expr)?,
-            });
-        }
+    if let Some((name, expr)) = split_once_top_level(source, ':')
+        && super::path::looks_like_call_target(name)
+    {
+        return Ok(CallArg {
+            label: Some(parse_identifier(name)?),
+            expr: parse_expr(expr)?,
+        });
     }
     Ok(CallArg {
         label: None,

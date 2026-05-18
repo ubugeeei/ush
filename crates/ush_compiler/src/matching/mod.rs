@@ -24,6 +24,7 @@ pub(crate) struct PatternPlan {
     pub env: Env,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn materialize_expr(
     expr: &Expr,
     env: &Env,
@@ -95,6 +96,7 @@ pub(crate) fn materialize_expr(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn emit_value_to_target(
     target: &str,
     expr: &Expr,

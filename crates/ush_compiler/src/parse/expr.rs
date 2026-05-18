@@ -100,22 +100,22 @@ pub(super) fn parse_atom(source: &str) -> Result<Expr> {
             parse_expr,
         )?));
     }
-    if trimmed.starts_with('(') && trimmed.ends_with(')') {
-        if let Some((head, inner)) = parse_paren_body(trimmed) {
-            if head.is_empty() {
-                let items = split_top_level(inner, ',');
-                if items.len() > 1 {
-                    return Ok(Expr::Tuple(
-                        items
-                            .into_iter()
-                            .filter(|part| !part.is_empty())
-                            .map(parse_expr)
-                            .collect::<Result<Vec<_>>>()?,
-                    ));
-                }
-                return parse_expr(inner);
-            }
+    if trimmed.starts_with('(')
+        && trimmed.ends_with(')')
+        && let Some((head, inner)) = parse_paren_body(trimmed)
+        && head.is_empty()
+    {
+        let items = split_top_level(inner, ',');
+        if items.len() > 1 {
+            return Ok(Expr::Tuple(
+                items
+                    .into_iter()
+                    .filter(|part| !part.is_empty())
+                    .map(parse_expr)
+                    .collect::<Result<Vec<_>>>()?,
+            ));
         }
+        return parse_expr(inner);
     }
     if let Some(string) = parse_string_literal(trimmed) {
         return Ok(Expr::String(string));

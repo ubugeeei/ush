@@ -10,6 +10,7 @@ use crate::traits::TraitImplRegistry;
 
 use super::emit_value_to_target;
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn emit_sequence(
     target: &str,
     expr: &Expr,

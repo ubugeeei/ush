@@ -13,6 +13,7 @@ use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
 use crate::{ast::Type, env::EnumRegistry};
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn compile_control_statement(
     kind: &StatementKind,
     env: &mut Env,

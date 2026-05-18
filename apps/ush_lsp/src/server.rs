@@ -46,7 +46,7 @@ fn capabilities() -> ServerCapabilities {
                 legend: SemanticTokensLegend {
                     token_types: semantic_token_legend()
                         .iter()
-                        .map(|name| SemanticTokenType::new(*name))
+                        .map(|name| SemanticTokenType::new(name))
                         .collect(),
                     token_modifiers: Vec::new(),
                 },

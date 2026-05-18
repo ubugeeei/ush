@@ -20,6 +20,7 @@ pub(super) enum FailureMode {
     Propagate { inside_function: bool },
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn hoist_expr(
     expr: &Expr,
     env: &mut Env,
@@ -134,6 +135,7 @@ pub(super) fn hoist_expr(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn hoist_call(
     call: &Call,
     env: &mut Env,
@@ -162,6 +164,7 @@ pub(super) fn hoist_call(
     Ok(prepared)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn hoist_call_capture(
     call: &Call,
     env: &mut Env,

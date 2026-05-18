@@ -109,7 +109,7 @@ fn bind_variant_pattern(
             for NamedPattern { name, pattern } in patterns {
                 let field = fields
                     .iter()
-                    .find(|field| &field.name == name)
+                    .find(|field| field.name == name)
                     .ok_or_else(|| anyhow::anyhow!("unknown field {name}"))?;
                 bind_pattern(
                     pattern,

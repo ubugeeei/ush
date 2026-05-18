@@ -74,6 +74,7 @@ pub(crate) fn infer_format_call(
     Ok(Type::String)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn compile_display_expr(
     expr: &Expr,
     env: &Env,
@@ -113,6 +114,7 @@ pub(crate) fn compile_display_expr(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn compile_method_capture(
     receiver: &Expr,
     method: &str,

@@ -15,6 +15,7 @@ use super::{
 use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn compile_spawn(
     call: &Call,
     env: &Env,
@@ -80,6 +81,7 @@ pub(crate) fn compile_await(task: &str, env: &Env, out: &mut OutputBuffer) -> Re
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn compile_return(
     expr: &Expr,
     env: &Env,
@@ -114,6 +116,7 @@ pub(crate) fn compile_return(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn compile_expr_statement(
     expr: &Expr,
     env: &Env,

@@ -19,6 +19,7 @@ use super::{
 use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn compile_let(
     name: &str,
     expr: &Expr,
@@ -96,6 +97,7 @@ pub(crate) fn compile_let(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn compile_match(
     expr: &Expr,
     arms: &[(super::super::ast::Pattern, Box<Statement>)],
@@ -152,6 +154,7 @@ pub(crate) fn compile_match(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn compile_one(
     statement: &Statement,
     tail_position: bool,

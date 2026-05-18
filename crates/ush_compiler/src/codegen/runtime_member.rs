@@ -14,6 +14,7 @@ use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;
 use crate::types::HeapVec as Vec;
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn hoist_field_access(
     base: &Expr,
     name: &str,
@@ -40,6 +41,7 @@ pub(super) fn hoist_field_access(
     Ok(Expr::Var(temp))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn hoist_method_capture(
     call: &MethodCall,
     env: &mut Env,
@@ -98,6 +100,7 @@ pub(super) fn hoist_method_capture(
     Ok(Expr::Var(temp))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn hoist_format_capture(
     call: &Call,
     env: &mut Env,

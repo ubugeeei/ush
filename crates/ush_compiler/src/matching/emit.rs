@@ -11,6 +11,7 @@ use crate::types::AstString as NameString;
 
 use super::emit_value_to_target;
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn emit_variant(
     target: &str,
     variant: &VariantExpr,

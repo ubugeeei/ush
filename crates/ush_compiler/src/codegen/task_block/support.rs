@@ -48,7 +48,7 @@ pub(super) fn iterable_item_type(ty: &Type) -> Result<Type> {
     match ty {
         Type::List(item) => Ok((**item).clone()),
         Type::Tuple(items) => homogeneous_type(items)
-            .ok_or_else(|| anyhow!("for-in over tuples requires homogeneous item types")),
+            .ok_or_else(|| anyhow!("for-in over tuples requires all items to share one type")),
         _ => bail!("for-in expects a list, tuple, or range"),
     }
 }

@@ -121,7 +121,7 @@ pub(super) fn iterable_item_type(ty: &Type) -> Result<Type> {
             if items.iter().all(|item| item == first) {
                 Ok(first.clone())
             } else {
-                bail!("for-in over tuples requires homogeneous item types")
+                bail!("for-in over tuples requires all items to share one type")
             }
         }
         _ => bail!("for-in expects a list, tuple, or range"),

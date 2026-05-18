@@ -86,5 +86,20 @@ pub(crate) fn analyze_function_errors(
         validate_function_errors(def, &inferred, enums)?;
     }
 
+    // Re-walk the top-level program so checks that live inside the
+    // effects pass (currently: match exhaustiveness) also fire on
+    // statements outside of any function.
+    let mut top_env = globals.clone();
+    let mut top_tasks = TaskErrorRegistry::default();
+    analyze::block_errors(
+        program,
+        &mut top_env,
+        &mut top_tasks,
+        functions,
+        impls,
+        enums,
+        &registry,
+    )?;
+
     Ok(registry)
 }

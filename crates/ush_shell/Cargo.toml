@@ -40,3 +40,6 @@ tempfile.workspace = true
 [[bench]]
 name = "parser"
 harness = false
+
+[lints]
+workspace = true

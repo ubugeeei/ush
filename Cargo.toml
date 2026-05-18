@@ -56,6 +56,22 @@ which = "8.0.2"
 [patch.crates-io]
 rustyline = { path = "vendor/rustyline" }
 
+# Workspace-wide lint policy. Member crates opt in via:
+#     [lints]
+#     workspace = true
+[workspace.lints.clippy]
+# Code that is shipped should not block on `todo!()` macros.
+todo = "deny"
+# `dbg!()` is a debugging aid, not a runtime construct.
+dbg_macro = "deny"
+# `unimplemented!()` is treated the same as `todo!()`.
+unimplemented = "deny"
+
+[workspace.lints.rust]
+# Promoted from default `warn` to `deny`: a public function that
+# returns a `Result` and is never inspected is a bug.
+unused_must_use = "deny"
+
 # Release-binary tightening. These are the settings that ship in the
 # GitHub Release archives and the Docker image; the dev profile is
 # left untouched so iteration time stays fast.

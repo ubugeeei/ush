@@ -14,10 +14,10 @@
       {
         packages.default = pkgs.rustPlatform.buildRustPackage {
           pname = "ush";
-          version = "0.2.0";
+          version = "0.6.0";
           src = ./.;
           cargoLock.lockFile = ./Cargo.lock;
-          cargoBuildFlags = [ "-p" "ush" ];
+          cargoBuildFlags = [ "-p" "ush" "-p" "ush_lsp" ];
           cargoTestFlags = [ "--workspace" ];
         };
 

@@ -46,3 +46,23 @@ which = "8.0.2"
 
 [patch.crates-io]
 rustyline = { path = "vendor/rustyline" }
+
+# Release-binary tightening. These are the settings that ship in the
+# GitHub Release archives and the Docker image; the dev profile is
+# left untouched so iteration time stays fast.
+[profile.release]
+# Cross-translation-unit inlining at the cost of slightly slower
+# linker time. `thin` rather than `fat` because the win past `thin`
+# is small for our binary size and the extra build time is real.
+lto = "thin"
+# Force a single codegen unit so LTO can see the whole crate graph
+# (otherwise rustc still partitions per-crate).
+codegen-units = 1
+# Drop debuginfo from release binaries. Symbols are kept for stack
+# traces; debuginfo and the section that referenced /home/runner/...
+# paths inside the build host are removed.
+strip = "debuginfo"
+# Abort instead of unwinding on panic in release. The shell does not
+# rely on unwinding (no panic = Err catches across FFI), so this is
+# pure binary-size + perf win.
+panic = "abort"

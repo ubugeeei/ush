@@ -91,6 +91,9 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             asset_name: ush-x86_64-unknown-linux-gnu.tar.gz
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            asset_name: ush-aarch64-unknown-linux-gnu.tar.gz
           - os: macos-15-intel
             target: x86_64-apple-darwin
             asset_name: ush-x86_64-apple-darwin.tar.gz
@@ -111,6 +114,11 @@ jobs:
 
       - name: Cache cargo artifacts
         uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Run release tests on target
+        run: cargo test --locked --release --workspace --target "${{ matrix.target }}"
 
       - name: Build release binaries
         run: cargo build --locked --release --target "${{ matrix.target }}" -p ush -p ush_lsp
@@ -167,6 +175,7 @@ jobs:
           cd release-artifacts
           for target in \
             x86_64-unknown-linux-gnu \
+            aarch64-unknown-linux-gnu \
             x86_64-apple-darwin \
             aarch64-apple-darwin
           do

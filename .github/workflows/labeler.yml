@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Label PR by changed paths
-        uses: actions/labeler@v5
+        uses: actions/labeler@v6
         with:
           # Errors out (rather than warns) when a label referenced in
           # labeler.yml does not exist in the repo, so configuration

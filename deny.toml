@@ -33,6 +33,7 @@ allow = [
     "Apache-2.0 WITH LLVM-exception",
     "BSD-2-Clause",
     "BSD-3-Clause",
+    "BSL-1.0",          # clipboard-win, error-code; OSI-approved and MIT-compatible
     "ISC",
     "Unicode-3.0",
     "Unicode-DFS-2016",

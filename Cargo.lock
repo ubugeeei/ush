@@ -1287,6 +1287,7 @@ dependencies = [
  "anyhow",
  "bumpalo",
  "compact_str",
+ "criterion",
  "hashbrown 0.17.1",
  "memchr",
  "phf",

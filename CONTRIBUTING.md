@@ -29,9 +29,17 @@ cargo clippy --locked --workspace --all-targets --no-deps -- -D warnings
 cargo test --locked --workspace
 cargo test --locked --workspace --release
 cargo check --locked -p ush_compiler --no-default-features   # no_std core
+cargo bench --locked -p ush_shell --bench parser --no-run    # parser bench builds
+cargo bench --locked -p ush_compiler --bench compile --no-run # compile bench builds
 sh scripts/check_rs_line_limit.sh                            # 250-line file cap
 sh scripts/test_install.sh                                   # installer flow
 ```
+
+CI also runs the parser and compile benchmarks on PRs and on `main`
+and fails the PR if a microbench regresses by more than 25% versus
+the latest `main` baseline (stored on the `gh-pages` branch). To
+inspect locally, run e.g. `cargo bench --locked -p ush_shell --bench
+parser`.
 
 Any of these failing in CI is a hard block. The line-limit script
 caps individual Rust files at 250 lines (sources only, tests inside a

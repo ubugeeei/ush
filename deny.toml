@@ -1,0 +1,69 @@
+# cargo-deny configuration for the ush workspace.
+# Documentation: https://embarkstudios.github.io/cargo-deny/
+
+[graph]
+all-features = false
+no-default-features = false
+
+[output]
+feature-depth = 1
+
+# ----------------------------------------------------------------------
+# Advisories: ban known-vulnerable crates and unmaintained dependencies.
+# `cargo audit` already runs separately in CI; this layer additionally
+# catches yanked crates and unmaintained advisories, which audit alone
+# does not surface as failures.
+# ----------------------------------------------------------------------
+[advisories]
+db-path = "~/.cargo/advisory-db"
+db-urls = ["https://github.com/rustsec/advisory-db"]
+yanked = "deny"
+ignore = []
+
+# ----------------------------------------------------------------------
+# Licenses: allow only OSI/Free-Software-Foundation approved licenses
+# that match the project's MIT distribution. Restrictive copyleft and
+# unknown licenses fail the build.
+# ----------------------------------------------------------------------
+[licenses]
+confidence-threshold = 0.93
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "CC0-1.0",
+    "Zlib",
+    "MPL-2.0",
+    "0BSD",
+]
+exceptions = []
+
+# ----------------------------------------------------------------------
+# Bans: keep the workspace free of duplicate-version trees and known-bad
+# crates. `multiple-versions = "warn"` rather than "deny" because the
+# vendored rustyline tree intentionally pins older transitive versions;
+# bump to "deny" once that is resolved.
+# ----------------------------------------------------------------------
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+highlight = "all"
+deny = []
+skip = []
+skip-tree = []
+
+# ----------------------------------------------------------------------
+# Sources: the project is hosted on crates.io and the vendored rustyline.
+# Disallow arbitrary git dependencies so that a malicious PR cannot
+# silently slip an unaudited fork into the build.
+# ----------------------------------------------------------------------
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

@@ -1,6 +1,9 @@
 #!/bin/sh
 set -eu
 
+# Clear CDPATH so the cd does not print a path; the trailing space
+# after '=' is intentional and POSIX, hence the disable.
+# shellcheck disable=SC1007
 ROOT_DIR="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
 INSTALL_SH="$ROOT_DIR/install.sh"
 

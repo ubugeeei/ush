@@ -350,7 +350,6 @@ cargo run -p ush -- examples/hello.ush
 cargo run -p ush -- scripts/bootstrap.sh --flag value
 cargo run -p ush -- examples/control_flow.ush
 cargo run -p ush -- compile examples/hello.ush
-cargo run -p ush -- test
 cargo run -p ush -- test examples/smoke_test.ush
 cargo run -p ush -- compile examples/hello.ush --sourcemap /tmp/hello.sh.map.json
 cargo run -p ush -- format examples/hello.ush --stdout
@@ -371,6 +370,7 @@ Start here for more detail:
 - `docs/README.md` for guide index
 - `docs/sourcemaps.md` for the sourcemap JSON format, sections, reverse lookup, and runtime diagnostics
 - `docs/typed-errors.md` for a step-by-step walkthrough of `Problem!T`, `raise`, inferred `# raises:`, `?`, and external-command `unknown`
+- `docs/lsp.md` for editor integration with `ush_lsp`
 
 ## Install
 

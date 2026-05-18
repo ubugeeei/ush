@@ -24,15 +24,30 @@ Before pushing, please run the same gates that CI runs. They are
 intentionally cheap:
 
 ```bash
-cargo fmt --all --check
+cargo +stable fmt --all --check                              # CI uses stable rustfmt
 cargo clippy --locked --workspace --all-targets --no-deps -- -D warnings
 cargo test --locked --workspace
 cargo test --locked --workspace --release
 cargo check --locked -p ush_compiler --no-default-features   # no_std core
+cargo test --locked -p ush_compiler --no-default-features --lib  # no_std tests
 cargo bench --locked -p ush_shell --bench parser --no-run    # parser bench builds
 cargo bench --locked -p ush_compiler --bench compile --no-run # compile bench builds
+RUSTDOCFLAGS="-D warnings" cargo doc --locked --workspace \
+    --no-deps --document-private-items                       # rustdoc must be warning-clean
 sh scripts/check_rs_line_limit.sh                            # 250-line file cap
+sh scripts/check_rustyline_upstream.sh                       # vendored rustyline drift
 sh scripts/test_install.sh                                   # installer flow
+shellcheck --severity=warning install.sh scripts/*.sh        # shell-script lint
+```
+
+For `.ush` files specifically (when changing the formatter or the
+example corpus):
+
+```bash
+for f in examples/*.ush; do
+    cargo run --locked -p ush --quiet -- check "$f"
+    cargo run --locked -p ush --quiet -- format --check "$f"
+done
 ```
 
 CI also runs the parser and compile benchmarks on PRs and on `main`

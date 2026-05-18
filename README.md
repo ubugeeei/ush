@@ -470,6 +470,14 @@ GitHub Actions provides two release paths:
 
 GitHub Actions runs formatting, the Rust 250-line file limit check, workspace tests, release tests, bench build checks, and the `.ush` async / ADT examples on every pull request and push to `main`.
 
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the local-CI flow,
+workspace layout, and PR conventions. The full list of user-visible
+changes lives in [CHANGELOG.md](./CHANGELOG.md). Security reports go
+through the private channel described in [SECURITY.md](./SECURITY.md)
+— please do not open a public issue for them.
+
 ## License
 
 MIT

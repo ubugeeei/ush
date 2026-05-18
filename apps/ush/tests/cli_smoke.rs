@@ -62,3 +62,54 @@ fn dash_c_runs_a_one_liner_through_sh() {
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert_eq!(stdout.trim(), "production-ready");
 }
+
+#[test]
+fn compile_subcommand_emits_posix_sh() {
+    use std::io::Write;
+
+    let dir = tempfile::tempdir().expect("tempdir");
+    let input = dir.path().join("hello.ush");
+    {
+        let mut f = std::fs::File::create(&input).expect("create input");
+        f.write_all(b"print \"hi\"\n").expect("write input");
+    }
+
+    let out = ush()
+        .arg("compile")
+        .arg(&input)
+        .output()
+        .expect("spawn ush compile");
+    assert!(out.status.success(), "ush compile failed: {out:?}");
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.starts_with("#!/bin/sh"),
+        "compile output must start with a POSIX shebang, got: {stdout}",
+    );
+    assert!(
+        stdout.contains("printf '%s\\n' 'hi'") || stdout.contains("printf '%s\\n' \"hi\""),
+        "compile output must lower `print \"hi\"` to a printf invocation, got: {stdout}",
+    );
+}
+
+#[test]
+fn check_subcommand_accepts_valid_source() {
+    use std::io::Write;
+
+    let dir = tempfile::tempdir().expect("tempdir");
+    let input = dir.path().join("ok.ush");
+    {
+        let mut f = std::fs::File::create(&input).expect("create input");
+        f.write_all(b"let greeting = \"hi\"\nprint greeting\n")
+            .expect("write input");
+    }
+
+    let out = ush()
+        .arg("check")
+        .arg(&input)
+        .output()
+        .expect("spawn ush check");
+    assert!(
+        out.status.success(),
+        "ush check on a valid program must succeed: {out:?}",
+    );
+}

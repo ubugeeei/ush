@@ -241,6 +241,17 @@ jobs:
             cargo run --locked -p ush --quiet -- check "$example"
           done
 
+      - name: Verify every example .ush is `ush format` clean
+        # Dogfood the formatter on the example corpus so we notice
+        # immediately when a formatter change makes already-checked-in
+        # examples drift.
+        run: |
+          set -e
+          for example in examples/*.ush; do
+            echo "ush format --check $example"
+            cargo run --locked -p ush --quiet -- format --check "$example"
+          done
+
       - name: Run async example
         run: |
           output="$(cargo run --locked -p ush --quiet -- examples/async.ush)"

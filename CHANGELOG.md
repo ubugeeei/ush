@@ -18,6 +18,24 @@ project adheres to [Semantic Versioning][semver].
 - `SECURITY.md` with a private-disclosure policy.
 - `CONTRIBUTING.md` describing the local-CI flow and project layout.
 - Issue and pull-request templates under `.github/`.
+- Root-level `.editorconfig` pins charset / EOL / indent.
+- `Shellcheck` CI workflow lints `install.sh` and every `scripts/*.sh`.
+- `Benchmark` CI job tracks parser and full `.ush → sh` compile-time
+  benchmarks against the `main` baseline (on `gh-pages`) and fails
+  PRs on >25% regression.
+- `Deny` CI job runs `cargo-deny` for license/source/advisory
+  enforcement.
+- Compiler now enforces `match` exhaustiveness during the effects
+  pass: missing variants on enums, missing arms on `Bool` and `Unit`,
+  and literal-only matches on `String`/`Int`/tuples/lists are now
+  rejected with a clear diagnostic instead of compiling to a
+  silently-fall-through shell branch.
+- New CI gate: every `examples/*.ush` is type-checked through
+  `ush check`, not just the two that had bespoke runners.
+- README links the CI / Shellcheck / Dependencies workflow badges and
+  the MIT shield.
+- `.dockerignore` keeps the docker build context lean; the docker
+  image now runs as the non-root `ush` user (uid 1000).
 
 ### Changed
 
@@ -29,6 +47,14 @@ project adheres to [Semantic Versioning][semver].
 - The compiler refuses to silently fall back when `canonicalize()`
   fails; the codegen invariant for control-flow statements is now an
   error rather than `unreachable!()`.
+- `install.sh` hardens its trust surface: `umask 077`, best-effort
+  `set -o pipefail`, no more clobber of the caller's `$TMPDIR`, and
+  `curl`/`wget` flags pin HTTPS + TLS 1.2 with retries on remote
+  URLs (local `file://` URLs in CI smoke-tests bypass these flags).
+- Release-binary profile now strips debuginfo, runs thin-LTO with a
+  single codegen unit, and uses `panic = "abort"`. The Linux/macOS
+  release archives drop from ~5.6 MB to ~2.9 MB for `ush` and from
+  ~2.7 MB to ~1.3 MB for `ush_lsp`.
 
 ## [0.6.1] — 2026-05-17
 

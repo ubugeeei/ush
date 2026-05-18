@@ -50,7 +50,8 @@ impl UshCompiler {
     pub fn compile_file_with_sourcemap(&self, path: &Path) -> Result<CompiledScript> {
         let source = fs::read_to_string(path)
             .with_context(|| format!("failed to read {}", path.display()))?;
-        let absolute = fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+        let absolute = fs::canonicalize(path)
+            .with_context(|| format!("failed to canonicalize {}", path.display()))?;
         let source_dir = absolute.parent().and_then(|item| item.to_str());
         let source_path = absolute.to_str();
         self.compile_with_context(

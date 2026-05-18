@@ -472,6 +472,14 @@ GitHub Actions runs formatting, the Rust 250-line file limit check, workspace te
 
 A separate `Dependencies` workflow watches `vendor/rustyline` against `crates.io` on a weekly cron via [`scripts/check_rustyline_upstream.sh`](./scripts/check_rustyline_upstream.sh) and fails when the pinned tag in [`vendor/rustyline/UPSTREAM`](./vendor/rustyline/UPSTREAM) is behind upstream, so security advisories surface even between human reviews.
 
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the local-CI flow,
+workspace layout, and PR conventions. The full list of user-visible
+changes lives in [CHANGELOG.md](./CHANGELOG.md). Security reports go
+through the private channel described in [SECURITY.md](./SECURITY.md)
+— please do not open a public issue for them.
+
 ## License
 
 MIT

@@ -2,11 +2,12 @@ use std::{
     fs,
     path::Path,
     process::{Child, Command, Stdio},
-    thread,
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use tempfile::tempdir;
+
+mod common;
 
 fn ush() -> Command {
     Command::new(env!("CARGO_BIN_EXE_ush"))
@@ -77,27 +78,34 @@ fn spawn_python_server() -> (Child, u16, tempfile::TempDir) {
 }
 
 fn read_port_file(path: &Path) -> u16 {
-    let start = Instant::now();
-    while start.elapsed() < Duration::from_secs(5) {
+    let mut port: Option<u16> = None;
+    let observed = common::wait_until(Duration::from_secs(5), || {
         if let Ok(contents) = fs::read_to_string(path)
-            && let Ok(port) = contents.trim().parse::<u16>()
+            && let Ok(value) = contents.trim().parse::<u16>()
         {
-            return port;
+            port = Some(value);
+            return true;
         }
-        thread::sleep(Duration::from_millis(25));
+        false
+    });
+    if observed
+        && let Some(port) = port
+    {
+        return port;
     }
     panic!("python server did not write port file");
 }
 
 fn wait_for_exit(child: &mut Child, timeout: Duration) -> Option<std::process::ExitStatus> {
-    let start = Instant::now();
-    while start.elapsed() < timeout {
-        if let Some(status) = child.try_wait().expect("try_wait") {
-            return Some(status);
+    let mut status: Option<std::process::ExitStatus> = None;
+    common::wait_until(timeout, || {
+        if let Some(found) = child.try_wait().expect("try_wait") {
+            status = Some(found);
+            return true;
         }
-        thread::sleep(Duration::from_millis(25));
-    }
-    None
+        false
+    });
+    status
 }
 
 fn terminate_child(child: &mut Child) -> Option<std::process::ExitStatus> {

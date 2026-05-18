@@ -60,6 +60,13 @@ Any of these failing in CI is a hard block. The line-limit script
 caps individual Rust files at 250 lines (sources only, tests inside a
 file are counted); split larger files into modules.
 
+There is also a single-command wrapper that runs every one of the
+checks above in the same order CI runs them:
+
+```bash
+sh scripts/preflight.sh
+```
+
 ## Workspace layout
 
 - `apps/ush` — CLI binary

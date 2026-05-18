@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 
 use super::{
     super::{
@@ -205,12 +205,17 @@ pub(crate) fn compile_statement(
                 inside_function,
                 out,
             )?,
-            StatementKind::If { .. }
+            kind @ (StatementKind::If { .. }
             | StatementKind::While { .. }
             | StatementKind::For { .. }
             | StatementKind::Loop { .. }
             | StatementKind::Break
-            | StatementKind::Continue => unreachable!(),
+            | StatementKind::Continue) => {
+                return Err(anyhow!(
+                    "internal codegen invariant violated: control-flow statement {kind:?} must be \
+                     dispatched via compile_control_statement before reaching compile_statement",
+                ));
+            }
         }
         Ok(())
     })();

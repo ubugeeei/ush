@@ -230,6 +230,17 @@ jobs:
           cargo bench --locked -p ush_shell --no-run
           cargo bench --locked -p ush_compiler --no-run
 
+      - name: Type-check every example .ush
+        # Gate every committed example through `ush check` so a
+        # breaking change to the type checker / compiler is caught
+        # before it lands, not on the next contributor's bug report.
+        run: |
+          set -e
+          for example in examples/*.ush; do
+            echo "ush check $example"
+            cargo run --locked -p ush --quiet -- check "$example"
+          done
+
       - name: Run async example
         run: |
           output="$(cargo run --locked -p ush --quiet -- examples/async.ush)"

@@ -182,7 +182,13 @@ cargo run -p ush -- examples/error_streams.ush
 cargo run -p ush -- compile examples/error_streams.ush
 ```
 
-You can use that file as a starting point for your own scripts.
+The first command is expected to exit non-zero: the sample intentionally raises
+`Problem::MissingConfig` so you can see the runtime error stream and mapped
+diagnostic output. Use the compiled output command when you want to inspect the
+generated shell without running the failing path.
+
+You can use that file as a starting point for your own scripts once you replace
+the deliberate `raise` with your own recovery flow.
 
 ## Complete Example
 

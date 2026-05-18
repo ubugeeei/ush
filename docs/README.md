@@ -16,5 +16,6 @@ Available today:
   reverse line index, and runtime failure mapping output
 - [`typed-errors.md`](./typed-errors.md): how `.ush` typed errors, Zig-style `Problem!T`
   signatures, `raise`, inferred `# raises:`, Rust-like `?`, and tail expressions fit together
+- [`lsp.md`](./lsp.md): how to wire `ush_lsp` into editors over stdio
 
 For runnable scripts, see [`../examples/README.md`](../examples/README.md).

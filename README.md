@@ -385,6 +385,12 @@ Release archives are currently published for:
 - macOS `x86_64`
 - macOS `aarch64`
 - Linux `x86_64-unknown-linux-gnu`
+- Linux `aarch64-unknown-linux-gnu`
+
+The Linux archives are built on `ubuntu-latest` (x86_64) and
+`ubuntu-24.04-arm` (aarch64), so the glibc baseline is whatever the
+GitHub Actions image ships at the time of the build. Distributions
+older than the runner image's glibc require building from source.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ubugeeei/ush/main/install.sh | sh

@@ -83,3 +83,15 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$version" -m "Release $version"
           git push origin "refs/tags/$version"
+
+  release:
+    name: Build and publish release
+    needs: tag
+    uses: ./.github/workflows/release.yml
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+    with:
+      version: ${{ inputs.version }}
+      target_ref: ${{ inputs.target_ref }}

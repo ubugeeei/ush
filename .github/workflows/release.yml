@@ -1,6 +1,17 @@
 name: Release
 
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release tag to publish, for example v0.1.0
+        required: true
+        type: string
+      target_ref:
+        description: Branch, tag, or commit SHA to build
+        required: true
+        default: main
+        type: string
   push:
     tags:
       - "v*"
@@ -31,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout release source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ env.SOURCE_REF }}
 

@@ -4,7 +4,7 @@ use memchr::{memchr, memmem, memrchr};
 use phf::phf_map;
 
 use super::ast::Type;
-use crate::scan::{ScanState, advance};
+use crate::scan::{advance, ScanState};
 use crate::string_literal;
 use crate::types::{AstString as String, AstVec as Vec, OutputString};
 

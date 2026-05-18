@@ -1,17 +1,18 @@
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 
 use super::{
     super::{
         ast::{Attribute, Expr, Statement, StatementKind},
         util::strip_top_level_suffix,
     },
-    SourceLine, attr, control, declaration,
+    attr, control, declaration,
     expr::parse_expr,
     signature,
     statement_support::{
         is_tail_position, parse_alias, parse_shell_escape, parse_shell_statement,
         parse_statement_expr, trim_statement_terminator,
     },
+    SourceLine,
 };
 use crate::types::HeapVec as Vec;
 

@@ -155,9 +155,7 @@ mod tests {
         // `#[default(2)]` used to be parsed as a comment, which made
         // `brace_delta` return 0 for the `fn` line — the body never
         // got indented.
-        let formatted = format_source(
-            "fn bin(#[default(2)] count: Int) {\nprint count\n}\n",
-        );
+        let formatted = format_source("fn bin(#[default(2)] count: Int) {\nprint count\n}\n");
         assert_eq!(
             formatted,
             concat!(

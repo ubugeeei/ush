@@ -3,15 +3,15 @@ mod specs;
 mod tests;
 
 use rustyline::{
-    Cmd, ConditionalEventHandler, Editor, Event, EventContext, EventHandler, KeyCode, KeyEvent,
-    Modifiers, Movement, RepeatCount, history::DefaultHistory,
+    history::DefaultHistory, Cmd, ConditionalEventHandler, Editor, Event, EventContext,
+    EventHandler, KeyCode, KeyEvent, Modifiers, Movement, RepeatCount,
 };
 
-use self::specs::{BindingAction, binding_specs};
+use self::specs::{binding_specs, BindingAction};
 use super::{
-    UshHelper,
     completion_state::CompletionState,
     selection::{SelectionDelete, SelectionHandle},
+    UshHelper,
 };
 
 pub fn configure_editor(

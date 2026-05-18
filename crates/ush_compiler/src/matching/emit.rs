@@ -1,9 +1,9 @@
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 
 use super::super::{
     ast::{ExprFields, Type, VariantExpr, VariantFields},
     codegen::FunctionRegistry,
-    env::{Binding, CodegenState, EnumRegistry, Env, Storage, lookup_variant},
+    env::{lookup_variant, Binding, CodegenState, EnumRegistry, Env, Storage},
 };
 use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;

@@ -3,7 +3,7 @@ use std::fmt::Write as _;
 use crate::commands::CommandLookup;
 
 use super::super::common::{
-    BLUE_BOLD, BOLD, CYAN_BOLD, GREEN_BOLD, MAGENTA_BOLD, RED_BOLD, YELLOW_BOLD, badge, dim, paint,
+    badge, dim, paint, BLUE_BOLD, BOLD, CYAN_BOLD, GREEN_BOLD, MAGENTA_BOLD, RED_BOLD, YELLOW_BOLD,
 };
 
 pub(super) fn render_alias_row(out: &mut String, name: &str, value: &str) {

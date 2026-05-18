@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use super::{ParsedLine, Stage, parse_line};
+use super::{parse_line, ParsedLine, Stage};
 
 #[test]
 fn parses_trailing_background_jobs_before_fallback() {

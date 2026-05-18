@@ -1,16 +1,15 @@
 use alloc::boxed::Box;
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 
 use super::{
     super::{
         ast::{Attribute, EnumDef, FunctionDef, StatementKind, VariantDef, VariantFields},
         util::{parse_brace_body, parse_paren_body},
     },
-    SourceLine,
     declaration_support::{finish_block, parse_name},
     expr::{parse_expr, parse_named_type_list, parse_pattern, parse_type_list},
-    impls, inline, signature, use_decl,
+    impls, inline, signature, use_decl, SourceLine,
 };
 use crate::types::HeapVec as Vec;
 

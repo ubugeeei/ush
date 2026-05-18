@@ -1,7 +1,7 @@
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 
-use super::introspection::{LookupStyle, describe_commands, describe_which};
-use crate::{Shell, ValueStream, commands, parser::CommandSpec, style};
+use super::introspection::{describe_commands, describe_which, LookupStyle};
+use crate::{commands, parser::CommandSpec, style, Shell, ValueStream};
 
 impl Shell {
     pub(super) fn handle_env(

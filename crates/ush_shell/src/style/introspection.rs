@@ -11,7 +11,7 @@ use self::render_rows::{
     render_alias_row, render_env_row, render_which_match_row, render_which_row,
     truncate_history_entry,
 };
-use super::common::{BLUE_BOLD, BOLD, CYAN_BOLD, badge, dim, paint, pluralize};
+use super::common::{badge, dim, paint, pluralize, BLUE_BOLD, BOLD, CYAN_BOLD};
 
 pub fn render_aliases(aliases: &BTreeMap<String, String>) -> String {
     let mut out = String::new();

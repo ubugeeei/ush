@@ -1,4 +1,4 @@
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 
 use super::super::util::is_identifier;
 use super::SourceLine;

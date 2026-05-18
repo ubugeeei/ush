@@ -1,9 +1,9 @@
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 
 use crate::traits::TraitImplRegistry;
 use crate::{
     ast::{Call, Expr, ExprFields, Type},
-    codegen::{FunctionRegistry, infer},
+    codegen::{infer, FunctionRegistry},
     env::{Binding, EnumRegistry, Env, Storage},
     errors::{ErrorSet, ErrorType},
 };

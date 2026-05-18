@@ -14,7 +14,10 @@ resolver = "2"
 [workspace.package]
 version = "0.6.1"
 edition = "2024"
-rust-version = "1.85"
+# Bumped from 1.85 → 1.88 because criterion 0.8.2 requires 1.86 and
+# home 0.5.12 (transitive via dev/build tools) requires 1.88. 1.88 is
+# the smallest version that satisfies the current dependency graph.
+rust-version = "1.88"
 license = "MIT"
 
 [workspace.dependencies]

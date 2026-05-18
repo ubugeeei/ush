@@ -1,10 +1,10 @@
 use std::env;
 use std::io::{self, Write};
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use ush_config::ShellKeymap;
 
-use super::{ParsedLine, Shell, ValueStream, parser::Stage, process, repl};
+use super::{parser::Stage, process, repl, ParsedLine, Shell, ValueStream};
 
 impl Shell {
     pub fn execute(&mut self, line: &str) -> Result<i32> {

@@ -4,10 +4,10 @@ mod source;
 
 use std::env;
 
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{anyhow, bail, Context, Result};
 
 use super::test_eval;
-use crate::{Shell, ValueStream, expand::strip_outer_quotes, style};
+use crate::{expand::strip_outer_quotes, style, Shell, ValueStream};
 
 impl Shell {
     pub(super) fn change_directory(&mut self, args: &[String]) -> Result<(ValueStream, i32)> {

@@ -22,11 +22,11 @@ use std::{
 
 use crate::parser::is_builtin;
 use rustyline::{
-    CompletionType, Context, Helper,
     completion::{Completer, FilenameCompleter, Pair},
     highlight::{CmdKind, Highlighter},
     hint::{Hinter, HistoryHinter},
     validate::{ValidationContext, ValidationResult, Validator},
+    CompletionType, Context, Helper,
 };
 
 pub use self::editor::{classify_readline_error, create_editor};

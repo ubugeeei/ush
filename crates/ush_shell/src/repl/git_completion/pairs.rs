@@ -7,7 +7,7 @@ use rustyline::completion::Pair;
 
 use crate::repl::UshHelper;
 
-use super::specs::{ArgKind, GIT_COMMANDS, GitCommandSpec, GitOptionSpec};
+use super::specs::{ArgKind, GitCommandSpec, GitOptionSpec, GIT_COMMANDS};
 use path_pairs::complete_path_pairs;
 use ref_pairs::{
     branch_pairs, commit_pairs, local_branch_pairs, ref_pairs, remote_branch_pairs, remote_pairs,

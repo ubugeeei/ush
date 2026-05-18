@@ -145,11 +145,9 @@ fn which_lists_all_matches_with_current_first() {
     assert!(!lines.is_empty());
     assert!(lines[0].starts_with("=> alias echo='printf'"));
     assert!(lines.contains(&"   echo"));
-    assert!(
-        lines
-            .iter()
-            .any(|line| line.starts_with("   /") && line.ends_with("/echo"))
-    );
+    assert!(lines
+        .iter()
+        .any(|line| line.starts_with("   /") && line.ends_with("/echo")));
 }
 
 #[test]

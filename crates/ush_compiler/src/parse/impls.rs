@@ -1,13 +1,12 @@
-use anyhow::{Result, anyhow, bail};
+use anyhow::{anyhow, bail, Result};
 
 use super::{
     super::{
         ast::{FunctionDef, StatementKind, TraitDef, TraitImpl, Type},
         util::{parse_type, split_top_level, split_top_level_whitespace},
     },
-    SourceLine,
     declaration_support::finish_block,
-    signature,
+    signature, SourceLine,
 };
 use crate::types::{AstString as String, HeapVec as Vec};
 

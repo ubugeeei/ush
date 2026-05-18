@@ -1,15 +1,15 @@
 use anyhow::Result;
 use lsp_server::{Connection, Message, Notification, Request, Response};
 use lsp_types::{
+    notification::{
+        DidChangeTextDocument, DidOpenTextDocument, DidSaveTextDocument, Notification as _,
+    },
+    request::{Formatting, Request as _, SemanticTokensFullRequest},
     DidChangeTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams,
     DocumentFormattingParams, OneOf, PublishDiagnosticsParams, SemanticTokenType,
     SemanticTokensFullOptions, SemanticTokensLegend, SemanticTokensOptions, SemanticTokensParams,
     SemanticTokensServerCapabilities, ServerCapabilities, TextDocumentSyncCapability,
     TextDocumentSyncKind,
-    notification::{
-        DidChangeTextDocument, DidOpenTextDocument, DidSaveTextDocument, Notification as _,
-    },
-    request::{Formatting, Request as _, SemanticTokensFullRequest},
 };
 use ush_tooling::{check_source, format_source, semantic_token_legend, semantic_tokens};
 

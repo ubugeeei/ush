@@ -2,8 +2,8 @@ use rustyline::CompletionType;
 
 use crate::repl::selection::SelectionMove;
 use crate::repl::{
-    UshHelper,
     highlight::{highlight_hint, highlight_line, highlight_prompt},
+    UshHelper,
 };
 
 #[test]

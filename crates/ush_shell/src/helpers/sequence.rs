@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use anyhow::Result;
 
-use super::{HelperKind, ValueStream, lambda_syntax::parse_string_literal};
+use super::{lambda_syntax::parse_string_literal, HelperKind, ValueStream};
 
 #[derive(Debug, Clone)]
 pub(super) enum SequenceOp {
@@ -124,7 +124,7 @@ fn parse_string_helper(raw: &str, name: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{HelperKind, SequenceOp, ValueStream, apply_sequence_op, parse_sequence_helper};
+    use super::{apply_sequence_op, parse_sequence_helper, HelperKind, SequenceOp, ValueStream};
 
     #[test]
     fn car_returns_first_line() {

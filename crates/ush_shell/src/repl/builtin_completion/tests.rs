@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use rustyline::{Context, completion::Completer, hint::Hinter, history::DefaultHistory};
+use rustyline::{completion::Completer, hint::Hinter, history::DefaultHistory, Context};
 use tempfile::tempdir;
 
 use crate::repl::{ReplJobCandidate, UshHelper};
@@ -91,11 +91,9 @@ fn hints_builtin_usage_and_top_level_builtin_summaries() {
 
     let (_, command_pairs) = helper.complete("he", 2, &ctx).expect("complete");
 
-    assert!(
-        command_pairs.iter().any(|pair| {
-            pair.replacement == "help" && pair.display.contains("show builtin help")
-        })
-    );
+    assert!(command_pairs
+        .iter()
+        .any(|pair| { pair.replacement == "help" && pair.display.contains("show builtin help") }));
     assert_eq!(
         helper.hint("rm ", 3, &ctx),
         Some(

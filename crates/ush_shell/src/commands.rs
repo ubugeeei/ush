@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
-use anyhow::{Result, anyhow};
-use which::{Error as WhichError, which, which_all};
+use anyhow::{anyhow, Result};
+use which::{which, which_all, Error as WhichError};
 
 pub(crate) const BUILTIN_COMMANDS: &[&str] = &[
     ":", ".", "[", "alias", "bg", "cd", "command", "confirm", "disown", "echo", "env", "exit",
@@ -80,7 +80,7 @@ pub(crate) fn ensure_external_command(command: &str) -> Result<()> {
 mod tests {
     use std::collections::BTreeMap;
 
-    use super::{CommandLookup, is_builtin, lookup_command};
+    use super::{is_builtin, lookup_command, CommandLookup};
 
     #[test]
     fn recognizes_builtin_names() {

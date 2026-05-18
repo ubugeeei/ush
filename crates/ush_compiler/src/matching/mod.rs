@@ -5,13 +5,13 @@ mod sequence;
 
 pub(crate) use exhaustiveness::check_exhaustive;
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 
 use super::{
     ast::{Expr, Pattern, Type},
-    codegen::FunctionRegistry,
     codegen::infer,
-    env::{Binding, CodegenState, EnumRegistry, Env, Storage, expect_adt},
+    codegen::FunctionRegistry,
+    env::{expect_adt, Binding, CodegenState, EnumRegistry, Env, Storage},
 };
 use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;

@@ -6,7 +6,7 @@ use std::{
     process::Command,
 };
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use ush_compiler::UshCompiler;
 
 pub fn handle_raw_doc_request() -> Result<bool> {

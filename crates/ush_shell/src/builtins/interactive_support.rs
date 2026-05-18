@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 
 use super::interactive::{ConfirmDefault, SelectConfig};
 

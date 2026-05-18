@@ -1,4 +1,4 @@
-use criterion::{Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, Criterion};
 use ush_compiler::UshCompiler;
 
 const SMALL_SOURCE: &str = r#"
@@ -32,7 +32,9 @@ fn bench_compile(criterion: &mut Criterion) {
 
     criterion.bench_function("compile small ush program", |bench| {
         bench.iter(|| {
-            let _ = compiler.compile_source(SMALL_SOURCE).expect("compile small");
+            let _ = compiler
+                .compile_source(SMALL_SOURCE)
+                .expect("compile small");
         });
     });
 

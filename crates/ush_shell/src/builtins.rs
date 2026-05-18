@@ -8,10 +8,10 @@ mod sammary;
 mod tasks;
 mod test_eval;
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 
 use self::{core::render_echo, introspection::LookupStyle};
-use super::{Shell, ValueStream, parser::CommandSpec};
+use super::{parser::CommandSpec, Shell, ValueStream};
 
 impl Shell {
     pub(crate) fn execute_builtin(

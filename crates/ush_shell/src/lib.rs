@@ -21,8 +21,8 @@ use ush_config::{RuntimePaths, UshConfig};
 
 pub use self::{
     helpers::{HelperInvocation, ValueStream},
-    options::{ShellOptions, run_posix_script},
-    parser::{ParsedLine, parse_line},
+    options::{run_posix_script, ShellOptions},
+    parser::{parse_line, ParsedLine},
     startup::SessionStartup,
 };
 

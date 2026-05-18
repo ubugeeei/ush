@@ -1,0 +1,68 @@
+# Path-based PR labels.
+#
+# Each label maps to a set of glob patterns. Any PR whose changed
+# files match at least one pattern gets the label automatically. The
+# label only appears if it already exists in the repository; missing
+# labels are silently skipped by actions/labeler.
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/**"
+          - ".github/dependabot.yml"
+          - ".github/labeler.yml"
+          - "scripts/check_rs_line_limit.sh"
+
+compiler:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "crates/ush_compiler/**"
+          - "crates/ush_tooling/**"
+
+shell:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "crates/ush_shell/**"
+          - "crates/ush_config/**"
+
+apps:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "apps/**"
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "docs/**"
+          - "CHANGELOG.md"
+          - "CONTRIBUTING.md"
+          - "SECURITY.md"
+
+installer:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "install.sh"
+          - "scripts/test_install.sh"
+
+release:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/release.yml"
+          - "Dockerfile"
+          - ".dockerignore"
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "Cargo.toml"
+          - "Cargo.lock"
+          - "**/Cargo.toml"
+          - "vendor/**"
+          - "deny.toml"
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/tests/**"
+          - "**/*test*.rs"

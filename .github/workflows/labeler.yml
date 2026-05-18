@@ -1,0 +1,30 @@
+name: PR Labeler
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: labeler-${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  label:
+    name: Apply path-based labels
+    runs-on: ubuntu-latest
+    steps:
+      - name: Label PR by changed paths
+        uses: actions/labeler@v5
+        with:
+          # Errors out (rather than warns) when a label referenced in
+          # labeler.yml does not exist in the repo, so configuration
+          # drift is surfaced.
+          dot: true
+          sync-labels: true

@@ -1,6 +1,17 @@
 #!/bin/sh
 set -eu
 
+# Defend against world-readable files created during the install, in
+# case $TMPDIR is on a shared filesystem.
+umask 077
+
+# pipefail is not POSIX, but every shell we realistically run under
+# (bash, dash, busybox sh, zsh) supports it as an extension. Enable it
+# when it is available so that 'fetch | sha256_check' style pipelines
+# fail loudly on partial downloads instead of silently returning 0.
+# shellcheck disable=SC3040
+(set -o pipefail 2>/dev/null) && set -o pipefail || true
+
 REPO_INPUT="${USH_REPO:-${UBSH_REPO:-ubugeeei/ush}}"
 VERSION="${USH_VERSION:-${UBSH_VERSION:-latest}}"
 PREFIX="${USH_PREFIX:-${UBSH_PREFIX:-$HOME/.local}}"
@@ -8,10 +19,15 @@ BIN_DIR_INPUT="${USH_BIN_DIR:-${UBSH_BIN_DIR:-}}"
 DOWNLOAD_URL="${USH_DOWNLOAD_URL:-${UBSH_DOWNLOAD_URL:-}}"
 CHECKSUM_URL="${USH_CHECKSUM_URL:-${UBSH_CHECKSUM_URL:-}}"
 AUTO_PATH="${USH_AUTO_PATH:-${UBSH_AUTO_PATH:-1}}"
-TMPDIR="$(mktemp -d)"
+
+# Use a dedicated variable so we never clobber the caller's $TMPDIR
+# (which is consulted by mktemp, etc.). The directory is created with
+# the restrictive umask above; mktemp -d's own mode is 0700 on every
+# modern coreutils.
+INSTALL_WORK_DIR="$(mktemp -d 2>/dev/null || mktemp -d -t ush.XXXXXX)"
 
 cleanup() {
-  rm -rf "$TMPDIR"
+  rm -rf "$INSTALL_WORK_DIR"
 }
 
 trap cleanup EXIT INT TERM
@@ -219,13 +235,42 @@ fetch() {
   url="$1"
   output="$2"
 
+  # When the URL is local (the release smoke test in CI uses file://),
+  # network-hardening flags do not apply, so we do not pass them.
+  case "$url" in
+    file://*) is_local=1 ;;
+    *) is_local=0 ;;
+  esac
+
   if command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$url" -o "$output"
+    if [ "$is_local" = "1" ]; then
+      curl -fsSL "$url" -o "$output"
+    else
+      # --proto '=https' rejects any redirect to a non-HTTPS scheme.
+      # --tlsv1.2 refuses to negotiate older TLS versions.
+      # --retry adds resilience against transient network failures
+      # without weakening trust.
+      curl -fsSL \
+        --proto '=https' \
+        --tlsv1.2 \
+        --retry 3 \
+        --retry-delay 2 \
+        "$url" -o "$output"
+    fi
     return
   fi
 
   if command -v wget >/dev/null 2>&1; then
-    wget -qO "$output" "$url"
+    if [ "$is_local" = "1" ]; then
+      wget -qO "$output" "$url"
+    else
+      wget -q \
+        --https-only \
+        --secure-protocol=TLSv1_2 \
+        --tries=3 \
+        -O "$output" \
+        "$url"
+    fi
     return
   fi
 
@@ -335,7 +380,7 @@ verify_archive() {
   fi
 
   sums_url="$(build_checksum_url "$repo" "$version")"
-  sums_file="$TMPDIR/sha256sums.txt"
+  sums_file="$INSTALL_WORK_DIR/sha256sums.txt"
 
   echo "install.sh: downloading $sums_url" >&2
   fetch "$sums_url" "$sums_file"
@@ -381,8 +426,8 @@ TARGET="$(detect_target)"
 BIN_DIR="$(pick_bin_dir)"
 ASSET="ush-$TARGET.tar.gz"
 URL="$(build_download_url "$REPO" "$VERSION" "$TARGET")"
-ARCHIVE="$TMPDIR/ush.tar.gz"
-UNPACK_DIR="$TMPDIR/unpack"
+ARCHIVE="$INSTALL_WORK_DIR/ush.tar.gz"
+UNPACK_DIR="$INSTALL_WORK_DIR/unpack"
 PACKAGE_DIR="$UNPACK_DIR/ush-$TARGET"
 
 echo "install.sh: downloading $URL" >&2

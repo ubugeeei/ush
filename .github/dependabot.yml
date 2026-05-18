@@ -1,0 +1,28 @@
+# Re-enable Dependabot but only for GitHub Actions.
+#
+# Rust dependency updates were intentionally disabled in #48 because
+# of the vendored rustyline pin; that decision stands. GitHub Actions
+# version drift is a separate concern: pinning actions to the latest
+# stable release is part of the supply-chain story
+# (sha-pin / tag-pin upgrades land via PR + CI).
+
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:30"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    groups:
+      actions:
+        patterns:
+          - "*"

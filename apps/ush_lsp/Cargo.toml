@@ -1,6 +1,8 @@
 [package]
 name = "ush_lsp"
 description = "Language Server Protocol server for .ush files"
+# Bundled into release archives next to `ush`; no crates.io flow yet.
+publish = false
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

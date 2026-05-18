@@ -1,0 +1,34 @@
+name: Dependencies
+
+on:
+  schedule:
+    # Mondays at 06:00 UTC — early enough that drift is reported at
+    # the start of the work week.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "vendor/**"
+      - "scripts/check_rustyline_upstream.sh"
+      - ".github/workflows/dependencies.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependencies-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  rustyline-upstream:
+    name: Rustyline upstream watch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Check vendored rustyline against crates.io
+        run: sh scripts/check_rustyline_upstream.sh

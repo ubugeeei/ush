@@ -470,6 +470,8 @@ GitHub Actions provides two release paths:
 
 GitHub Actions runs formatting, the Rust 250-line file limit check, workspace tests, release tests, bench build checks, and the `.ush` async / ADT examples on every pull request and push to `main`.
 
+A separate `Dependencies` workflow watches `vendor/rustyline` against `crates.io` on a weekly cron via [`scripts/check_rustyline_upstream.sh`](./scripts/check_rustyline_upstream.sh) and fails when the pinned tag in [`vendor/rustyline/UPSTREAM`](./vendor/rustyline/UPSTREAM) is behind upstream, so security advisories surface even between human reviews.
+
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for the local-CI flow,

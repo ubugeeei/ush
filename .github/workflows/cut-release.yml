@@ -16,6 +16,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ inputs.version }}
+  cancel-in-progress: false
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
@@ -34,21 +38,30 @@ jobs:
         run: |
           version="${{ inputs.version }}"
 
-          case "$version" in
-            v[0-9]*)
-              ;;
-            *)
-              echo "version must start with v, for example v0.1.0" >&2
-              exit 1
-              ;;
-          esac
+          if ! printf '%s\n' "$version" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$'; then
+            echo "version must be a semantic version tag, for example v0.1.0" >&2
+            exit 1
+          fi
 
-          case "$version" in
-            *[!0-9A-Za-z.,-]*)
-              echo "version contains unsupported characters: $version" >&2
-              exit 1
-              ;;
-          esac
+          cargo_version="$(awk '
+            /^\[workspace.package\]$/ { in_workspace_package = 1; next }
+            /^\[/ { in_workspace_package = 0 }
+            in_workspace_package && $1 == "version" {
+              gsub(/"/, "", $3)
+              print $3
+              exit
+            }
+          ' Cargo.toml
+          )"
+          if [ -z "$cargo_version" ]; then
+            echo "could not read workspace package version from Cargo.toml" >&2
+            exit 1
+          fi
+          expected="v$cargo_version"
+          if [ "$version" != "$expected" ]; then
+            echo "version must match workspace package version: expected $expected, got $version" >&2
+            exit 1
+          fi
 
       - name: Ensure tag does not already exist
         run: |
@@ -67,14 +80,3 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$version" -m "Release $version"
           git push origin "refs/tags/$version"
-
-  release:
-    name: Build and publish release
-    needs: tag
-    uses: ./.github/workflows/release.yml
-    permissions:
-      contents: write
-    with:
-      version: ${{ inputs.version }}
-      target_ref: ${{ format('refs/tags/{0}', inputs.version) }}
-    secrets: inherit

@@ -124,6 +124,25 @@ jobs:
       - name: Run cargo audit
         run: cargo audit --deny warnings
 
+  deny:
+    name: Deny (licenses, sources, bans)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-deny
+        run: cargo install --locked cargo-deny
+
+      - name: Run cargo deny
+        # `bans` is intentionally a warn-level check today because the
+        # vendored rustyline pulls in duplicate-version trees; raise
+        # to `deny` once those are deduplicated.
+        run: cargo deny --workspace check licenses sources advisories
+
   bench:
     name: Benchmark
     runs-on: ubuntu-latest

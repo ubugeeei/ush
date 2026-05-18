@@ -14,6 +14,7 @@ resolver = "2"
 [workspace.package]
 version = "0.6.1"
 edition = "2024"
+rust-version = "1.85"
 license = "MIT"
 
 [workspace.dependencies]

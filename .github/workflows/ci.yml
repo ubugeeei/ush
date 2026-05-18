@@ -225,6 +225,13 @@ jobs:
       - name: Run release tests
         run: cargo test --locked --workspace --release
 
+      - name: Build rustdoc with warnings as errors
+        # Catch broken intra-doc links and stale doc snippets before
+        # they break a future docs publish.
+        env:
+          RUSTDOCFLAGS: "-D warnings"
+        run: cargo doc --locked --workspace --no-deps --document-private-items
+
       - name: Build benches
         run: |
           cargo bench --locked -p ush_shell --no-run

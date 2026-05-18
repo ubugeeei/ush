@@ -1,17 +1,57 @@
 use std::io;
 #[cfg(unix)]
-use std::{os::unix::process::CommandExt, process::Command};
+use std::{mem, os::unix::process::CommandExt, process::Command, ptr};
 
 #[cfg(unix)]
-pub(crate) struct SigintGuard(libc::sighandler_t);
+unsafe fn install_handler(
+    signum: libc::c_int,
+    handler: libc::sighandler_t,
+) -> io::Result<libc::sigaction> {
+    unsafe {
+        let mut new: libc::sigaction = mem::zeroed();
+        new.sa_sigaction = handler;
+        new.sa_flags = libc::SA_RESTART;
+        libc::sigemptyset(&mut new.sa_mask);
+
+        let mut previous: libc::sigaction = mem::zeroed();
+        if libc::sigaction(signum, &new, &mut previous) != 0 {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(previous)
+    }
+}
+
+#[cfg(unix)]
+unsafe fn restore_handler(signum: libc::c_int, previous: &libc::sigaction) -> io::Result<()> {
+    unsafe {
+        if libc::sigaction(signum, previous, ptr::null_mut()) != 0 {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(())
+    }
+}
+
+#[cfg(unix)]
+unsafe fn reset_handler_default(signum: libc::c_int) -> io::Result<()> {
+    unsafe {
+        let mut action: libc::sigaction = mem::zeroed();
+        action.sa_sigaction = libc::SIG_DFL;
+        action.sa_flags = 0;
+        libc::sigemptyset(&mut action.sa_mask);
+        if libc::sigaction(signum, &action, ptr::null_mut()) != 0 {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(())
+    }
+}
+
+#[cfg(unix)]
+pub(crate) struct SigintGuard(libc::sigaction);
 
 #[cfg(unix)]
 impl SigintGuard {
     pub(crate) fn ignore() -> io::Result<Self> {
-        let previous = unsafe { libc::signal(libc::SIGINT, libc::SIG_IGN) };
-        if previous == libc::SIG_ERR {
-            return Err(io::Error::last_os_error());
-        }
+        let previous = unsafe { install_handler(libc::SIGINT, libc::SIG_IGN)? };
         Ok(Self(previous))
     }
 }
@@ -19,7 +59,7 @@ impl SigintGuard {
 #[cfg(unix)]
 impl Drop for SigintGuard {
     fn drop(&mut self) {
-        let _ = unsafe { libc::signal(libc::SIGINT, self.0) };
+        let _ = unsafe { restore_handler(libc::SIGINT, &self.0) };
     }
 }
 
@@ -36,13 +76,7 @@ impl SigintGuard {
 #[cfg(unix)]
 pub(crate) fn prepare_foreground_command(command: &mut Command) {
     unsafe {
-        command.pre_exec(|| {
-            let restored = libc::signal(libc::SIGINT, libc::SIG_DFL);
-            if restored == libc::SIG_ERR {
-                return Err(io::Error::last_os_error());
-            }
-            Ok(())
-        });
+        command.pre_exec(|| reset_handler_default(libc::SIGINT));
     }
 }
 
@@ -53,11 +87,7 @@ pub(crate) fn prepare_background_command(command: &mut Command) {
             if libc::setpgid(0, 0) != 0 {
                 return Err(io::Error::last_os_error());
             }
-            let restored = libc::signal(libc::SIGINT, libc::SIG_DFL);
-            if restored == libc::SIG_ERR {
-                return Err(io::Error::last_os_error());
-            }
-            Ok(())
+            reset_handler_default(libc::SIGINT)
         });
     }
 }
@@ -70,7 +100,13 @@ pub(crate) fn prepare_background_command(_: &mut std::process::Command) {}
 
 #[cfg(unix)]
 pub(crate) fn continue_background_job(pid: u32) -> io::Result<()> {
-    let result = unsafe { libc::kill(-(pid as i32), libc::SIGCONT) };
+    let pgid: libc::pid_t = libc::pid_t::try_from(pid).map_err(|_| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "pid does not fit in the platform pid_t",
+        )
+    })?;
+    let result = unsafe { libc::kill(-pgid, libc::SIGCONT) };
     if result != 0 {
         return Err(io::Error::last_os_error());
     }
@@ -125,5 +161,21 @@ mod tests {
             .expect("run shell");
 
         assert_eq!(super::exit_status(status), 130);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn rejects_pid_that_does_not_fit_pid_t() {
+        let err = super::continue_background_job(u32::MAX).expect_err("pid must be rejected");
+        assert_eq!(err.kind(), std::io::ErrorKind::InvalidInput);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn sigint_guard_can_be_installed_and_dropped_repeatedly() {
+        for _ in 0..3 {
+            let guard = super::SigintGuard::ignore().expect("install guard");
+            drop(guard);
+        }
     }
 }

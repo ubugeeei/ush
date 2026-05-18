@@ -2,7 +2,7 @@ FROM rust:1.88-bookworm AS builder
 
 WORKDIR /app
 COPY . .
-RUN cargo build --release -p ush
+RUN cargo build --locked --release -p ush -p ush_lsp
 
 FROM debian:bookworm-slim
 
@@ -15,6 +15,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/target/release/ush /usr/local/bin/ush
+COPY --from=builder /app/target/release/ush_lsp /usr/local/bin/ush_lsp
 COPY examples /usr/local/share/ush/examples
 
 ENV SHELL=/usr/local/bin/ush

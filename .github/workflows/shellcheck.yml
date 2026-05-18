@@ -1,0 +1,45 @@
+name: Shellcheck
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "install.sh"
+      - "scripts/**.sh"
+      - ".github/workflows/shellcheck.yml"
+  pull_request:
+    paths:
+      - "install.sh"
+      - "scripts/**.sh"
+      - ".github/workflows/shellcheck.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shellcheck-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Lint install.sh and scripts/*.sh
+        # `--severity=warning` keeps the gate strict without flagging
+        # purely-stylistic issues; bump to `style` in a future PR once
+        # the existing scripts have been tightened up.
+        run: |
+          shellcheck --severity=warning install.sh
+          shellcheck --severity=warning scripts/*.sh

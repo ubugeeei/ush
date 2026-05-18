@@ -8,7 +8,7 @@ use crate::{
     codegen::{FunctionRegistry, infer},
     env::{Binding, EnumRegistry, Env, Storage},
     errors::ErrorSet,
-    matching::compile_pattern,
+    matching::{check_exhaustive, compile_pattern},
 };
 
 use super::{
@@ -27,7 +27,9 @@ pub(super) fn match_errors(
     function_errors: &FunctionErrorRegistry,
 ) -> Result<ErrorSet> {
     let mut errors = expr_errors(expr, env, functions, impls, enums, function_errors)?;
-    let subject = match infer(expr, env, functions, impls, enums)? {
+    let subject_ty = infer(expr, env, functions, impls, enums)?;
+    check_exhaustive(&subject_ty, arms, enums)?;
+    let subject = match subject_ty {
         Type::Adt(name) => Binding {
             ty: Type::Adt(name),
             storage: Storage::Adt("__ush_effect_match".into()),

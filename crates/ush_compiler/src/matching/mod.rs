@@ -1,6 +1,9 @@
 mod emit;
+mod exhaustiveness;
 mod pattern;
 mod sequence;
+
+pub(crate) use exhaustiveness::check_exhaustive;
 
 use anyhow::{Result, bail};
 

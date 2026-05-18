@@ -1,0 +1,9 @@
+url: https://github.com/kkawakam/rustyline
+crate: rustyline
+tag: v18.0.0
+notes: |
+  Vendored to allow custom key bindings and to pin the readline
+  surface against upstream churn. When updating, walk the diff between
+  this tag and the new upstream release for behaviour changes that
+  affect the REPL, then refresh this file. Security-relevant patches
+  in upstream should be applied promptly — see SECURITY.md.

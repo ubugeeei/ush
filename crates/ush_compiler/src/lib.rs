@@ -1,3 +1,31 @@
+//! `.ush` to POSIX `sh` compiler core.
+//!
+//! Builds as `no_std + alloc` when the default `std` feature is
+//! disabled, which is the configuration used by host integrations
+//! that need to embed the compiler without pulling in the full
+//! `std`. The default `std` feature wires up `anyhow/std` and the
+//! filesystem helpers (`compile_file`, `compile_file_with_sourcemap`,
+//! `describe_file`).
+//!
+//! ## Pipeline
+//!
+//! Each `compile_source` / `compile_file` call walks the source
+//! through the same stages in order:
+//!
+//! 1. **Parse** — turns `.ush` text into an AST.
+//! 2. **Resolve imports** — flattens `use` paths.
+//! 3. **Effects pass** — typed-error / `Problem!T` propagation,
+//!    match exhaustiveness, control-flow validation.
+//! 4. **Codegen** — lowers to POSIX `sh` and emits a [`SourceMap`].
+//!
+//! The public surface is intentionally narrow: `UshCompiler`
+//! (zero-sized struct + constant alias of the same name) plus the
+//! four `compile_*` / `describe_*` methods and the
+//! [`CompiledScript`] / [`SourceMap`] types they return.
+//! Everything else (parser internals, AST types, codegen helpers,
+//! effects-pass internals, etc.) is `pub(crate)` and is not
+//! considered part of any external API.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 
 mod ast;

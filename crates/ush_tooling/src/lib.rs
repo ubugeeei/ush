@@ -18,6 +18,7 @@ mod highlight;
 mod hover;
 mod references;
 mod semantic;
+mod signature;
 mod symbol;
 mod token;
 
@@ -32,6 +33,7 @@ pub use self::{
         Reference, RenameError, definition, prepare_rename, references, rename_locations,
     },
     semantic::semantic_tokens,
+    signature::{FunctionSignature, SignatureHelp, function_signatures, signature_help},
     symbol::{DocumentSymbol, SymbolKind, document_symbols},
     token::{SemanticToken, SemanticTokenKind, semantic_token_legend},
 };

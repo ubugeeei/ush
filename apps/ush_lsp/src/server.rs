@@ -8,21 +8,22 @@ use lsp_types::{
     HoverProviderCapability, Location, OneOf, PublishDiagnosticsParams, ReferenceParams,
     RenameOptions, RenameParams, SemanticTokenType, SemanticTokensFullOptions,
     SemanticTokensLegend, SemanticTokensOptions, SemanticTokensParams,
-    SemanticTokensServerCapabilities, ServerCapabilities, TextDocumentSyncCapability,
-    TextDocumentSyncKind, WorkDoneProgressOptions,
+    SemanticTokensServerCapabilities, ServerCapabilities, SignatureHelpOptions,
+    SignatureHelpParams, TextDocumentSyncCapability, TextDocumentSyncKind, WorkDoneProgressOptions,
     notification::{
         DidChangeTextDocument, DidOpenTextDocument, DidSaveTextDocument, Notification as _,
     },
     request::{
         Completion, DocumentHighlightRequest, DocumentSymbolRequest, FoldingRangeRequest,
         Formatting, GotoDefinition, HoverRequest, PrepareRenameRequest, References, Rename,
-        Request as _, SemanticTokensFullRequest,
+        Request as _, SemanticTokensFullRequest, SignatureHelpRequest,
     },
 };
 use ush_tooling::{
     check_source, completions, definition as ush_definition, document_highlights, document_symbols,
     folding_ranges, format_source, hover as ush_hover, prepare_rename as ush_prepare_rename,
     references as ush_refs, rename_locations, semantic_token_legend, semantic_tokens,
+    signature_help as ush_signature_help,
 };
 
 use crate::{convert, document::DocumentStore};
@@ -68,6 +69,11 @@ fn capabilities() -> ServerCapabilities {
             trigger_characters: None,
             ..CompletionOptions::default()
         }),
+        signature_help_provider: Some(SignatureHelpOptions {
+            trigger_characters: Some(vec!["(".to_string(), ",".to_string()]),
+            retrigger_characters: None,
+            work_done_progress_options: WorkDoneProgressOptions::default(),
+        }),
         semantic_tokens_provider: Some(SemanticTokensServerCapabilities::SemanticTokensOptions(
             SemanticTokensOptions {
                 legend: SemanticTokensLegend {
@@ -103,6 +109,7 @@ fn handle_request(
         References::METHOD => references(connection, docs, request),
         Rename::METHOD => rename(connection, docs, request),
         PrepareRenameRequest::METHOD => prepare_rename(connection, docs, request),
+        SignatureHelpRequest::METHOD => signature_help(connection, docs, request),
         _ => {
             connection.sender.send(Message::Response(Response::new_err(
                 request.id,
@@ -242,6 +249,19 @@ fn references(connection: &Connection, docs: &mut DocumentStore, request: Reques
         })
         .collect();
     respond_ok(connection, request.id, serde_json::to_value(locations)?)
+}
+
+fn signature_help(
+    connection: &Connection,
+    docs: &mut DocumentStore,
+    request: Request,
+) -> Result<()> {
+    let params: SignatureHelpParams = serde_json::from_value(request.params)?;
+    let source = docs.read(&params.text_document_position_params.text_document.uri)?;
+    let position = params.text_document_position_params.position;
+    let result =
+        ush_signature_help(&source, position.line, position.character).map(convert::signature_help);
+    respond_ok(connection, request.id, serde_json::to_value(result)?)
 }
 
 fn prepare_rename(

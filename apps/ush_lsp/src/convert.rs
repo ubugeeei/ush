@@ -4,14 +4,15 @@ use lsp_types::{
     CompletionItem as LspCompletionItem, CompletionItemKind, Diagnostic, DiagnosticSeverity,
     DocumentHighlight, DocumentHighlightKind, DocumentSymbol as LspDocumentSymbol,
     FoldingRange as LspFoldingRange, FoldingRangeKind, Hover as LspHover, HoverContents,
-    MarkupContent, MarkupKind, Position, Range, SemanticToken, SemanticTokens,
+    MarkupContent, MarkupKind, ParameterInformation, ParameterLabel, Position, Range,
+    SemanticToken, SemanticTokens, SignatureHelp as LspSignatureHelp, SignatureInformation,
     SymbolKind as LspSymbolKind, TextEdit, Uri, WorkspaceEdit,
 };
 use ush_tooling::{
     CompletionItem as UshCompletionItem, CompletionKind as UshCompletionKind,
     DocumentSymbol as UshDocumentSymbol, FoldingRange as UshFoldingRange, Highlight, HighlightKind,
-    Hover as UshHover, Reference, SemanticToken as UshToken, SymbolKind as UshSymbolKind,
-    UshDiagnostic,
+    Hover as UshHover, Reference, SemanticToken as UshToken, SignatureHelp as UshSignatureHelp,
+    SymbolKind as UshSymbolKind, UshDiagnostic,
 };
 
 pub fn diagnostics(source: &str, items: &[UshDiagnostic]) -> Vec<Diagnostic> {
@@ -88,6 +89,28 @@ pub fn document_highlights(items: &[Highlight]) -> Vec<DocumentHighlight> {
             }),
         })
         .collect()
+}
+
+pub fn signature_help(help: UshSignatureHelp) -> LspSignatureHelp {
+    let parameters = help
+        .signature
+        .parameters
+        .iter()
+        .map(|label| ParameterInformation {
+            label: ParameterLabel::Simple(label.clone()),
+            documentation: None,
+        })
+        .collect();
+    LspSignatureHelp {
+        signatures: vec![SignatureInformation {
+            label: help.signature.label,
+            documentation: None,
+            parameters: Some(parameters),
+            active_parameter: Some(help.active_parameter),
+        }],
+        active_signature: Some(0),
+        active_parameter: Some(help.active_parameter),
+    }
 }
 
 pub fn range_of_reference(reference: &Reference) -> Range {

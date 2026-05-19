@@ -1,11 +1,13 @@
 use lsp_types::{
-    Diagnostic, DiagnosticSeverity, DocumentHighlight, DocumentHighlightKind,
-    DocumentSymbol as LspDocumentSymbol, Position, Range, SemanticToken, SemanticTokens,
-    SymbolKind as LspSymbolKind, TextEdit,
+    CompletionItem as LspCompletionItem, CompletionItemKind, Diagnostic, DiagnosticSeverity,
+    DocumentHighlight, DocumentHighlightKind, DocumentSymbol as LspDocumentSymbol,
+    FoldingRange as LspFoldingRange, FoldingRangeKind, Position, Range, SemanticToken,
+    SemanticTokens, SymbolKind as LspSymbolKind, TextEdit,
 };
 use ush_tooling::{
-    DocumentSymbol as UshDocumentSymbol, Highlight, HighlightKind, SemanticToken as UshToken,
-    SymbolKind as UshSymbolKind, UshDiagnostic,
+    CompletionItem as UshCompletionItem, CompletionKind as UshCompletionKind,
+    DocumentSymbol as UshDocumentSymbol, FoldingRange as UshFoldingRange, Highlight, HighlightKind,
+    SemanticToken as UshToken, SymbolKind as UshSymbolKind, UshDiagnostic,
 };
 
 pub fn diagnostics(source: &str, items: &[UshDiagnostic]) -> Vec<Diagnostic> {
@@ -80,6 +82,41 @@ pub fn document_highlights(items: &[Highlight]) -> Vec<DocumentHighlight> {
                 HighlightKind::Read => DocumentHighlightKind::READ,
                 HighlightKind::Text => DocumentHighlightKind::TEXT,
             }),
+        })
+        .collect()
+}
+
+pub fn folding_ranges(items: &[UshFoldingRange]) -> Vec<LspFoldingRange> {
+    items
+        .iter()
+        .map(|item| LspFoldingRange {
+            start_line: item.start_line,
+            start_character: None,
+            end_line: item.end_line,
+            end_character: None,
+            kind: Some(FoldingRangeKind::Region),
+            collapsed_text: None,
+        })
+        .collect()
+}
+
+pub fn completion_items(items: &[UshCompletionItem]) -> Vec<LspCompletionItem> {
+    items
+        .iter()
+        .map(|item| LspCompletionItem {
+            label: item.label.clone(),
+            kind: Some(match item.kind {
+                UshCompletionKind::Keyword => CompletionItemKind::KEYWORD,
+                UshCompletionKind::Variable => CompletionItemKind::VARIABLE,
+                UshCompletionKind::Function => CompletionItemKind::FUNCTION,
+                UshCompletionKind::Type => CompletionItemKind::CLASS,
+            }),
+            detail: if item.detail.is_empty() {
+                None
+            } else {
+                Some(item.detail.clone())
+            },
+            ..LspCompletionItem::default()
         })
         .collect()
 }

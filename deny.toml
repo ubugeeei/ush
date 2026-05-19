@@ -4,6 +4,16 @@
 [graph]
 all-features = false
 no-default-features = false
+# Only the targets we actually ship release binaries for. Without
+# this, cargo-deny inspects the full transitive graph for every
+# target (including Windows-only deps like `winapi`, which trigger
+# spurious license / duplicate / wildcard warnings we never run).
+targets = [
+    { triple = "x86_64-unknown-linux-gnu" },
+    { triple = "aarch64-unknown-linux-gnu" },
+    { triple = "x86_64-apple-darwin" },
+    { triple = "aarch64-apple-darwin" },
+]
 
 [output]
 feature-depth = 1

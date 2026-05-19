@@ -225,6 +225,12 @@ jobs:
       - name: Check no_std compiler core
         run: cargo check --locked -p ush_compiler --no-default-features
 
+      - name: Clippy no_std compiler core
+        # Catches lints that only fire under no_std (panic / alloc /
+        # missing impls), separately from the std-mode clippy gate
+        # in the Clippy job.
+        run: cargo clippy --locked -p ush_compiler --no-default-features --lib --no-deps -- -D warnings
+
       - name: Run no_std compiler tests
         run: cargo test --locked -p ush_compiler --no-default-features --lib
 

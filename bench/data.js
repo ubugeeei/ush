@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779172992022,
+  "lastUpdate": 1779173034231,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -1259,6 +1259,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 98598,
             "range": "± 290",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9b3b92285019e6c0bfe1a0410329c3acb4c0ea61",
+          "message": "feat(lsp): implement textDocument/prepareRename (#137)\n\nThe rename provider in the previous PR validated `params.newName`\n*after* the user had already typed it. With prepareRename the LSP\nclient can validate the cursor position first and pop the rename\ninput only when the cursor actually sits on a renameable identifier,\npre-filling the existing name as the placeholder.\n\n- New `prepare_rename(source, line, char) -> Option<Reference>` in\n  `ush_tooling::references` returns the identifier range when the\n  cursor is on a renameable token, or `None` for keywords, strings,\n  whitespace, etc.\n- `apps/ush_lsp` flips `RenameOptions.prepare_provider` to `true`\n  and routes `textDocument/prepareRename` to the new engine.\n- Two new unit tests pin the identifier-range / keyword cases.",
+          "timestamp": "2026-05-19T14:57:45+09:00",
+          "tree_id": "47be86572d2c6e4bd52f2ccb5410afd5f4294d3d",
+          "url": "https://github.com/ubugeeei/ush/commit/9b3b92285019e6c0bfe1a0410329c3acb4c0ea61"
+        },
+        "date": 1779173033005,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3043,
+            "range": "± 28",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 82357,
+            "range": "± 1208",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 112683,
+            "range": "± 423",
             "unit": "ns/iter"
           }
         ]

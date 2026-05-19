@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779173034231,
+  "lastUpdate": 1779173445578,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -1301,6 +1301,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 112683,
             "range": "± 423",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cebdedcec58b0faea02595b1e549fa94c4469a81",
+          "message": "docs(lsp): document every LSP capability and its backing engine (#138)\n\nThe bullet list under \"Capabilities\" in docs/lsp.md predated the\nhover / highlight / symbol / fold / completion / refs / def / rename /\nprepareRename work and only listed sync + diagnostics + format +\nsemantic tokens.\n\nReplace it with a table that pairs each LSP method with the\n`ush_tooling` module that backs it, plus a \"not yet implemented\"\nfootnote for the methods that still need typed info from the\ncompiler (signatureHelp / codeAction / inlayHint / callHierarchy /\nworkspaceSymbol).",
+          "timestamp": "2026-05-19T14:59:15+09:00",
+          "tree_id": "6306a5ebf76ab538656603e6dd5978e90ae1e81f",
+          "url": "https://github.com/ubugeeei/ush/commit/cebdedcec58b0faea02595b1e549fa94c4469a81"
+        },
+        "date": 1779173444285,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3270,
+            "range": "± 178",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 83086,
+            "range": "± 904",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 108223,
+            "range": "± 1392",
             "unit": "ns/iter"
           }
         ]

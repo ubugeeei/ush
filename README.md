@@ -487,6 +487,17 @@ GitHub Actions runs formatting, the Rust 250-line file limit check, workspace te
 
 A separate `Dependencies` workflow watches `vendor/rustyline` against `crates.io` on a weekly cron via [`scripts/check_rustyline_upstream.sh`](./scripts/check_rustyline_upstream.sh) and fails when the pinned tag in [`vendor/rustyline/UPSTREAM`](./vendor/rustyline/UPSTREAM) is behind upstream, so security advisories surface even between human reviews.
 
+## Production readiness
+
+`ush` is still a pre-1.0 prototype (see the warning at the top of this file), but the 0.7.0 line ships with a deliberately strict CI / supply-chain posture so a production-style deployment is feasible inside the supported scope:
+
+- **Correctness gates** — `cargo test --workspace` on Ubuntu and macOS, `cargo test --release` on every published target (Linux `x86_64`/`aarch64`, macOS `x86_64`/`aarch64`), `no_std` test suite, MSRV gate (currently 1.88), rustdoc with `-D warnings`, and `ush check` + `ush format --check` over the committed example corpus.
+- **Static analysis** — clippy `-D warnings`, workspace-wide lints denying `todo!()` / `dbg!()` / `unimplemented!()` / `unused_must_use`, plus CodeQL (Rust, `security-and-quality` query pack) on every PR and a weekly cron.
+- **Supply chain** — `cargo audit`, `cargo deny` (licenses / sources / advisories / bans), weekly Gitleaks secret scan, a vendored-`rustyline` drift watcher, and Dependabot subscribed to GitHub Actions updates so action versions never silently age.
+- **Runtime hardening** — signal helpers use `sigaction(2)` with checked `pid_t` casts; the compiler enforces `match` exhaustiveness at the effects pass; `install.sh` pins HTTPS + TLS 1.2, sets `umask 077`, and best-effort `set -o pipefail`; the docker image runs as a non-root user.
+- **Release pipeline** — tag push (or the `Cut Release` workflow) triggers preflight (tag matches `Cargo.toml`), per-target build + test + attestation, installer smoke-test against the freshly-built archive, and a GitHub Release with `sha256sums.txt`. Procedure is documented in [`docs/release-process.md`](./docs/release-process.md).
+- **Performance gate** — parser and `.ush → sh` compile benchmarks are tracked against the `main` baseline on `gh-pages`; PRs fail when a microbench regresses by more than 25%.
+
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for the local-CI flow,

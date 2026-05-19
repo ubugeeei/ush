@@ -1,4 +1,5 @@
 mod cli;
+mod panic_hook;
 mod runtime_diagnostics;
 mod script_docs;
 mod sourcemap_json;
@@ -24,6 +25,8 @@ enum ScriptMode {
 }
 
 fn main() -> Result<()> {
+    panic_hook::install();
+
     if script_docs::handle_raw_doc_request()? {
         return Ok(());
     }

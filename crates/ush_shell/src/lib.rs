@@ -1,3 +1,16 @@
+//! Interactive shell runtime for `ush`.
+//!
+//! Owns the interactive REPL, the parser for shell-level input
+//! (one-liners, pipelines, aliases, helpers), the dispatcher into
+//! either a builtin or `Command::spawn`, the structured helper
+//! pipelines (`json`, `xml`, `len`, `lines`, …), the stylish
+//! renderers (`ls`, `ps`, …), and the integration with the vendored
+//! `rustyline` line editor.
+//!
+//! See [docs/architecture.md][arch] for the workspace-level map.
+//!
+//! [arch]: https://github.com/ubugeeei/ush/blob/main/docs/architecture.md
+
 mod builtins;
 mod commands;
 mod execute;

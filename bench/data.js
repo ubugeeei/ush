@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779160710611,
+  "lastUpdate": 1779160928113,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -461,6 +461,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 103104,
             "range": "± 2551",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "29f8db61ea33a24c7c51d16fda01910d91a9e0d2",
+          "message": "ci: pin every third-party action to a full commit SHA (#115)\n\nMutable major-version tags (e.g. `actions/checkout@v6`) are\ntrust-on-first-use: the same ref can be quietly retargeted to a\ndifferent commit at any time, so a compromised maintainer account\nupstream would silently rotate the action under us. Pinning to the\nfull commit SHA removes that class of supply-chain risk; Dependabot\nalready understands the format and will continue to open bump PRs\nfor each pinned SHA.\n\nPinned with the latest stable resolved SHA, with the human-readable\nversion preserved as a trailing comment so review diffs are still\nlegible:\n\n  - actions/checkout                 -> v6.0.2\n  - actions/labeler                  -> v6.1.0\n  - actions/upload-artifact          -> v7.0.1\n  - actions/download-artifact        -> v8.0.1\n  - actions/attest-build-provenance  -> v4.1.0\n  - Swatinem/rust-cache              -> v2.9.1\n  - softprops/action-gh-release      -> v3.0.0\n  - benchmark-action/github-action-benchmark -> v1.22.1\n  - github/codeql-action/{init,autobuild,analyze} -> v4.0.0\n\nThe two `dtolnay/rust-toolchain@stable` / `@master` references are\nintentionally left as moving refs: they exist precisely so the\ntoolchain rolls forward with upstream rustc releases, and pinning\nthem would require a fresh PR every few days for no real security\ngain (the action is install-only, not a privileged step).",
+          "timestamp": "2026-05-19T12:20:01+09:00",
+          "tree_id": "0a3ee018b4b8a46d28e50ddf4590120702decd9c",
+          "url": "https://github.com/ubugeeei/ush/commit/29f8db61ea33a24c7c51d16fda01910d91a9e0d2"
+        },
+        "date": 1779160927359,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3010,
+            "range": "± 8",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 80334,
+            "range": "± 978",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 99027,
+            "range": "± 466",
             "unit": "ns/iter"
           }
         ]

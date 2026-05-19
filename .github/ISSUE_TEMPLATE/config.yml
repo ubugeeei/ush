@@ -1,0 +1,24 @@
+# GitHub uses this file to render the chooser on
+# https://github.com/ubugeeei/ush/issues/new/choose
+
+blank_issues_enabled: false
+
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/ubugeeei/ush/security/advisories/new
+    about: |
+      Found a security issue? Please use GitHub's private vulnerability
+      reporting instead of a public issue. See SECURITY.md for the full
+      policy, supported versions, and SLA.
+
+  - name: Release process / cutting a release
+    url: https://github.com/ubugeeei/ush/blob/main/docs/release-process.md
+    about: |
+      Pre-flight checklist, published artefacts, post-flight verification,
+      and rollback procedure.
+
+  - name: Architecture overview
+    url: https://github.com/ubugeeei/ush/blob/main/docs/architecture.md
+    about: |
+      Top-down map of the workspace — which crate owns what, request
+      flows, and where to look first when filing a bug.

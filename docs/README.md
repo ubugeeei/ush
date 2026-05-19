@@ -4,6 +4,9 @@ Step-by-step guides for `ush` live here.
 
 Available today:
 
+- [`architecture.md`](./architecture.md): top-down map of the workspace —
+  which crate owns what, how the request flows go, and where to look first
+  when a bug report lands
 - [`language-vision.md`](./language-vision.md): the long-term direction for `.ush`
   as a small language, aiming for roughly MoonBit-level expressiveness with a
   feel between Rust, Zig, and Go

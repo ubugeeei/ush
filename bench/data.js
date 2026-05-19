@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779167385310,
+  "lastUpdate": 1779170051584,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -839,6 +839,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 106243,
             "range": "± 1591",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "adfb1062af1855d852dd998bb3e5da30aa86b151",
+          "message": "docs(compiler): add a crate-level rustdoc summary (#125)\n\n`cargo doc` and docs.rs displayed `ush_compiler` with a blank\nsummary. This adds a top-level `//!` block that:\n\n- explains the `std` vs `no_std + alloc` modes,\n- walks through the four pipeline stages (parse → import resolve →\n  effects pass → codegen),\n- notes that the public surface is intentionally narrow\n  (`UshCompiler` + four `compile_*` methods + the result types).\n\n`cargo doc -p ush_compiler -- -D warnings` stays clean.",
+          "timestamp": "2026-05-19T13:57:35+09:00",
+          "tree_id": "3e4e1f23deb804d70230594f505c0f6e271d9587",
+          "url": "https://github.com/ubugeeei/ush/commit/adfb1062af1855d852dd998bb3e5da30aa86b151"
+        },
+        "date": 1779170051131,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3218,
+            "range": "± 22",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 83925,
+            "range": "± 2897",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 107759,
+            "range": "± 932",
             "unit": "ns/iter"
           }
         ]

@@ -2,16 +2,23 @@ use anyhow::Result;
 use lsp_server::{Connection, Message, Notification, Request, Response};
 use lsp_types::{
     DidChangeTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams,
-    DocumentFormattingParams, OneOf, PublishDiagnosticsParams, SemanticTokenType,
+    DocumentFormattingParams, DocumentHighlightParams, DocumentSymbolParams,
+    DocumentSymbolResponse, OneOf, PublishDiagnosticsParams, SemanticTokenType,
     SemanticTokensFullOptions, SemanticTokensLegend, SemanticTokensOptions, SemanticTokensParams,
     SemanticTokensServerCapabilities, ServerCapabilities, TextDocumentSyncCapability,
     TextDocumentSyncKind,
     notification::{
         DidChangeTextDocument, DidOpenTextDocument, DidSaveTextDocument, Notification as _,
     },
-    request::{Formatting, Request as _, SemanticTokensFullRequest},
+    request::{
+        DocumentHighlightRequest, DocumentSymbolRequest, Formatting, Request as _,
+        SemanticTokensFullRequest,
+    },
 };
-use ush_tooling::{check_source, format_source, semantic_token_legend, semantic_tokens};
+use ush_tooling::{
+    check_source, document_highlights, document_symbols, format_source, semantic_token_legend,
+    semantic_tokens,
+};
 
 use crate::{convert, document::DocumentStore};
 
@@ -41,6 +48,8 @@ fn capabilities() -> ServerCapabilities {
     ServerCapabilities {
         text_document_sync: Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL)),
         document_formatting_provider: Some(OneOf::Left(true)),
+        document_highlight_provider: Some(OneOf::Left(true)),
+        document_symbol_provider: Some(OneOf::Left(true)),
         semantic_tokens_provider: Some(SemanticTokensServerCapabilities::SemanticTokensOptions(
             SemanticTokensOptions {
                 legend: SemanticTokensLegend {
@@ -67,6 +76,8 @@ fn handle_request(
     match request.method.as_str() {
         Formatting::METHOD => formatting(connection, docs, request),
         SemanticTokensFullRequest::METHOD => semantic_full(connection, docs, request),
+        DocumentHighlightRequest::METHOD => highlight(connection, docs, request),
+        DocumentSymbolRequest::METHOD => symbols(connection, docs, request),
         _ => {
             connection.sender.send(Message::Response(Response::new_err(
                 request.id,
@@ -131,6 +142,26 @@ fn semantic_full(
     let source = docs.read(&params.text_document.uri)?;
     let tokens = convert::semantic_tokens(&semantic_tokens(&source));
     respond_ok(connection, request.id, serde_json::to_value(tokens)?)
+}
+
+fn highlight(connection: &Connection, docs: &mut DocumentStore, request: Request) -> Result<()> {
+    let params: DocumentHighlightParams = serde_json::from_value(request.params)?;
+    let source = docs.read(&params.text_document_position_params.text_document.uri)?;
+    let position = params.text_document_position_params.position;
+    let highlights = convert::document_highlights(&document_highlights(
+        &source,
+        position.line,
+        position.character,
+    ));
+    respond_ok(connection, request.id, serde_json::to_value(highlights)?)
+}
+
+fn symbols(connection: &Connection, docs: &mut DocumentStore, request: Request) -> Result<()> {
+    let params: DocumentSymbolParams = serde_json::from_value(request.params)?;
+    let source = docs.read(&params.text_document.uri)?;
+    let response =
+        DocumentSymbolResponse::Nested(convert::document_symbols(&document_symbols(&source)));
+    respond_ok(connection, request.id, serde_json::to_value(response)?)
 }
 
 fn publish_diagnostics(connection: &Connection, uri: &lsp_types::Uri, source: &str) -> Result<()> {

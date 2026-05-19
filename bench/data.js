@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779160658579,
+  "lastUpdate": 1779160710611,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -419,6 +419,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 99104,
             "range": "± 564",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "64d13e60ae27fd46938ecfcdcf85dc5ad2635096",
+          "message": "docs: add MAINTAINERS.md (#114)\n\nDocuments who owns the project, how to reach them (issue templates,\nSECURITY.md, CODEOWNERS), and who has release authority. Companion\nto CONTRIBUTING.md / SECURITY.md / CODE-of-conduct conventions that\nproduction-grade GitHub projects ship.",
+          "timestamp": "2026-05-19T12:16:29+09:00",
+          "tree_id": "eaef0da10dd9ca1e85073ae0d4086b1c26284cfc",
+          "url": "https://github.com/ubugeeei/ush/commit/64d13e60ae27fd46938ecfcdcf85dc5ad2635096"
+        },
+        "date": 1779160710155,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3239,
+            "range": "± 248",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 83204,
+            "range": "± 409",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 103104,
+            "range": "± 2551",
             "unit": "ns/iter"
           }
         ]

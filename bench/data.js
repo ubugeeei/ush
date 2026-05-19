@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779162537931,
+  "lastUpdate": 1779162733305,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -713,6 +713,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 112725,
             "range": "± 1167",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5a1200978f56e2ffcb40b0be17215ca6c26c0d4d",
+          "message": "docs: add docs/architecture.md (top-down map of the workspace) (#122)\n\nA single page that answers: where do new contributors start? It\nlists every crate / app + its role, the two main request flows\n(running a .ush script, running the REPL), a \"symptom → file\"\nlookup table, the stability layers (none for the Rust API, the sh\nlowering is best-effort, CLI + LSP wire are pinned by smoke tests),\nand where new things should land.\n\nIndexed from `docs/README.md`.",
+          "timestamp": "2026-05-19T12:50:13+09:00",
+          "tree_id": "361777f8c2aed2136b4b3b5fe3a1d6b54f943164",
+          "url": "https://github.com/ubugeeei/ush/commit/5a1200978f56e2ffcb40b0be17215ca6c26c0d4d"
+        },
+        "date": 1779162732851,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3222,
+            "range": "± 24",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 83387,
+            "range": "± 2077",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 104159,
+            "range": "± 1246",
             "unit": "ns/iter"
           }
         ]

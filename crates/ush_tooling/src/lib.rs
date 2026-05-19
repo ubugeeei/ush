@@ -15,6 +15,7 @@ mod diagnostic;
 mod folding;
 mod format;
 mod highlight;
+mod hover;
 mod semantic;
 mod symbol;
 mod token;
@@ -25,6 +26,7 @@ pub use self::{
     folding::{FoldingRange, folding_ranges},
     format::format_source,
     highlight::{Highlight, HighlightKind, document_highlights},
+    hover::{Hover, hover},
     semantic::semantic_tokens,
     symbol::{DocumentSymbol, SymbolKind, document_symbols},
     token::{SemanticToken, SemanticTokenKind, semantic_token_legend},

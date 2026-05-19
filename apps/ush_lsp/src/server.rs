@@ -4,21 +4,21 @@ use lsp_types::{
     CompletionOptions, CompletionParams, DidChangeTextDocumentParams, DidOpenTextDocumentParams,
     DidSaveTextDocumentParams, DocumentFormattingParams, DocumentHighlightParams,
     DocumentSymbolParams, DocumentSymbolResponse, FoldingRangeParams,
-    FoldingRangeProviderCapability, OneOf, PublishDiagnosticsParams, SemanticTokenType,
-    SemanticTokensFullOptions, SemanticTokensLegend, SemanticTokensOptions, SemanticTokensParams,
-    SemanticTokensServerCapabilities, ServerCapabilities, TextDocumentSyncCapability,
-    TextDocumentSyncKind,
+    FoldingRangeProviderCapability, HoverParams, HoverProviderCapability, OneOf,
+    PublishDiagnosticsParams, SemanticTokenType, SemanticTokensFullOptions, SemanticTokensLegend,
+    SemanticTokensOptions, SemanticTokensParams, SemanticTokensServerCapabilities,
+    ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind,
     notification::{
         DidChangeTextDocument, DidOpenTextDocument, DidSaveTextDocument, Notification as _,
     },
     request::{
         Completion, DocumentHighlightRequest, DocumentSymbolRequest, FoldingRangeRequest,
-        Formatting, Request as _, SemanticTokensFullRequest,
+        Formatting, HoverRequest, Request as _, SemanticTokensFullRequest,
     },
 };
 use ush_tooling::{
     check_source, completions, document_highlights, document_symbols, folding_ranges,
-    format_source, semantic_token_legend, semantic_tokens,
+    format_source, hover as ush_hover, semantic_token_legend, semantic_tokens,
 };
 
 use crate::{convert, document::DocumentStore};
@@ -52,6 +52,7 @@ fn capabilities() -> ServerCapabilities {
         document_highlight_provider: Some(OneOf::Left(true)),
         document_symbol_provider: Some(OneOf::Left(true)),
         folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
+        hover_provider: Some(HoverProviderCapability::Simple(true)),
         completion_provider: Some(CompletionOptions {
             resolve_provider: Some(false),
             trigger_characters: None,
@@ -87,6 +88,7 @@ fn handle_request(
         DocumentSymbolRequest::METHOD => symbols(connection, docs, request),
         FoldingRangeRequest::METHOD => folding(connection, docs, request),
         Completion::METHOD => completion(connection, docs, request),
+        HoverRequest::METHOD => hover(connection, docs, request),
         _ => {
             connection.sender.send(Message::Response(Response::new_err(
                 request.id,
@@ -185,6 +187,14 @@ fn completion(connection: &Connection, docs: &mut DocumentStore, request: Reques
     let source = docs.read(&params.text_document_position.text_document.uri)?;
     let items = convert::completion_items(&completions(&source));
     respond_ok(connection, request.id, serde_json::to_value(items)?)
+}
+
+fn hover(connection: &Connection, docs: &mut DocumentStore, request: Request) -> Result<()> {
+    let params: HoverParams = serde_json::from_value(request.params)?;
+    let source = docs.read(&params.text_document_position_params.text_document.uri)?;
+    let position = params.text_document_position_params.position;
+    let result = ush_hover(&source, position.line, position.character).map(convert::hover);
+    respond_ok(connection, request.id, serde_json::to_value(result)?)
 }
 
 fn publish_diagnostics(connection: &Connection, uri: &lsp_types::Uri, source: &str) -> Result<()> {

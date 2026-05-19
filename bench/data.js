@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779173572005,
+  "lastUpdate": 1779173640346,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -1385,6 +1385,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 99699,
             "range": "± 837",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ceeb1b1482e307194e6698153bbee840d0186b9e",
+          "message": "chore(release): bump version to 0.9.0 (#141)\n\nLSP build-out release. The stdio language server gains nine new\ncapabilities (documentHighlight, documentSymbol, foldingRange,\nhover, completion, definition, references, prepareRename, rename,\nsignatureHelp) so editors can drive `.ush` files the same way they\ndrive Rust / TypeScript without changing the existing format /\ncheck / publishDiagnostics / semanticTokens plumbing.\n\n- Cargo.toml: workspace version 0.8.0 → 0.9.0.\n- CHANGELOG.md: move the [Unreleased] body into a dated\n  `## [0.9.0] — 2026-05-19` section and wire the new compare-link.\n\nSee CHANGELOG for the full list. docs/lsp.md was updated in the\n0.9.0 cycle with a table of every implemented method and its\nbacking engine.",
+          "timestamp": "2026-05-19T15:33:24+09:00",
+          "tree_id": "629da21e58d775d5fd4f957c17ad5f669edab15b",
+          "url": "https://github.com/ubugeeei/ush/commit/ceeb1b1482e307194e6698153bbee840d0186b9e"
+        },
+        "date": 1779173638977,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3237,
+            "range": "± 42",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 83450,
+            "range": "± 2635",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 107915,
+            "range": "± 1690",
             "unit": "ns/iter"
           }
         ]

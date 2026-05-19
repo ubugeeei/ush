@@ -1,10 +1,12 @@
-# Re-enable Dependabot but only for GitHub Actions.
+# Dependabot configuration.
 #
-# Rust dependency updates were intentionally disabled in #48 because
-# of the vendored rustyline pin; that decision stands. GitHub Actions
-# version drift is a separate concern: pinning actions to the latest
-# stable release is part of the supply-chain story
-# (sha-pin / tag-pin upgrades land via PR + CI).
+# - GitHub Actions: full version updates (already pinned to commit
+#   SHAs, so each Dependabot PR rolls a single SHA forward).
+# - Cargo: *security alerts only*. Version updates were disabled in
+#   #48 because of the vendored rustyline pin; that decision stands.
+#   Security alerts still surface as PRs because
+#   `open-pull-requests-limit: 0` only suppresses version updates,
+#   not advisory-driven ones.
 
 version: 2
 updates:
@@ -26,3 +28,19 @@ updates:
       actions:
         patterns:
           - "*"
+
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:30"
+      timezone: Etc/UTC
+    # No routine version updates — only security advisories.
+    open-pull-requests-limit: 0
+    labels:
+      - "dependencies"
+      - "security"
+    commit-message:
+      prefix: "fix(deps)"
+      include: "scope"

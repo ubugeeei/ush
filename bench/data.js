@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779160449297,
+  "lastUpdate": 1779160515610,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -335,6 +335,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 100137,
             "range": "± 731",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "59e35cdafb13cd430b3ba2a05e7c36ee33d77799",
+          "message": "docs(readme): add a Production readiness section (#112)\n\nSummarises the CI / supply-chain / runtime hardening posture that\nlanded across the 0.7.0 cycle (correctness, static analysis, supply\nchain, runtime, release pipeline, performance gate) so a downstream\noperator can read it in one place without spelunking the workflow\nfiles.",
+          "timestamp": "2026-05-19T12:13:10+09:00",
+          "tree_id": "51f557e4b150098b30fa435e2d1433760165fe59",
+          "url": "https://github.com/ubugeeei/ush/commit/59e35cdafb13cd430b3ba2a05e7c36ee33d77799"
+        },
+        "date": 1779160514827,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3021,
+            "range": "± 41",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 80387,
+            "range": "± 988",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 98312,
+            "range": "± 297",
             "unit": "ns/iter"
           }
         ]

@@ -4,21 +4,25 @@ use lsp_types::{
     CompletionOptions, CompletionParams, DidChangeTextDocumentParams, DidOpenTextDocumentParams,
     DidSaveTextDocumentParams, DocumentFormattingParams, DocumentHighlightParams,
     DocumentSymbolParams, DocumentSymbolResponse, FoldingRangeParams,
-    FoldingRangeProviderCapability, HoverParams, HoverProviderCapability, OneOf,
-    PublishDiagnosticsParams, SemanticTokenType, SemanticTokensFullOptions, SemanticTokensLegend,
-    SemanticTokensOptions, SemanticTokensParams, SemanticTokensServerCapabilities,
-    ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind,
+    FoldingRangeProviderCapability, GotoDefinitionParams, GotoDefinitionResponse, HoverParams,
+    HoverProviderCapability, Location, OneOf, PublishDiagnosticsParams, ReferenceParams,
+    RenameOptions, RenameParams, SemanticTokenType, SemanticTokensFullOptions,
+    SemanticTokensLegend, SemanticTokensOptions, SemanticTokensParams,
+    SemanticTokensServerCapabilities, ServerCapabilities, TextDocumentSyncCapability,
+    TextDocumentSyncKind, WorkDoneProgressOptions,
     notification::{
         DidChangeTextDocument, DidOpenTextDocument, DidSaveTextDocument, Notification as _,
     },
     request::{
         Completion, DocumentHighlightRequest, DocumentSymbolRequest, FoldingRangeRequest,
-        Formatting, HoverRequest, Request as _, SemanticTokensFullRequest,
+        Formatting, GotoDefinition, HoverRequest, References, Rename, Request as _,
+        SemanticTokensFullRequest,
     },
 };
 use ush_tooling::{
-    check_source, completions, document_highlights, document_symbols, folding_ranges,
-    format_source, hover as ush_hover, semantic_token_legend, semantic_tokens,
+    check_source, completions, definition as ush_definition, document_highlights, document_symbols,
+    folding_ranges, format_source, hover as ush_hover, references as ush_refs, rename_locations,
+    semantic_token_legend, semantic_tokens,
 };
 
 use crate::{convert, document::DocumentStore};
@@ -53,6 +57,12 @@ fn capabilities() -> ServerCapabilities {
         document_symbol_provider: Some(OneOf::Left(true)),
         folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
         hover_provider: Some(HoverProviderCapability::Simple(true)),
+        definition_provider: Some(OneOf::Left(true)),
+        references_provider: Some(OneOf::Left(true)),
+        rename_provider: Some(OneOf::Right(RenameOptions {
+            prepare_provider: Some(false),
+            work_done_progress_options: WorkDoneProgressOptions::default(),
+        })),
         completion_provider: Some(CompletionOptions {
             resolve_provider: Some(false),
             trigger_characters: None,
@@ -89,6 +99,9 @@ fn handle_request(
         FoldingRangeRequest::METHOD => folding(connection, docs, request),
         Completion::METHOD => completion(connection, docs, request),
         HoverRequest::METHOD => hover(connection, docs, request),
+        GotoDefinition::METHOD => definition(connection, docs, request),
+        References::METHOD => references(connection, docs, request),
+        Rename::METHOD => rename(connection, docs, request),
         _ => {
             connection.sender.send(Message::Response(Response::new_err(
                 request.id,
@@ -195,6 +208,60 @@ fn hover(connection: &Connection, docs: &mut DocumentStore, request: Request) ->
     let position = params.text_document_position_params.position;
     let result = ush_hover(&source, position.line, position.character).map(convert::hover);
     respond_ok(connection, request.id, serde_json::to_value(result)?)
+}
+
+fn definition(connection: &Connection, docs: &mut DocumentStore, request: Request) -> Result<()> {
+    let params: GotoDefinitionParams = serde_json::from_value(request.params)?;
+    let uri = params
+        .text_document_position_params
+        .text_document
+        .uri
+        .clone();
+    let source = docs.read(&uri)?;
+    let position = params.text_document_position_params.position;
+    let result = ush_definition(&source, position.line, position.character).map(|reference| {
+        GotoDefinitionResponse::Scalar(Location {
+            uri: uri.clone(),
+            range: convert::range_of_reference(&reference),
+        })
+    });
+    respond_ok(connection, request.id, serde_json::to_value(result)?)
+}
+
+fn references(connection: &Connection, docs: &mut DocumentStore, request: Request) -> Result<()> {
+    let params: ReferenceParams = serde_json::from_value(request.params)?;
+    let uri = params.text_document_position.text_document.uri.clone();
+    let source = docs.read(&uri)?;
+    let position = params.text_document_position.position;
+    let locations: Vec<Location> = ush_refs(&source, position.line, position.character)
+        .into_iter()
+        .map(|reference| Location {
+            uri: uri.clone(),
+            range: convert::range_of_reference(&reference),
+        })
+        .collect();
+    respond_ok(connection, request.id, serde_json::to_value(locations)?)
+}
+
+fn rename(connection: &Connection, docs: &mut DocumentStore, request: Request) -> Result<()> {
+    let params: RenameParams = serde_json::from_value(request.params)?;
+    let uri = params.text_document_position.text_document.uri.clone();
+    let source = docs.read(&uri)?;
+    let position = params.text_document_position.position;
+    match rename_locations(&source, position.line, position.character, &params.new_name) {
+        Ok(locations) => {
+            let edit = convert::rename_workspace_edit(&uri, &locations, &params.new_name);
+            respond_ok(connection, request.id, serde_json::to_value(edit)?)
+        }
+        Err(_) => {
+            connection.sender.send(Message::Response(Response::new_err(
+                request.id,
+                -32602,
+                format!("`{}` is not a valid .ush identifier", params.new_name),
+            )))?;
+            Ok(())
+        }
+    }
 }
 
 fn publish_diagnostics(connection: &Connection, uri: &lsp_types::Uri, source: &str) -> Result<()> {

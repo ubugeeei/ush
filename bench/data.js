@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779170143315,
+  "lastUpdate": 1779171746459,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -923,6 +923,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 103452,
             "range": "± 1477",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a743669107a5568c3e422340b34c02ef25897c20",
+          "message": "docs: add crate-level rustdoc to ush_shell, ush_tooling, ush_config (#127)\n\nCompanion to the `ush_compiler` crate-level doc that landed in #125.\nEach library crate now opens with a `//!` block summarising what it\nowns:\n\n- `ush_shell` — interactive REPL, shell parser, dispatch, helpers,\n  stylish renderers, rustyline integration.\n- `ush_tooling` — the formatter, diagnostics, and semantic-token\n  generation that the LSP + `ush format` / `ush check` consume.\n- `ush_config` — config / profile / rc resolution and the ush-owned\n  directories on disk.\n\nSo `cargo doc` and docs.rs no longer display these crates with a\nblank summary.",
+          "timestamp": "2026-05-19T14:01:36+09:00",
+          "tree_id": "ab9a0b8eb569c94ca4467544c3ee361d0691ddb7",
+          "url": "https://github.com/ubugeeei/ush/commit/a743669107a5568c3e422340b34c02ef25897c20"
+        },
+        "date": 1779171745987,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3256,
+            "range": "± 50",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 83179,
+            "range": "± 4659",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 104133,
+            "range": "± 1064",
             "unit": "ns/iter"
           }
         ]

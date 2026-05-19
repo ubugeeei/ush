@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779170051584,
+  "lastUpdate": 1779170143315,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -881,6 +881,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 107759,
             "range": "± 932",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cfbfb35362a5ede4b529f834dbe618fea5f5be83",
+          "message": "docs: add issue-template chooser config + external links (#126)\n\n`.github/ISSUE_TEMPLATE/config.yml`:\n\n- Disables the blank-issue escape hatch so new issues always land\n  on one of the curated templates (bug report / feature request).\n- Adds three external pointers on the chooser page:\n    * Security advisories (private vulnerability reporting)\n    * docs/release-process.md\n    * docs/architecture.md\n\nHelps anyone landing on the \"New issue\" page route to the right\nplace instead of filing a malformed bug or a security report in\npublic.",
+          "timestamp": "2026-05-19T13:58:34+09:00",
+          "tree_id": "811f94712092254e5ebb03bd38f95fc3cc141913",
+          "url": "https://github.com/ubugeeei/ush/commit/cfbfb35362a5ede4b529f834dbe618fea5f5be83"
+        },
+        "date": 1779170142652,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3188,
+            "range": "± 10",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 83525,
+            "range": "± 1532",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 103452,
+            "range": "± 1477",
             "unit": "ns/iter"
           }
         ]

@@ -10,6 +10,51 @@ project adheres to [Semantic Versioning][semver].
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-05-19
+
+LSP build-out. The stdio language server gains nine new
+capabilities so editors can drive `.ush` files the same way they
+drive Rust, TypeScript, etc. — without any change to the existing
+`ush check` / `ush format` / `publishDiagnostics` / `semanticTokens`
+plumbing.
+
+### Added
+
+- `textDocument/documentHighlight` — every occurrence of the
+  identifier under the cursor.
+- `textDocument/documentSymbol` — outline of top-level `fn` / `enum`
+  / `trait` / `type` / `let` / `alias`.
+- `textDocument/foldingRange` — `{ … }` block folding, correctly
+  ignoring braces inside strings, line comments, and `#[…]`
+  attributes.
+- `textDocument/hover` — Markdown tooltip: keyword help, or "role +
+  declaring line" for an identifier.
+- `textDocument/completion` — every `.ush` keyword plus every
+  identifier the semantic tokenizer has classified in the open
+  document.
+- `textDocument/definition` — first occurrence of the identifier
+  under the cursor.
+- `textDocument/references` — every occurrence of the identifier
+  under the cursor.
+- `textDocument/prepareRename` — range to highlight before the
+  rename popup.
+- `textDocument/rename` — `WorkspaceEdit` with one `TextEdit` per
+  occurrence; rejects new names that are not valid `.ush`
+  identifiers with a clear LSP error.
+- `textDocument/signatureHelp` — `(` / `,` triggers a popup with the
+  function signature, parameter list, and the currently-active
+  parameter index.
+
+### Changed
+
+- Each LSP engine lives in `crates/ush_tooling` as a pure-Rust,
+  editor-agnostic module (`highlight`, `symbol`, `folding`, `hover`,
+  `completion`, `references`, `signature`); the LSP wire layer in
+  `apps/ush_lsp` is responsible only for `lsp_types` conversion and
+  routing.
+- `docs/lsp.md` documents every implemented capability and its
+  backing module, plus the methods that still need typed-info work.
+
 ## [0.8.0] — 2026-05-19
 
 A polish-pass release on top of 0.7.0's production-readiness work.
@@ -154,7 +199,8 @@ for the full diff.
 For 0.6.0 and earlier, refer to the
 [GitHub releases page](https://github.com/ubugeeei/ush/releases).
 
-[Unreleased]: https://github.com/ubugeeei/ush/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/ubugeeei/ush/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/ubugeeei/ush/releases/tag/v0.9.0
 [0.8.0]: https://github.com/ubugeeei/ush/releases/tag/v0.8.0
 [0.7.0]: https://github.com/ubugeeei/ush/releases/tag/v0.7.0
 [0.6.1]: https://github.com/ubugeeei/ush/releases/tag/v0.6.1

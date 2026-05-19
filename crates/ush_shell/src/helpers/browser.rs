@@ -5,8 +5,8 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use anyhow::{anyhow, bail, Context, Result};
-use quick_xml::{events::Event, Reader, Writer};
+use anyhow::{Context, Result, anyhow, bail};
+use quick_xml::{Reader, Writer, events::Event};
 
 use crate::commands::find_external_command;
 

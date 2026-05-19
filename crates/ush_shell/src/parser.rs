@@ -5,7 +5,7 @@ mod tests;
 
 use std::collections::BTreeMap;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 use crate::commands;
 use crate::helpers::HelperInvocation;

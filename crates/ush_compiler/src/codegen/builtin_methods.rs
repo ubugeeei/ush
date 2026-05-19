@@ -1,13 +1,14 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 use super::{
     super::{
         ast::{Call, CallArg, Expr, MethodCall, Type},
         env::{EnumRegistry, Env},
     },
+    FunctionRegistry,
     call_support::{function_for_call, resolve_call_args},
     calls::{call_expr_type, capture_call, ensure_value_type},
-    infer, FunctionRegistry,
+    infer,
 };
 use crate::traits::TraitImplRegistry;
 use crate::types::{HeapVec as Vec, OutputString as String};

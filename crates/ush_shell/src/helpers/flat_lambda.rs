@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 
 use super::lambda_syntax::{block_body, parse_list_literal, parse_string_literal};
 

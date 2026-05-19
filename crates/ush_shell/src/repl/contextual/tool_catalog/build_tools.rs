@@ -1,4 +1,4 @@
-use super::super::options::{option_spec, OptionSpec};
+use super::super::options::{OptionSpec, option_spec};
 
 pub(crate) const CARGO_COMMANDS: &[&str] = &[
     "add",

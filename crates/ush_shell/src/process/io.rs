@@ -7,7 +7,7 @@ use std::{
 
 use anyhow::{Context, Result};
 
-use crate::{signal, ValueStream};
+use crate::{ValueStream, signal};
 
 pub(super) fn populate_command(
     command: &mut Command,

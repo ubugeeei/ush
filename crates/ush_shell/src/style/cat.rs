@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 
 use crate::helpers::ValueStream;
 
-use super::common::{dim, human_bytes, normalize_path, paint, pluralize, BLUE_BOLD, CYAN_BOLD};
+use super::common::{BLUE_BOLD, CYAN_BOLD, dim, human_bytes, normalize_path, paint, pluralize};
 
 pub fn render_cat(cwd: &Path, args: &[String], input: &ValueStream) -> Result<Option<ValueStream>> {
     let mut numbered = true;

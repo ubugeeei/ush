@@ -7,7 +7,7 @@ use std::{
     process::Command,
 };
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use directories::ProjectDirs;
 use serde::Deserialize;
 

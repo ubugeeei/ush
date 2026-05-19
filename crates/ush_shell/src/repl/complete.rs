@@ -1,6 +1,6 @@
-use rustyline::{completion::Pair, Context};
+use rustyline::{Context, completion::Pair};
 
-use super::{builtin_completion, contextual, git_completion, syntax, UshHelper};
+use super::{UshHelper, builtin_completion, contextual, git_completion, syntax};
 
 pub fn complete(
     helper: &UshHelper,
@@ -82,7 +82,7 @@ fn wants_path_completion(prefix: &str, start: usize, word: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use rustyline::{completion::Completer, history::DefaultHistory, Context};
+    use rustyline::{Context, completion::Completer, history::DefaultHistory};
 
     use crate::repl::UshHelper;
 
@@ -102,9 +102,11 @@ mod tests {
             .complete("echo hi | gr", 12, &ctx)
             .expect("complete");
         assert!(pairs.iter().any(|pair| pair.replacement == "grep"));
-        assert!(pairs
-            .iter()
-            .any(|pair| pair.replacement == "grep" && pair.display.contains("command")));
+        assert!(
+            pairs
+                .iter()
+                .any(|pair| pair.replacement == "grep" && pair.display.contains("command"))
+        );
     }
 
     #[test]

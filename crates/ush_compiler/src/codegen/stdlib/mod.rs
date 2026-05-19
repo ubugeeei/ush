@@ -6,7 +6,7 @@ mod process;
 mod regex;
 mod string;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 use super::functions::FunctionRegistry;
 use crate::{

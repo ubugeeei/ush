@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use ush_shell::parse_line;
 
 fn bench_parser(criterion: &mut Criterion) {

@@ -184,7 +184,7 @@ mod tests {
 
     use crate::ShellOptions;
 
-    use super::{shell_quote, Shell, StatefulShellRun};
+    use super::{Shell, StatefulShellRun, shell_quote};
 
     #[test]
     fn fallback_updates_current_directory_environment_and_aliases() {

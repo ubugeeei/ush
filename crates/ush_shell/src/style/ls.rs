@@ -9,7 +9,7 @@ use crate::helpers::ValueStream;
 
 use super::{
     common::normalize_path,
-    ls_support::{describe_ls_entry, render_ls_row, render_ls_section, HiddenMode, LsSummary},
+    ls_support::{HiddenMode, LsSummary, describe_ls_entry, render_ls_row, render_ls_section},
 };
 
 pub fn render_ls(cwd: &Path, args: &[String]) -> Result<Option<ValueStream>> {

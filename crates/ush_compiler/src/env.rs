@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 
 use super::ast::{EnumDef, Type, VariantDef};
 use crate::types::{AstString as String, Map as HashMap};

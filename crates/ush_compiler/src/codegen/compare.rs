@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 use super::{
     super::{
@@ -9,7 +9,7 @@ use super::{
     functions::FunctionRegistry,
     infer,
 };
-use crate::{traits::ensure_trait, traits::TraitImplRegistry, types::OutputString as String};
+use crate::{traits::TraitImplRegistry, traits::ensure_trait, types::OutputString as String};
 
 pub(crate) fn infer_compare(
     lhs: &Expr,

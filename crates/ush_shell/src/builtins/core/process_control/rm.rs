@@ -2,7 +2,7 @@ use std::io::{self, Write};
 
 use anyhow::Result;
 
-use crate::{process::ResolvedCommand, Shell, ValueStream};
+use crate::{Shell, ValueStream, process::ResolvedCommand};
 
 impl Shell {
     pub(in crate::builtins) fn execute_rm(

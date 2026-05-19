@@ -1,7 +1,7 @@
 use alloc::collections::BTreeSet;
 
 use crate::{
-    sourcemap::OutputBuffer, types::OutputString as String, util::shell_quote, ScriptDocs,
+    ScriptDocs, sourcemap::OutputBuffer, types::OutputString as String, util::shell_quote,
 };
 
 pub(crate) fn push_doc_support(

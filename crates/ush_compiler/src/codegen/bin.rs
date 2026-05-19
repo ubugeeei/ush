@@ -1,6 +1,6 @@
 use alloc::string::ToString;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 use super::{
     super::{

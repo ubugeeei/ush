@@ -1,10 +1,10 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 use super::{
     super::ast::Condition,
     expr::{parse_expr, parse_pattern},
 };
-use crate::scan::{advance, ScanState};
+use crate::scan::{ScanState, advance};
 use crate::types::HeapVec as Vec;
 
 pub(super) fn parse_condition(source: &str) -> Result<Condition> {

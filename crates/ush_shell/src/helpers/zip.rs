@@ -1,8 +1,8 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 
-use super::lambda_syntax::{parse_list_literal, parse_string_literal};
 use super::HelperKind;
 use super::ValueStream;
+use super::lambda_syntax::{parse_list_literal, parse_string_literal};
 
 #[derive(Debug, Clone)]
 pub(super) struct ZipSource {

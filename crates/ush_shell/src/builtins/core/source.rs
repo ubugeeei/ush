@@ -1,9 +1,9 @@
 use std::{fs, path::Path};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use rustyline::validate::ValidationResult;
 
-use crate::{repl, Shell, ValueStream};
+use crate::{Shell, ValueStream, repl};
 
 impl Shell {
     pub(in crate::builtins) fn handle_source(

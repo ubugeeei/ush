@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 
 use super::{
     super::{
@@ -11,7 +11,7 @@ use super::{
     path::{looks_like_call_target, parse_call_target, parse_identifier},
     returns::parse_function_return,
 };
-use crate::scan::{advance, ScanState};
+use crate::scan::{ScanState, advance};
 use crate::types::{AstString as String, HeapVec as Vec};
 
 type ParsedFunctionHeader = (

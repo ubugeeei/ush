@@ -8,7 +8,7 @@ use super::{
     calls::rendered_call,
     compile_primitive_expr,
     functions::FunctionRegistry,
-    runtime_support::{hoist_call, hoist_expr, FailureMode},
+    runtime_support::{FailureMode, hoist_call, hoist_expr},
 };
 use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779160515610,
+  "lastUpdate": 1779160658579,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -377,6 +377,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 98312,
             "range": "± 297",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5d3eda631164188dbe3e282009e55f9634b7d295",
+          "message": "test(lsp): exercise a real LSP initialize/shutdown/exit handshake (#113)\n\nThe existing smoke tests only cover the CLI surface (--version,\n--help, unknown flag). They never actually spoke LSP, which means\na regression that broke initialize parsing, exit handling, or the\nJSON-RPC framing would slip through.\n\nThe new integration test:\n\n  - launches the real `ush_lsp` binary over a stdio pipe pair,\n  - sends `initialize`, asserts the response is shape-correct,\n  - sends `initialized`,\n  - sends `shutdown`, asserts the response,\n  - sends `exit` and asserts the process terminates cleanly,\n  - aborts the whole flow with a 5s deadline if any read blocks.\n\nAdds `serde_json` as a dev-dependency in `apps/ush_lsp/Cargo.toml`\n(it was already a workspace dep) so the test can parse responses.",
+          "timestamp": "2026-05-19T12:15:30+09:00",
+          "tree_id": "f0ff18c004e572b4f5b37acbd5cc8be7abbeba1c",
+          "url": "https://github.com/ubugeeei/ush/commit/5d3eda631164188dbe3e282009e55f9634b7d295"
+        },
+        "date": 1779160658140,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3021,
+            "range": "± 26",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 79930,
+            "range": "± 4552",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 99104,
+            "range": "± 564",
             "unit": "ns/iter"
           }
         ]

@@ -16,6 +16,7 @@ mod folding;
 mod format;
 mod highlight;
 mod hover;
+mod references;
 mod semantic;
 mod symbol;
 mod token;
@@ -27,6 +28,7 @@ pub use self::{
     format::format_source,
     highlight::{Highlight, HighlightKind, document_highlights},
     hover::{Hover, hover},
+    references::{Reference, RenameError, definition, references, rename_locations},
     semantic::semantic_tokens,
     symbol::{DocumentSymbol, SymbolKind, document_symbols},
     token::{SemanticToken, SemanticTokenKind, semantic_token_legend},

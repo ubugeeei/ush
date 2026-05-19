@@ -1,14 +1,17 @@
+use std::collections::HashMap;
+
 use lsp_types::{
     CompletionItem as LspCompletionItem, CompletionItemKind, Diagnostic, DiagnosticSeverity,
     DocumentHighlight, DocumentHighlightKind, DocumentSymbol as LspDocumentSymbol,
     FoldingRange as LspFoldingRange, FoldingRangeKind, Hover as LspHover, HoverContents,
     MarkupContent, MarkupKind, Position, Range, SemanticToken, SemanticTokens,
-    SymbolKind as LspSymbolKind, TextEdit,
+    SymbolKind as LspSymbolKind, TextEdit, Uri, WorkspaceEdit,
 };
 use ush_tooling::{
     CompletionItem as UshCompletionItem, CompletionKind as UshCompletionKind,
     DocumentSymbol as UshDocumentSymbol, FoldingRange as UshFoldingRange, Highlight, HighlightKind,
-    Hover as UshHover, SemanticToken as UshToken, SymbolKind as UshSymbolKind, UshDiagnostic,
+    Hover as UshHover, Reference, SemanticToken as UshToken, SymbolKind as UshSymbolKind,
+    UshDiagnostic,
 };
 
 pub fn diagnostics(source: &str, items: &[UshDiagnostic]) -> Vec<Diagnostic> {
@@ -85,6 +88,36 @@ pub fn document_highlights(items: &[Highlight]) -> Vec<DocumentHighlight> {
             }),
         })
         .collect()
+}
+
+pub fn range_of_reference(reference: &Reference) -> Range {
+    Range {
+        start: Position::new(reference.line, reference.start),
+        end: Position::new(reference.line, reference.start + reference.length),
+    }
+}
+
+pub fn rename_workspace_edit(uri: &Uri, locations: &[Reference], new_name: &str) -> WorkspaceEdit {
+    // lsp_types' `Uri` has interior mutability (cached parse state)
+    // so `HashMap<Uri, _>` trips clippy's `mutable_key_type`. The
+    // entry is correctness-safe here — we never mutate the `Uri`
+    // after inserting — but suppress the lint at the use-site
+    // rather than reaching into a different container.
+    #[allow(clippy::mutable_key_type)]
+    let mut changes: HashMap<Uri, Vec<TextEdit>> = HashMap::new();
+    let edits: Vec<TextEdit> = locations
+        .iter()
+        .map(|reference| TextEdit {
+            range: range_of_reference(reference),
+            new_text: new_name.to_string(),
+        })
+        .collect();
+    changes.insert(uri.clone(), edits);
+    WorkspaceEdit {
+        changes: Some(changes),
+        document_changes: None,
+        change_annotations: None,
+    }
 }
 
 pub fn hover(item: UshHover) -> LspHover {

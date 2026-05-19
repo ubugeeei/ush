@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779171993480,
+  "lastUpdate": 1779171999908,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -1049,6 +1049,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 103952,
             "range": "± 1367",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "618b04e4835370236ff6844272cf7411f7148c0f",
+          "message": "chore(release): bump version to 0.8.0 (#130)\n\nA polish-pass release on top of 0.7.0. Focus is CI hardening,\ncontributor-facing docs, and shared infrastructure. See\nCHANGELOG.md's `## [0.8.0]` section for the full list of changes.\n\n- Cargo.toml: workspace version 0.7.0 → 0.8.0\n- CHANGELOG.md: move the [Unreleased] body into a dated\n  `## [0.8.0] — 2026-05-19` section, leave a fresh empty\n  [Unreleased] at the top, wire the new compare-link.",
+          "timestamp": "2026-05-19T14:12:15+09:00",
+          "tree_id": "3fbed51c11d9ee474ae02871e88e37ffc4a8ea50",
+          "url": "https://github.com/ubugeeei/ush/commit/618b04e4835370236ff6844272cf7411f7148c0f"
+        },
+        "date": 1779171999424,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3201,
+            "range": "± 22",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 83274,
+            "range": "± 5703",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 103554,
+            "range": "± 549",
             "unit": "ns/iter"
           }
         ]

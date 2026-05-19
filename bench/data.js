@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779172786903,
+  "lastUpdate": 1779172992022,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -1217,6 +1217,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 107978,
             "range": "± 3310",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "80811d0f15a8909cc503601e462ceda980181520",
+          "message": "feat(lsp): implement textDocument/{references,definition,rename} (#136)\n\nThree more LSP capabilities for `.ush`, all reusing the\nidentifier-based engine in the new `ush_tooling::references`\nmodule:\n\n- `textDocument/references` — every occurrence of the identifier\n  under the cursor.\n- `textDocument/definition` — the first occurrence (the project does\n  not track scoped declarations yet; \"definition\" = \"first sighting\"\n  inside the file).\n- `textDocument/rename` — returns a `WorkspaceEdit` with one\n  `TextEdit` per occurrence; rejects names that are not valid `.ush`\n  identifiers with a clear LSP error.\n\n`apps/ush_lsp` declares the matching `definition_provider`,\n`references_provider`, and `rename_provider` capabilities and routes\neach method.\n\nTests:\n- 5 new unit tests in `ush_tooling::references` (occurrences,\n  first-sighting, keyword-no-op, invalid-name rejection).\n- New `apps/ush_lsp/tests/refs_definition_rename.rs` drives the\n  real binary end-to-end and asserts the response shape for the\n  happy path AND the rename-with-invalid-name error.",
+          "timestamp": "2026-05-19T14:54:38+09:00",
+          "tree_id": "0458288ed5410a112bfe9b9dab4dab5d6973571b",
+          "url": "https://github.com/ubugeeei/ush/commit/80811d0f15a8909cc503601e462ceda980181520"
+        },
+        "date": 1779172991505,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3035,
+            "range": "± 14",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 80297,
+            "range": "± 601",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 98598,
+            "range": "± 290",
             "unit": "ns/iter"
           }
         ]

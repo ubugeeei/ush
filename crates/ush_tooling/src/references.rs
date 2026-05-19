@@ -76,6 +76,27 @@ pub enum RenameError {
     InvalidName,
 }
 
+/// Validate the cursor for a rename, before the user types a new
+/// name. Returns the range of the identifier under the cursor when
+/// a rename is possible, or `None` when the position is not on a
+/// renameable identifier (keyword / whitespace / string / comment).
+///
+/// LSP clients call this for `textDocument/prepareRename`; the
+/// editor uses the returned range to highlight what's about to be
+/// renamed and pre-fills the rename popup.
+pub fn prepare_rename(source: &str, line: u32, character: u32) -> Option<Reference> {
+    let tokens = semantic_tokens(source);
+    let cursor = cursor_token(&tokens, line, character)?;
+    if !is_identifier(cursor.kind) {
+        return None;
+    }
+    Some(Reference {
+        line: cursor.line,
+        start: cursor.start,
+        length: cursor.length,
+    })
+}
+
 fn is_identifier(kind: SemanticTokenKind) -> bool {
     matches!(
         kind,
@@ -117,7 +138,22 @@ fn token_text(lines: &[&str], token: SemanticToken) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{RenameError, definition, references, rename_locations};
+    use super::{RenameError, definition, prepare_rename, references, rename_locations};
+
+    #[test]
+    fn prepare_rename_returns_identifier_range_under_cursor() {
+        let source = "let value = 1\n";
+        let range = prepare_rename(source, 0, 5).expect("rename `value`");
+        assert_eq!(range.line, 0);
+        assert_eq!(range.start, 4);
+        assert_eq!(range.length, "value".len() as u32);
+    }
+
+    #[test]
+    fn prepare_rename_returns_none_on_keyword() {
+        // Cursor on `let`.
+        assert!(prepare_rename("let x = 1\n", 0, 0).is_none());
+    }
 
     #[test]
     fn references_return_every_occurrence_of_a_variable() {

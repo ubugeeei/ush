@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779172566847,
+  "lastUpdate": 1779172786903,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -1175,6 +1175,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 98867,
             "range": "± 687",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8907d1d69cb5081534e700820332003bd5f5d3cd",
+          "message": "feat(lsp): implement textDocument/hover (#135)\n\nHovering over a keyword now shows its single-line documentation;\nhovering over a variable / function / type / property identifier\nshows its role plus the declaring source line as a Markdown code\nblock.\n\n- New module `ush_tooling::hover` (`Hover`, `hover`).\n- `apps/ush_lsp` declares `hover_provider` and routes\n  `textDocument/hover` to the new engine via `convert::hover`.\n- Unit tests cover keyword / identifier / whitespace / inside-string\n  cases.\n\n`ush_compiler`'s AST is private, so this is a syntax-level hover —\nthere is no inferred type yet. The wiring is in place so a richer\nhover can be layered on later without touching the LSP plumbing.",
+          "timestamp": "2026-05-19T14:31:28+09:00",
+          "tree_id": "5b6332adf58c127f3143c4c2fc83aa227f801a4d",
+          "url": "https://github.com/ubugeeei/ush/commit/8907d1d69cb5081534e700820332003bd5f5d3cd"
+        },
+        "date": 1779172785860,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3187,
+            "range": "± 148",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 82914,
+            "range": "± 3515",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 107978,
+            "range": "± 3310",
             "unit": "ns/iter"
           }
         ]

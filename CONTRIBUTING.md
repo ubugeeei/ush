@@ -50,6 +50,22 @@ for f in examples/*.ush; do
 done
 ```
 
+### rustfmt + edition 2024 gotcha
+
+CI runs `cargo fmt --all --check` on the GitHub-hosted Linux
+runner. Depending on your host rustfmt version, `cargo fmt` may not
+fully apply the edition-2024 import-sort rules (alphabetical inside
+`use foo::{...}` brace groups), even though it reports
+`[bin (2024)]` for every crate. If CI's Format job complains and
+local `cargo +stable fmt --all --check` is silent, run rustfmt
+directly with the edition explicitly:
+
+```bash
+find apps crates -name '*.rs' -type f | xargs rustfmt --edition 2024
+```
+
+That has the same effect CI does.
+
 CI also runs the parser and compile benchmarks on PRs and on `main`
 and fails the PR if a microbench regresses by more than 25% versus
 the latest `main` baseline (stored on the `gh-pages` branch). To

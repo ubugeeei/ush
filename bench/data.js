@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779161320003,
+  "lastUpdate": 1779161484129,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -629,6 +629,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 106237,
             "range": "± 1991",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b5354ace6454138fd0e5fc442c758bb65c8828ea",
+          "message": "ci(deny): restrict the cargo-deny graph to released targets (#119)\n\nWithout an explicit `[graph].targets` list, cargo-deny inspects the\ntransitive graph for *every* target on the host, including\nWindows-only deps like `winapi` that we never build. Those deps\nwere causing duplicate-version / wildcard / license warnings the\nCI gate had to skip-tree around.\n\nConstrain the graph to the four targets our release workflow\nactually publishes:\n\n  - x86_64-unknown-linux-gnu\n  - aarch64-unknown-linux-gnu\n  - x86_64-apple-darwin\n  - aarch64-apple-darwin\n\n`cargo deny --workspace check` still reports\n\"advisories ok, bans ok, licenses ok, sources ok\" locally.",
+          "timestamp": "2026-05-19T12:27:47+09:00",
+          "tree_id": "9c3950251831400ce97067d4e87b97849cfc9b5f",
+          "url": "https://github.com/ubugeeei/ush/commit/b5354ace6454138fd0e5fc442c758bb65c8828ea"
+        },
+        "date": 1779161483092,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3050,
+            "range": "± 36",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 80605,
+            "range": "± 3069",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 98326,
+            "range": "± 616",
             "unit": "ns/iter"
           }
         ]

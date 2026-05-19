@@ -1,13 +1,14 @@
 use lsp_types::{
     CompletionItem as LspCompletionItem, CompletionItemKind, Diagnostic, DiagnosticSeverity,
     DocumentHighlight, DocumentHighlightKind, DocumentSymbol as LspDocumentSymbol,
-    FoldingRange as LspFoldingRange, FoldingRangeKind, Position, Range, SemanticToken,
-    SemanticTokens, SymbolKind as LspSymbolKind, TextEdit,
+    FoldingRange as LspFoldingRange, FoldingRangeKind, Hover as LspHover, HoverContents,
+    MarkupContent, MarkupKind, Position, Range, SemanticToken, SemanticTokens,
+    SymbolKind as LspSymbolKind, TextEdit,
 };
 use ush_tooling::{
     CompletionItem as UshCompletionItem, CompletionKind as UshCompletionKind,
     DocumentSymbol as UshDocumentSymbol, FoldingRange as UshFoldingRange, Highlight, HighlightKind,
-    SemanticToken as UshToken, SymbolKind as UshSymbolKind, UshDiagnostic,
+    Hover as UshHover, SemanticToken as UshToken, SymbolKind as UshSymbolKind, UshDiagnostic,
 };
 
 pub fn diagnostics(source: &str, items: &[UshDiagnostic]) -> Vec<Diagnostic> {
@@ -84,6 +85,19 @@ pub fn document_highlights(items: &[Highlight]) -> Vec<DocumentHighlight> {
             }),
         })
         .collect()
+}
+
+pub fn hover(item: UshHover) -> LspHover {
+    LspHover {
+        contents: HoverContents::Markup(MarkupContent {
+            kind: MarkupKind::Markdown,
+            value: item.contents,
+        }),
+        range: Some(Range {
+            start: Position::new(item.line, item.start),
+            end: Position::new(item.line, item.start + item.length),
+        }),
+    }
 }
 
 pub fn folding_ranges(items: &[UshFoldingRange]) -> Vec<LspFoldingRange> {

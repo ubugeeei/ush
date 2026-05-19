@@ -1,0 +1,170 @@
+//! LSP `textDocument/hover` provider.
+//!
+//! Returns a short Markdown blurb describing what is at the cursor:
+//!
+//! - **Keyword** → its single-line documentation from the completion
+//!   keyword list.
+//! - **Identifier** (variable / function / type / property) → its
+//!   classification + the source line that declared it, if one is
+//!   visible in the file.
+//! - **Anything else** → no hover.
+//!
+//! No type information is consulted because `ush_compiler`'s AST is
+//! private to that crate. A richer hover (inferred type, doc-comment
+//! lookup) can be layered on later without changing the LSP wiring.
+
+use crate::semantic::semantic_tokens;
+use crate::token::{SemanticToken, SemanticTokenKind};
+
+/// Markdown body for the hover popover, plus the source range it
+/// describes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Hover {
+    pub contents: String,
+    pub line: u32,
+    pub start: u32,
+    pub length: u32,
+}
+
+const KEYWORDS: &[(&str, &str)] = &[
+    ("alias", "Declares a shell-style alias."),
+    (
+        "async",
+        "Spawns an asynchronous task; produces a task handle.",
+    ),
+    (
+        "await",
+        "Awaits an async task handle and yields its result.",
+    ),
+    ("break", "Exits the innermost loop."),
+    (
+        "continue",
+        "Skips to the next iteration of the innermost loop.",
+    ),
+    ("else", "Else branch of an `if` expression."),
+    ("enum", "Declares an enum."),
+    ("false", "Boolean false literal."),
+    ("fn", "Declares a function."),
+    ("for", "For-in loop over a list, tuple, or range."),
+    ("if", "Conditional expression."),
+    ("impl", "Implementation block for a trait."),
+    ("let", "Binds a value to a name."),
+    ("loop", "Infinite loop; exit with `break`."),
+    (
+        "match",
+        "Pattern-match an expression. The compiler enforces exhaustiveness.",
+    ),
+    ("print", "Print a value to stdout."),
+    ("raise", "Raise a typed error (`Problem!T`)."),
+    ("return", "Return from the enclosing function."),
+    ("shell", "Run a `.ush`-built shell expression."),
+    ("spawn", "Spawn an async task with `spawn name = call ...`."),
+    ("trait", "Declares a trait."),
+    ("true", "Boolean true literal."),
+    ("type", "Declares a type alias or `type { ... }`."),
+    ("use", "Imports items from a `std::module::path`."),
+    ("while", "While loop."),
+];
+
+pub fn hover(source: &str, line: u32, character: u32) -> Option<Hover> {
+    let tokens = semantic_tokens(source);
+    let cursor = tokens
+        .iter()
+        .copied()
+        .find(|t| t.line == line && t.start <= character && character < t.start + t.length)?;
+    let lines: Vec<&str> = source.lines().collect();
+    let text = token_text(&lines, cursor);
+    if text.is_empty() {
+        return None;
+    }
+
+    let body = match cursor.kind {
+        SemanticTokenKind::Keyword => keyword_hover(&text)?,
+        SemanticTokenKind::Variable => identifier_hover(&text, "variable", &lines, &tokens),
+        SemanticTokenKind::Function => identifier_hover(&text, "function", &lines, &tokens),
+        SemanticTokenKind::Type => identifier_hover(&text, "type", &lines, &tokens),
+        SemanticTokenKind::Property => identifier_hover(&text, "property", &lines, &tokens),
+        SemanticTokenKind::Decorator => format!("**attribute** `{text}`"),
+        _ => return None,
+    };
+    Some(Hover {
+        contents: body,
+        line: cursor.line,
+        start: cursor.start,
+        length: cursor.length,
+    })
+}
+
+fn keyword_hover(keyword: &str) -> Option<String> {
+    KEYWORDS
+        .iter()
+        .find(|(k, _)| *k == keyword)
+        .map(|(_, doc)| format!("**keyword** `{keyword}` — {doc}"))
+}
+
+fn identifier_hover(name: &str, role: &str, lines: &[&str], tokens: &[SemanticToken]) -> String {
+    // Look for the first occurrence of this name and return that
+    // line as a short "declared at" snippet.
+    for token in tokens {
+        if !matches!(
+            token.kind,
+            SemanticTokenKind::Variable
+                | SemanticTokenKind::Function
+                | SemanticTokenKind::Type
+                | SemanticTokenKind::Property
+        ) {
+            continue;
+        }
+        if token_text(lines, *token) != name {
+            continue;
+        }
+        if let Some(line) = lines.get(token.line as usize) {
+            return format!("**{role}** `{name}`\n\n```ush\n{}\n```", line.trim_start());
+        }
+    }
+    format!("**{role}** `{name}`")
+}
+
+fn token_text(lines: &[&str], token: SemanticToken) -> String {
+    lines
+        .get(token.line as usize)
+        .and_then(|line| {
+            let start = token.start as usize;
+            let end = start + token.length as usize;
+            line.get(start..end).map(str::to_string)
+        })
+        .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::hover;
+
+    #[test]
+    fn hovers_describe_keywords() {
+        let h = hover("let value = 1\n", 0, 0).expect("hover on `let`");
+        assert!(h.contents.contains("keyword"));
+        assert!(h.contents.contains("let"));
+    }
+
+    #[test]
+    fn hovers_on_identifier_show_role_and_declaring_line() {
+        let h =
+            hover("let greeting = \"hi\"\nprint greeting\n", 1, 6).expect("hover on `greeting`");
+        assert!(h.contents.contains("variable"));
+        assert!(h.contents.contains("greeting"));
+        // The declaring line should be quoted.
+        assert!(h.contents.contains("let greeting"));
+    }
+
+    #[test]
+    fn hover_returns_none_for_whitespace() {
+        assert!(hover("let x = 1\n", 0, 3).is_none());
+    }
+
+    #[test]
+    fn hover_returns_none_for_strings() {
+        // Cursor inside the string literal.
+        assert!(hover("print \"hi\"\n", 0, 8).is_none());
+    }
+}

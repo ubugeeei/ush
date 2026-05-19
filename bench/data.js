@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779160928113,
+  "lastUpdate": 1779161049783,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -503,6 +503,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 99027,
             "range": "± 466",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b535a02619ba94837eda8bfcae65a3a9d024d165",
+          "message": "docs(template): expand the PR validation checklist + add Security block (#116)\n\nBrings the PR template in line with what current CI actually runs:\n\n- explicit `cargo +stable fmt` (matches the workflow)\n- no_std *tests* (not just `cargo check`)\n- rustdoc with `RUSTDOCFLAGS=-D warnings`\n- vendored rustyline drift script\n- shellcheck on install.sh + scripts/*.sh\n- `ush check` + `ush format --check` on examples\n- pointer to `scripts/preflight.sh` for the one-line shortcut\n\nAdds a new `## Security` block so PRs that touch install.sh, signal\nhandling, the release pipeline, or introduce a new third-party\naction don't slip through without a note.",
+          "timestamp": "2026-05-19T12:21:35+09:00",
+          "tree_id": "a37a6d0b00b102c4084cfa1fe6191e9289f05112",
+          "url": "https://github.com/ubugeeei/ush/commit/b535a02619ba94837eda8bfcae65a3a9d024d165"
+        },
+        "date": 1779161048937,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3019,
+            "range": "± 31",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 80408,
+            "range": "± 421",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 100648,
+            "range": "± 500",
             "unit": "ns/iter"
           }
         ]

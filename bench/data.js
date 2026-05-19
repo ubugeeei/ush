@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779171999908,
+  "lastUpdate": 1779172563762,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -1091,6 +1091,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 103554,
             "range": "± 549",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "90e40df09974747b8d0999605b2564a1b73dcbf0",
+          "message": "feat(lsp): implement documentHighlight and documentSymbol (#131)\n\nTwo new LSP capabilities for `.ush`:\n\n- `textDocument/documentHighlight` — given a cursor position, returns\n  every occurrence of the same identifier in the document so the\n  editor can underline / outline them. Reuses the existing semantic\n  tokenizer so \"what counts as an identifier\" matches the syntax\n  highlighter (variable / function / type / property; not keywords\n  or strings).\n- `textDocument/documentSymbol` — returns a flat outline of the\n  top-level declarations (fn / enum / trait / type / let / alias).\n  Syntactic scan; idiomatically skipped inside `\"\"\"…\"\"\"` blocks.\n\nNew module `ush_tooling::highlight` (`Highlight`, `HighlightKind`,\n`document_highlights`) and `ush_tooling::symbol` (`DocumentSymbol`,\n`SymbolKind`, `document_symbols`) provide editor-agnostic engines;\n`apps/ush_lsp` converts to `lsp_types` and wires both into\n`ServerCapabilities`.\n\nServer tests:\n- `apps/ush_lsp/tests/highlight_and_symbols.rs` drives the real\n  binary over stdio and asserts the response shape end-to-end.\n- Unit tests inside the new modules pin the cursor/keyword/whitespace\n  edge cases and the multi-line-string outline behaviour.",
+          "timestamp": "2026-05-19T14:20:15+09:00",
+          "tree_id": "a5cb05b6d57d632e75380430750b07efbc2245a0",
+          "url": "https://github.com/ubugeeei/ush/commit/90e40df09974747b8d0999605b2564a1b73dcbf0"
+        },
+        "date": 1779172562682,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3035,
+            "range": "± 11",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 81183,
+            "range": "± 2769",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 100824,
+            "range": "± 1561",
             "unit": "ns/iter"
           }
         ]

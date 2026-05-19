@@ -1,6 +1,8 @@
 # ush
 
 [![CI](https://github.com/ubugeeei/ush/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ubugeeei/ush/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/ubugeeei/ush/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/ubugeeei/ush/actions/workflows/codeql.yml)
+[![Secret scan](https://github.com/ubugeeei/ush/actions/workflows/secret-scan.yml/badge.svg?branch=main)](https://github.com/ubugeeei/ush/actions/workflows/secret-scan.yml)
 [![Shellcheck](https://github.com/ubugeeei/ush/actions/workflows/shellcheck.yml/badge.svg?branch=main)](https://github.com/ubugeeei/ush/actions/workflows/shellcheck.yml)
 [![Dependencies](https://github.com/ubugeeei/ush/actions/workflows/dependencies.yml/badge.svg?branch=main)](https://github.com/ubugeeei/ush/actions/workflows/dependencies.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)

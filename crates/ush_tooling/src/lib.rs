@@ -10,7 +10,9 @@
 //! - [`semantic_tokens`] + [`semantic_token_legend`] — the
 //!   `textDocument/semanticTokens` payload.
 
+mod completion;
 mod diagnostic;
+mod folding;
 mod format;
 mod highlight;
 mod semantic;
@@ -18,7 +20,9 @@ mod symbol;
 mod token;
 
 pub use self::{
+    completion::{CompletionItem, CompletionKind, completions},
     diagnostic::{UshDiagnostic, check_file, check_source},
+    folding::{FoldingRange, folding_ranges},
     format::format_source,
     highlight::{Highlight, HighlightKind, document_highlights},
     semantic::semantic_tokens,

@@ -1,9 +1,10 @@
 use anyhow::Result;
 use lsp_server::{Connection, Message, Notification, Request, Response};
 use lsp_types::{
-    DidChangeTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams,
-    DocumentFormattingParams, DocumentHighlightParams, DocumentSymbolParams,
-    DocumentSymbolResponse, OneOf, PublishDiagnosticsParams, SemanticTokenType,
+    CompletionOptions, CompletionParams, DidChangeTextDocumentParams, DidOpenTextDocumentParams,
+    DidSaveTextDocumentParams, DocumentFormattingParams, DocumentHighlightParams,
+    DocumentSymbolParams, DocumentSymbolResponse, FoldingRangeParams,
+    FoldingRangeProviderCapability, OneOf, PublishDiagnosticsParams, SemanticTokenType,
     SemanticTokensFullOptions, SemanticTokensLegend, SemanticTokensOptions, SemanticTokensParams,
     SemanticTokensServerCapabilities, ServerCapabilities, TextDocumentSyncCapability,
     TextDocumentSyncKind,
@@ -11,13 +12,13 @@ use lsp_types::{
         DidChangeTextDocument, DidOpenTextDocument, DidSaveTextDocument, Notification as _,
     },
     request::{
-        DocumentHighlightRequest, DocumentSymbolRequest, Formatting, Request as _,
-        SemanticTokensFullRequest,
+        Completion, DocumentHighlightRequest, DocumentSymbolRequest, FoldingRangeRequest,
+        Formatting, Request as _, SemanticTokensFullRequest,
     },
 };
 use ush_tooling::{
-    check_source, document_highlights, document_symbols, format_source, semantic_token_legend,
-    semantic_tokens,
+    check_source, completions, document_highlights, document_symbols, folding_ranges,
+    format_source, semantic_token_legend, semantic_tokens,
 };
 
 use crate::{convert, document::DocumentStore};
@@ -50,6 +51,12 @@ fn capabilities() -> ServerCapabilities {
         document_formatting_provider: Some(OneOf::Left(true)),
         document_highlight_provider: Some(OneOf::Left(true)),
         document_symbol_provider: Some(OneOf::Left(true)),
+        folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
+        completion_provider: Some(CompletionOptions {
+            resolve_provider: Some(false),
+            trigger_characters: None,
+            ..CompletionOptions::default()
+        }),
         semantic_tokens_provider: Some(SemanticTokensServerCapabilities::SemanticTokensOptions(
             SemanticTokensOptions {
                 legend: SemanticTokensLegend {
@@ -78,6 +85,8 @@ fn handle_request(
         SemanticTokensFullRequest::METHOD => semantic_full(connection, docs, request),
         DocumentHighlightRequest::METHOD => highlight(connection, docs, request),
         DocumentSymbolRequest::METHOD => symbols(connection, docs, request),
+        FoldingRangeRequest::METHOD => folding(connection, docs, request),
+        Completion::METHOD => completion(connection, docs, request),
         _ => {
             connection.sender.send(Message::Response(Response::new_err(
                 request.id,
@@ -162,6 +171,20 @@ fn symbols(connection: &Connection, docs: &mut DocumentStore, request: Request) 
     let response =
         DocumentSymbolResponse::Nested(convert::document_symbols(&document_symbols(&source)));
     respond_ok(connection, request.id, serde_json::to_value(response)?)
+}
+
+fn folding(connection: &Connection, docs: &mut DocumentStore, request: Request) -> Result<()> {
+    let params: FoldingRangeParams = serde_json::from_value(request.params)?;
+    let source = docs.read(&params.text_document.uri)?;
+    let ranges = convert::folding_ranges(&folding_ranges(&source));
+    respond_ok(connection, request.id, serde_json::to_value(ranges)?)
+}
+
+fn completion(connection: &Connection, docs: &mut DocumentStore, request: Request) -> Result<()> {
+    let params: CompletionParams = serde_json::from_value(request.params)?;
+    let source = docs.read(&params.text_document_position.text_document.uri)?;
+    let items = convert::completion_items(&completions(&source));
+    respond_ok(connection, request.id, serde_json::to_value(items)?)
 }
 
 fn publish_diagnostics(connection: &Connection, uri: &lsp_types::Uri, source: &str) -> Result<()> {

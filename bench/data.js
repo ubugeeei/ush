@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779161049783,
+  "lastUpdate": 1779161203432,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -545,6 +545,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 100648,
             "range": "± 500",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "175d0f0d077041dff8b1320fd40008d8a1eef76d",
+          "message": "ci: fix three CI gates that surfaced after the SHA-pin merge (#117)\n\n- **MSRV**: rustyline (vendored, v18.0.0) uses `std::fs::File::lock`\n  which only stabilised in 1.89. Bump `[workspace.package].rust-version`\n  from 1.88 → 1.89.\n- **Deny / bans**: cargo-deny's `wildcards = \"deny\"` treats the\n  workspace-internal `path = \"../foo\"` deps as wildcards. The end-user\n  binaries already opt out via `publish = false`, but the library\n  crates do not yet have a publish flow. Set `wildcards = \"warn\"`\n  and `allow-wildcard-paths = true`; flip back to `deny` once the\n  library crates either publish or also go `publish = false`.\n- **Format**: re-run `cargo +stable fmt --all`. There was no drift\n  in this PR's staged diff; the gate is recorded here so the next\n  contributor has a passing baseline.",
+          "timestamp": "2026-05-19T12:24:53+09:00",
+          "tree_id": "b1b9c717ea91b0a66b7536948b051b1ce4cd9d87",
+          "url": "https://github.com/ubugeeei/ush/commit/175d0f0d077041dff8b1320fd40008d8a1eef76d"
+        },
+        "date": 1779161201834,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3254,
+            "range": "± 85",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 84450,
+            "range": "± 9135",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 104753,
+            "range": "± 5874",
             "unit": "ns/iter"
           }
         ]

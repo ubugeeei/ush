@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779172563762,
+  "lastUpdate": 1779172566847,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -1133,6 +1133,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 100824,
             "range": "± 1561",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ef4cfa3d8d640e5146188b3543edf1b27ac11127",
+          "message": "feat(lsp): implement completion and foldingRange (#133)\n\nTwo more LSP capabilities for `.ush`, on top of the documentHighlight\nand documentSymbol PR:\n\n- `textDocument/completion` — returns every `.ush` keyword plus\n  every identifier (variable / function / type) the semantic\n  tokenizer has classified in the open document. No cursor-context\n  resolution yet; the editor filters.\n- `textDocument/foldingRange` — reports folding regions for matched\n  `{ … }` blocks; correctly ignores braces inside `\"…\"`, `'…'`,\n  `\"\"\"…\"\"\"`, line comments (`# …`), and attribute brackets `#[…]`.\n\nNew modules `ush_tooling::completion` (`CompletionItem`,\n`CompletionKind`, `completions`) and `ush_tooling::folding`\n(`FoldingRange`, `folding_ranges`) carry the editor-agnostic\nengines; `apps/ush_lsp` converts to `lsp_types`, declares the new\ncapabilities, and routes the two new request handlers.\n\nUnit tests in each module pin the keyword set, deduplication,\nattribute / comment / string brace skipping, and nested block\nbehaviour.",
+          "timestamp": "2026-05-19T14:26:30+09:00",
+          "tree_id": "877d012b0d11bb483307f9bf47c7d6037a6e66a1",
+          "url": "https://github.com/ubugeeei/ush/commit/ef4cfa3d8d640e5146188b3543edf1b27ac11127"
+        },
+        "date": 1779172565313,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3024,
+            "range": "± 62",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 79814,
+            "range": "± 3133",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 98867,
+            "range": "± 687",
             "unit": "ns/iter"
           }
         ]

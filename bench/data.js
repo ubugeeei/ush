@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779161484129,
+  "lastUpdate": 1779162537931,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -671,6 +671,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 98326,
             "range": "± 616",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6e98e009675bdfde9cf9bfeb03ce784a241b562a",
+          "message": "style: re-run rustfmt with --edition 2024 across the workspace (#121)\n\nCI's Format job has been failing since the MSRV bump because the\nGitHub-hosted runner's stable rustfmt honours edition 2024 import\nsort rules (alphabetical within `use foo::{...}` groups) but the\nhost (macOS) cargo fmt does not propagate `--edition 2024` from\nCargo.toml to rustfmt the same way.\n\nRun `find apps crates -name '*.rs' | xargs rustfmt --edition 2024`\nto apply the edition-2024-equivalent sort everywhere. Only\nre-orderings inside `use` brace groups; no semantic change.",
+          "timestamp": "2026-05-19T12:47:07+09:00",
+          "tree_id": "3e5e3632603d2205a6cf2da62f62a829faa22f56",
+          "url": "https://github.com/ubugeeei/ush/commit/6e98e009675bdfde9cf9bfeb03ce784a241b562a"
+        },
+        "date": 1779162536358,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3084,
+            "range": "± 16",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 81879,
+            "range": "± 1482",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 112725,
+            "range": "± 1167",
             "unit": "ns/iter"
           }
         ]

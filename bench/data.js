@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779173445578,
+  "lastUpdate": 1779173572005,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -1343,6 +1343,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 108223,
             "range": "± 1392",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "678d9087815841403ab22406468fb37afda0cbc3",
+          "message": "feat(lsp): implement textDocument/signatureHelp (#139)\n\nScans the source for `fn name(parameters)` declarations and,\nwhen the cursor is inside a call `name(arg, arg, …)`, returns\nthe matching signature with the currently-active parameter index.\n\nScope (intentionally narrow at this iteration):\n- Only `fn` declarations whose opening `(` and matching `)` are on\n  the same line are recognised. Multi-line signatures land later.\n- No scope resolution; first declaration in the file with a matching\n  name wins.\n- The active-parameter counter is plain comma counting at depth 1\n  inside the enclosing call. Commas inside string literals and inner\n  call parens are ignored.\n\n`apps/ush_lsp` declares a `signature_help_provider` whose trigger\ncharacters are `(` and `,`, and routes `textDocument/signatureHelp`.\n\nSix unit tests cover: fn parsing, active-param across a comma,\nout-of-call cursor, unknown function, no-parameter function, and\nnested calls (inner signature wins).",
+          "timestamp": "2026-05-19T15:25:40+09:00",
+          "tree_id": "7a2202ac5b21272574ba4c1d4ae2bae4629978b5",
+          "url": "https://github.com/ubugeeei/ush/commit/678d9087815841403ab22406468fb37afda0cbc3"
+        },
+        "date": 1779173570885,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3034,
+            "range": "± 12",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 80465,
+            "range": "± 624",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 99699,
+            "range": "± 837",
             "unit": "ns/iter"
           }
         ]

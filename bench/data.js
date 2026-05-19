@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779160261783,
+  "lastUpdate": 1779160350081,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -251,6 +251,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 98754,
             "range": "± 1379",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "82c17aa63e7756826ddb55e0d5f08e79480d871a",
+          "message": "docs(readme): add CodeQL and Secret-scan badges (#110)\n\nThe two security workflows added in 0.7.0 had no surface presence\nin the README. Adds their badges next to the existing CI /\nShellcheck / Dependencies / License row so the security posture is\nvisible at first glance.",
+          "timestamp": "2026-05-19T12:10:29+09:00",
+          "tree_id": "998729d132ab3c684f5a0802f9e9cc5a2a0ac6bc",
+          "url": "https://github.com/ubugeeei/ush/commit/82c17aa63e7756826ddb55e0d5f08e79480d871a"
+        },
+        "date": 1779160349301,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3038,
+            "range": "± 16",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 81267,
+            "range": "± 1885",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 99833,
+            "range": "± 5017",
             "unit": "ns/iter"
           }
         ]

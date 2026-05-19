@@ -61,7 +61,10 @@ exceptions = []
 # bump to "deny" once that is resolved.
 # ----------------------------------------------------------------------
 [bans]
-multiple-versions = "warn"
+# Strict for everything except the one duplicate we know about and
+# have decided to accept (`bitflags`, see below). Any *new* duplicate
+# that lands without an entry in `skip` will fail the gate.
+multiple-versions = "deny"
 # `wildcards = "warn"` rather than "deny": the workspace deliberately
 # uses `path = "../foo"` dependencies between member crates, which
 # cargo-deny treats as wildcards. The apps that ship to end users are
@@ -71,7 +74,13 @@ wildcards = "warn"
 allow-wildcard-paths = true
 highlight = "all"
 deny = []
-skip = []
+skip = [
+    # `bitflags` v1 comes in via `fluent-uri` → `lsp-types`; v2 is
+    # what everything else in the workspace uses. The upstream split
+    # is fixed in newer `lsp-types`, which is on a separate release
+    # cycle; allow the duplicate until we move forward.
+    "bitflags@1.3.2",
+]
 skip-tree = []
 
 # ----------------------------------------------------------------------

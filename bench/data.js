@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779171906977,
+  "lastUpdate": 1779171993480,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -1007,6 +1007,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 98302,
             "range": "± 1332",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a1993362899391f41a5b5c6758bd423664774a1d",
+          "message": "docs: add SUPPORT.md (bugs, security, support, supported versions) (#129)\n\nStandard top-level GitHub community-health file. GitHub\nauto-surfaces it next to README on the repo page and in the\n\"Insights → Community Standards\" check.\n\nRoutes:\n\n- Bugs / feature requests → issue templates\n- Security → SECURITY.md private channel\n- Usage questions → README + docs/ index\n- Lists which release lines are supported and where the user-visible\n  changelog lives.",
+          "timestamp": "2026-05-19T14:04:46+09:00",
+          "tree_id": "b4c243fc0253c12f07a49e4a573a2d487ab5903a",
+          "url": "https://github.com/ubugeeei/ush/commit/a1993362899391f41a5b5c6758bd423664774a1d"
+        },
+        "date": 1779171992229,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3239,
+            "range": "± 63",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 83275,
+            "range": "± 3960",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 103952,
+            "range": "± 1367",
             "unit": "ns/iter"
           }
         ]

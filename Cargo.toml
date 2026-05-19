@@ -14,10 +14,10 @@ resolver = "2"
 [workspace.package]
 version = "0.7.0"
 edition = "2024"
-# Bumped from 1.85 → 1.88 because criterion 0.8.2 requires 1.86 and
-# home 0.5.12 (transitive via dev/build tools) requires 1.88. 1.88 is
-# the smallest version that satisfies the current dependency graph.
-rust-version = "1.88"
+# Bumped to 1.89: criterion 0.8.2 needs 1.86, home 0.5.12 needs 1.88,
+# and rustyline (vendored, v18.0.0) uses std::fs::File::lock which
+# stabilised in 1.89.
+rust-version = "1.89"
 license = "MIT"
 authors = ["Ubugeeei <ubuge1122@gmail.com>"]
 repository = "https://github.com/ubugeeei/ush"

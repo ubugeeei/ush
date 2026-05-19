@@ -52,7 +52,13 @@ exceptions = []
 # ----------------------------------------------------------------------
 [bans]
 multiple-versions = "warn"
-wildcards = "deny"
+# `wildcards = "warn"` rather than "deny": the workspace deliberately
+# uses `path = "../foo"` dependencies between member crates, which
+# cargo-deny treats as wildcards. The apps that ship to end users are
+# already `publish = false`; the library crates are not yet on
+# crates.io. Flip back to "deny" once publish flow is sorted out.
+wildcards = "warn"
+allow-wildcard-paths = true
 highlight = "all"
 deny = []
 skip = []

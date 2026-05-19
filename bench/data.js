@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779160350081,
+  "lastUpdate": 1779160449297,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -293,6 +293,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 99833,
             "range": "± 5017",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "db8af1fb46cf63a9d8a09168df3de467e4d1aca5",
+          "message": "docs: link release-process.md from the docs/ index (#111)\n\nThe doc landed in 0.7.0 but only README.md pointed at it; the docs/\nindex had no entry. Adds the entry so it discoverable from inside\nthe `docs/` tree.",
+          "timestamp": "2026-05-19T12:11:46+09:00",
+          "tree_id": "bdab7995e2966e42db9702ca4a06b5812e627a61",
+          "url": "https://github.com/ubugeeei/ush/commit/db8af1fb46cf63a9d8a09168df3de467e4d1aca5"
+        },
+        "date": 1779160448818,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3026,
+            "range": "± 21",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 80295,
+            "range": "± 3553",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 100137,
+            "range": "± 731",
             "unit": "ns/iter"
           }
         ]

@@ -28,7 +28,9 @@ pub use self::{
     format::format_source,
     highlight::{Highlight, HighlightKind, document_highlights},
     hover::{Hover, hover},
-    references::{Reference, RenameError, definition, references, rename_locations},
+    references::{
+        Reference, RenameError, definition, prepare_rename, references, rename_locations,
+    },
     semantic::semantic_tokens,
     symbol::{DocumentSymbol, SymbolKind, document_symbols},
     token::{SemanticToken, SemanticTokenKind, semantic_token_legend},

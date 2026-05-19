@@ -15,14 +15,14 @@ use lsp_types::{
     },
     request::{
         Completion, DocumentHighlightRequest, DocumentSymbolRequest, FoldingRangeRequest,
-        Formatting, GotoDefinition, HoverRequest, References, Rename, Request as _,
-        SemanticTokensFullRequest,
+        Formatting, GotoDefinition, HoverRequest, PrepareRenameRequest, References, Rename,
+        Request as _, SemanticTokensFullRequest,
     },
 };
 use ush_tooling::{
     check_source, completions, definition as ush_definition, document_highlights, document_symbols,
-    folding_ranges, format_source, hover as ush_hover, references as ush_refs, rename_locations,
-    semantic_token_legend, semantic_tokens,
+    folding_ranges, format_source, hover as ush_hover, prepare_rename as ush_prepare_rename,
+    references as ush_refs, rename_locations, semantic_token_legend, semantic_tokens,
 };
 
 use crate::{convert, document::DocumentStore};
@@ -60,7 +60,7 @@ fn capabilities() -> ServerCapabilities {
         definition_provider: Some(OneOf::Left(true)),
         references_provider: Some(OneOf::Left(true)),
         rename_provider: Some(OneOf::Right(RenameOptions {
-            prepare_provider: Some(false),
+            prepare_provider: Some(true),
             work_done_progress_options: WorkDoneProgressOptions::default(),
         })),
         completion_provider: Some(CompletionOptions {
@@ -102,6 +102,7 @@ fn handle_request(
         GotoDefinition::METHOD => definition(connection, docs, request),
         References::METHOD => references(connection, docs, request),
         Rename::METHOD => rename(connection, docs, request),
+        PrepareRenameRequest::METHOD => prepare_rename(connection, docs, request),
         _ => {
             connection.sender.send(Message::Response(Response::new_err(
                 request.id,
@@ -241,6 +242,18 @@ fn references(connection: &Connection, docs: &mut DocumentStore, request: Reques
         })
         .collect();
     respond_ok(connection, request.id, serde_json::to_value(locations)?)
+}
+
+fn prepare_rename(
+    connection: &Connection,
+    docs: &mut DocumentStore,
+    request: Request,
+) -> Result<()> {
+    let params: lsp_types::TextDocumentPositionParams = serde_json::from_value(request.params)?;
+    let source = docs.read(&params.text_document.uri)?;
+    let result = ush_prepare_rename(&source, params.position.line, params.position.character)
+        .map(|reference| convert::range_of_reference(&reference));
+    respond_ok(connection, request.id, serde_json::to_value(result)?)
 }
 
 fn rename(connection: &Connection, docs: &mut DocumentStore, request: Request) -> Result<()> {

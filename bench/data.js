@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779162733305,
+  "lastUpdate": 1779162867713,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -755,6 +755,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 104159,
             "range": "± 1246",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0bd6a7a64de607c97f29f961c6c9e37cc7df9e28",
+          "message": "docs(contributing): document the rustfmt + edition 2024 gotcha (#123)\n\n`cargo fmt --all --check` on macOS hosts can silently disagree with\nCI's Linux rustfmt over edition-2024 import sort rules (alphabetical\ninside `use foo::{...}` brace groups), leaving CI to fail while the\nlocal check returns clean. Document the symptom and the workaround\n(direct `rustfmt --edition 2024` on the source tree) so future\ncontributors don't waste a round-trip on it.",
+          "timestamp": "2026-05-19T12:51:33+09:00",
+          "tree_id": "992104049c6fc091f47de3cb86655b7699d4d599",
+          "url": "https://github.com/ubugeeei/ush/commit/0bd6a7a64de607c97f29f961c6c9e37cc7df9e28"
+        },
+        "date": 1779162867292,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3024,
+            "range": "± 16",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 81356,
+            "range": "± 1898",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 99121,
+            "range": "± 406",
             "unit": "ns/iter"
           }
         ]

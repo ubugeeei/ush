@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779162867713,
+  "lastUpdate": 1779167385310,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -797,6 +797,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 99121,
             "range": "± 406",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ec1b56e235ae9eab0b2cc6a397a65f4950f62fa2",
+          "message": "ci: clippy the no_std compiler core too (#124)\n\nThe Clippy job runs `cargo clippy --workspace --all-targets`, which\nimplicitly enables every crate's default features — i.e. it clippies\n`ush_compiler` *with* `std`. Lints that only fire under no_std\n(`panic` formatter restrictions, `alloc`-only impls, missing\nno_std-aware paths, etc.) were therefore invisible. Add a dedicated\nno_std clippy step right next to the existing `cargo check` and\n`cargo test` no_std gates.",
+          "timestamp": "2026-05-19T13:55:51+09:00",
+          "tree_id": "6741ebcec031e0bb139287ef4e94a431171db0bc",
+          "url": "https://github.com/ubugeeei/ush/commit/ec1b56e235ae9eab0b2cc6a397a65f4950f62fa2"
+        },
+        "date": 1779167384160,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3248,
+            "range": "± 28",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 83379,
+            "range": "± 2144",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 106243,
+            "range": "± 1591",
             "unit": "ns/iter"
           }
         ]

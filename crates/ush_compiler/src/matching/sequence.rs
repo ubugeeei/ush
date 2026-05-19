@@ -1,8 +1,8 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 use super::super::{
     ast::{Expr, Type},
-    codegen::{compile_runtime_primitive_expr, FunctionRegistry},
+    codegen::{FunctionRegistry, compile_runtime_primitive_expr},
     env::{Binding, CodegenState, EnumRegistry, Env, Storage},
 };
 use crate::sourcemap::OutputBuffer;

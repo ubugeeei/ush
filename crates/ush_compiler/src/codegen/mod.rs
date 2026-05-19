@@ -33,10 +33,10 @@ use super::{
     effects,
     env::{CodegenState, EnumRegistry, Env},
 };
-use crate::sourcemap::{CompiledScript, OutputBuffer, SourceMapSection};
-use crate::traits::{register_trait, register_trait_impl, TraitImplRegistry, TraitRegistry};
-use crate::util::shell_quote;
 use crate::ScriptDocs;
+use crate::sourcemap::{CompiledScript, OutputBuffer, SourceMapSection};
+use crate::traits::{TraitImplRegistry, TraitRegistry, register_trait, register_trait_impl};
+use crate::util::shell_quote;
 
 pub(crate) use functions::FunctionRegistry;
 pub(crate) use primitive::{compile_primitive_expr, infer};

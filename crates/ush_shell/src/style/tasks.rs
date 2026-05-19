@@ -3,7 +3,7 @@ use std::fmt::Write as _;
 use crate::repl::contextual::{TaskEntry, TaskSource};
 
 use super::common::{
-    badge, dim, paint, pluralize, BLUE_BOLD, CYAN_BOLD, GREEN_BOLD, MAGENTA_BOLD, YELLOW_BOLD,
+    BLUE_BOLD, CYAN_BOLD, GREEN_BOLD, MAGENTA_BOLD, YELLOW_BOLD, badge, dim, paint, pluralize,
 };
 
 pub fn render_tasks(entries: &[TaskEntry]) -> String {

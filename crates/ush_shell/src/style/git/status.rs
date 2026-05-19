@@ -6,8 +6,8 @@ use crate::helpers::ValueStream;
 
 use super::{
     super::common::{
-        badge, dim, paint, pluralize, BLUE_BOLD, CYAN_BOLD, GREEN_BOLD, MAGENTA_BOLD, RED_BOLD,
-        YELLOW_BOLD,
+        BLUE_BOLD, CYAN_BOLD, GREEN_BOLD, MAGENTA_BOLD, RED_BOLD, YELLOW_BOLD, badge, dim, paint,
+        pluralize,
     },
     git_capture,
     model::{GitStatusHeader, GitStatusRow},

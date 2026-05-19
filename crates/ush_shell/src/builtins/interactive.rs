@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 use super::interactive_support::{
     prompt_confirm, prompt_input, prompt_select, resolve_default_selection,
@@ -212,9 +212,5 @@ fn join_prompt(parts: Vec<String>) -> Option<String> {
 }
 
 fn status_from_bool(value: bool) -> i32 {
-    if value {
-        0
-    } else {
-        1
-    }
+    if value { 0 } else { 1 }
 }

@@ -8,7 +8,7 @@ use super::{
     path::parse_identifier,
     signature,
 };
-use crate::scan::{advance, ScanState};
+use crate::scan::{ScanState, advance};
 use crate::types::HeapVec as Vec;
 use crate::util::parse_paren_body;
 

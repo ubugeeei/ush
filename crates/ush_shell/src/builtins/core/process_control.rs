@@ -2,9 +2,9 @@ mod rm;
 
 use std::{collections::BTreeSet, process::Command};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 
-use crate::{signal, Shell, ValueStream};
+use crate::{Shell, ValueStream, signal};
 
 impl Shell {
     pub(in crate::builtins) fn handle_port(

@@ -4,8 +4,8 @@ mod semantic;
 mod token;
 
 pub use self::{
-    diagnostic::{check_file, check_source, UshDiagnostic},
+    diagnostic::{UshDiagnostic, check_file, check_source},
     format::format_source,
     semantic::semantic_tokens,
-    token::{semantic_token_legend, SemanticToken, SemanticTokenKind},
+    token::{SemanticToken, SemanticTokenKind, semantic_token_legend},
 };

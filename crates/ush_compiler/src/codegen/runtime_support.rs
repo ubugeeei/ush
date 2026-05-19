@@ -7,8 +7,9 @@ use super::{
         ast::{Call, Expr},
         env::{Binding, CodegenState, EnumRegistry, Env, Storage},
     },
+    FunctionRegistry,
     calls::{call_expr_type, ensure_value_type, rendered_call},
-    runtime_member, FunctionRegistry,
+    runtime_member,
 };
 use crate::sourcemap::OutputBuffer;
 use crate::traits::TraitImplRegistry;

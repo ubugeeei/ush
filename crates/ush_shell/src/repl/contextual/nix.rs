@@ -3,7 +3,7 @@ use phf::phf_map;
 
 use super::{
     candidates::{described_candidate_pairs, typed_candidate_pairs},
-    options::{option_spec, pending_value_kind, positional_args, OptionSpec},
+    options::{OptionSpec, option_spec, pending_value_kind, positional_args},
     types::ContextualCompletion,
 };
 use crate::repl::descriptions;

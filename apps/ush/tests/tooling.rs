@@ -101,11 +101,15 @@ fn compile_can_write_sourcemap_json() {
             .expect("generated line count")
             >= 2
     );
-    assert!(summary["sections"]
-        .as_array()
-        .expect("summary sections")
-        .iter()
-        .any(|section| { section["section"] == "user-code" && section["mapped_line_count"] == 2 }));
+    assert!(
+        summary["sections"]
+            .as_array()
+            .expect("summary sections")
+            .iter()
+            .any(|section| {
+                section["section"] == "user-code" && section["mapped_line_count"] == 2
+            })
+    );
     assert!(sources.iter().any(|line| {
         line["source_line"] == 1
             && line["source_text"] == "let greeting = \"hello\""

@@ -5,8 +5,8 @@ use super::{
     parse::parse_unified_diff,
 };
 use crate::style::common::{
-    badge, dim, paint, pluralize, BLUE_BOLD, BOLD, CYAN_BOLD, GREEN_BOLD, MAGENTA_BOLD, RED_BOLD,
-    YELLOW_BOLD,
+    BLUE_BOLD, BOLD, CYAN_BOLD, GREEN_BOLD, MAGENTA_BOLD, RED_BOLD, YELLOW_BOLD, badge, dim, paint,
+    pluralize,
 };
 
 pub(super) fn render_diff_clean(options: &DiffOptions) -> String {

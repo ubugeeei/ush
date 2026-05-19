@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 
 use super::ast::{FunctionDef, TraitDef, TraitImpl, Type};
 use crate::types::{AstString as String, Map as HashMap, Set as HashSet};

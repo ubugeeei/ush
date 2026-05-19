@@ -5,7 +5,7 @@ use std::{
     process::Command,
 };
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 
 pub fn run(targets: &[String], config: Option<&Path>) -> Result<i32> {
     let cwd = env::current_dir().context("failed to read current directory")?;

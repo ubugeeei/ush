@@ -1,6 +1,6 @@
 use phf::phf_map;
 
-use crate::repl::contextual::options::{option_spec, OptionSpec};
+use crate::repl::contextual::options::{OptionSpec, option_spec};
 
 pub(crate) const GIT_GLOBAL_OPTIONS: &[&str] = &[
     "--help",

@@ -1,12 +1,12 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 
 use super::{
     super::{
         ast::{Expr, StatementKind},
         util::{split_once_top_level, strip_top_level_suffix},
     },
-    expr::parse_expr,
     SourceLine,
+    expr::parse_expr,
 };
 use crate::scan;
 

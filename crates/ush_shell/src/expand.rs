@@ -4,9 +4,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
-use super::{commands::BUILTIN_COMMANDS, Shell};
+use super::{Shell, commands::BUILTIN_COMMANDS};
 use crate::prompt::render_prompt;
 
 impl Shell {

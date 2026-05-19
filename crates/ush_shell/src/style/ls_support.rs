@@ -4,7 +4,7 @@ use anyhow::Result;
 use chrono::{DateTime, Local};
 
 use super::common::{
-    badge, dim, human_bytes, paint, pluralize, BLUE_BOLD, BOLD, CYAN_BOLD, GREEN_BOLD, MAGENTA_BOLD,
+    BLUE_BOLD, BOLD, CYAN_BOLD, GREEN_BOLD, MAGENTA_BOLD, badge, dim, human_bytes, paint, pluralize,
 };
 
 #[derive(Clone, Copy, Default)]

@@ -1,4 +1,4 @@
-use super::super::options::{option_spec, OptionSpec};
+use super::super::options::{OptionSpec, option_spec};
 
 pub(crate) const BUN_COMMANDS: &[&str] = &[
     "run", "test", "x", "repl", "exec", "install", "add", "remove", "update", "audit", "outdated",

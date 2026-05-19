@@ -3,8 +3,8 @@ mod jobs;
 mod state;
 use self::io::{finish_child, populate_command, write_input};
 pub(crate) use self::jobs::Job;
-use self::state::{render_alias_prelude, StatefulShellRun};
-use super::{commands, signal, style, Shell, ValueStream};
+use self::state::{StatefulShellRun, render_alias_prelude};
+use super::{Shell, ValueStream, commands, signal, style};
 use anyhow::{Context, Result};
 use std::{
     collections::HashMap,

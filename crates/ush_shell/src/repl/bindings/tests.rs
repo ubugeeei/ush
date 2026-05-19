@@ -1,6 +1,6 @@
 use rustyline::{At, Cmd, Event, KeyCode, KeyEvent, Modifiers, Movement, Word};
 
-use super::specs::{binding_specs, BindingAction, BindingSpec};
+use super::specs::{BindingAction, BindingSpec, binding_specs};
 use super::{
     selection_delete_command, selection_delete_events, selection_edit_command,
     should_keep_selection,

@@ -13,7 +13,9 @@ fn heterogeneous_tuple_iteration_is_rejected() {
         )
         .expect_err("tuple iteration should fail");
 
-    assert!(error
-        .to_string()
-        .contains("for-in over tuples requires all items to share one type"));
+    assert!(
+        error
+            .to_string()
+            .contains("for-in over tuples requires all items to share one type")
+    );
 }

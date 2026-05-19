@@ -6,7 +6,7 @@ use crate::helpers::ValueStream;
 
 use super::{
     super::common::{
-        badge, dim, paint, pluralize, BLUE_BOLD, BOLD, CYAN_BOLD, MAGENTA_BOLD, YELLOW_BOLD,
+        BLUE_BOLD, BOLD, CYAN_BOLD, MAGENTA_BOLD, YELLOW_BOLD, badge, dim, paint, pluralize,
     },
     git_capture,
     model::GitLogRow,

@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 
 use super::{
     super::{
@@ -9,7 +9,7 @@ use super::{
     alias::compile_alias,
     blocks::{compile_let, compile_match},
     calls::{compile_call, compile_try_call},
-    functions::{compile_function, FunctionRegistry},
+    functions::{FunctionRegistry, compile_function},
     io::{compile_raise, compile_shell, push_print},
     shared::binding_for_name,
     statement_control::compile_control_statement,

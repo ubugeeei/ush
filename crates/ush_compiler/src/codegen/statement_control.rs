@@ -6,7 +6,7 @@ use super::{
         effects::FunctionErrorRegistry,
         env::{CodegenState, Env},
     },
-    control::{compile_for, compile_if, compile_loop, compile_while, ControlContext},
+    control::{ControlContext, compile_for, compile_if, compile_loop, compile_while},
     functions::FunctionRegistry,
 };
 use crate::sourcemap::OutputBuffer;

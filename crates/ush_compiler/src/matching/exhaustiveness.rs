@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 use crate::ast::{Pattern, Type};
 use crate::env::EnumRegistry;

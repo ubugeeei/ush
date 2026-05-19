@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::commands::{lookup_all_commands, lookup_command, CommandLookup};
+use crate::commands::{CommandLookup, lookup_all_commands, lookup_command};
 
 pub(super) enum LookupStyle {
     Path,
@@ -86,7 +86,7 @@ fn format_alias(name: &str, value: &str) -> String {
 mod tests {
     use std::collections::BTreeMap;
 
-    use super::{describe_commands, LookupStyle};
+    use super::{LookupStyle, describe_commands};
 
     #[test]
     fn renders_aliases_in_short_form() {

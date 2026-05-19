@@ -1,11 +1,11 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 
 use super::{
     super::ast::{Expr, IfBranch, Statement, StatementKind},
-    condition,
+    SourceLine, condition,
     declaration_support::finish_block,
     expr::parse_expr,
-    signature, SourceLine,
+    signature,
 };
 use crate::types::{AstString as String, HeapVec as Vec};
 

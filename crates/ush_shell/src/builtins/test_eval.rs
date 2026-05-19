@@ -1,6 +1,6 @@
 use std::fs;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 use crate::Shell;
 
@@ -98,10 +98,12 @@ mod tests {
 
     #[test]
     fn evaluates_integer_comparisons() {
-        assert!(evaluate(
-            &shell(),
-            &[String::from("3"), String::from("-gt"), String::from("2")]
-        )
-        .expect("eval"));
+        assert!(
+            evaluate(
+                &shell(),
+                &[String::from("3"), String::from("-gt"), String::from("2")]
+            )
+            .expect("eval")
+        );
     }
 }

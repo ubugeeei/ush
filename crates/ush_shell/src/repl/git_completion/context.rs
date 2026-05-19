@@ -1,6 +1,6 @@
 use crate::repl::syntax;
 
-use super::specs::{ArgKind, GitCommandSpec, GitOptionSpec, GIT_COMMANDS, GLOBAL_OPTIONS};
+use super::specs::{ArgKind, GIT_COMMANDS, GLOBAL_OPTIONS, GitCommandSpec, GitOptionSpec};
 
 #[derive(Debug, Default)]
 pub(super) struct ParsedOptions {

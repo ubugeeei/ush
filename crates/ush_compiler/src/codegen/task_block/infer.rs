@@ -1,6 +1,6 @@
 use alloc::boxed::Box;
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 
 use crate::traits::TraitImplRegistry;
 use crate::types::HeapVec as Vec;

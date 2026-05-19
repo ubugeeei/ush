@@ -6,8 +6,8 @@ use rustyline::completion::Pair;
 
 use crate::commands::BUILTIN_COMMANDS;
 
-use super::specs::{command_summary, ArgKind, BuiltinOptionSpec, BuiltinSpec, SIGNAL_CHOICES};
 use super::UshHelper;
+use super::specs::{ArgKind, BuiltinOptionSpec, BuiltinSpec, SIGNAL_CHOICES, command_summary};
 use path_pairs::complete_path_pairs;
 
 pub(super) fn complete_arg(

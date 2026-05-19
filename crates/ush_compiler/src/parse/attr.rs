@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 
 use super::{
     super::{
@@ -7,7 +7,7 @@ use super::{
     },
     expr::parse_expr,
 };
-use crate::scan::{advance, ScanState};
+use crate::scan::{ScanState, advance};
 use crate::types::HeapVec as Vec;
 
 pub(super) fn parse_attribute_line(source: &str) -> Result<Attribute> {

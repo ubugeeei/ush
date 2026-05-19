@@ -1,9 +1,9 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 use crate::types::{AstString as NameString, OutputString as String};
 use crate::{
     ast::{NamedPattern, Pattern, PatternFields, Type, VariantFields, VariantPattern},
-    env::{lookup_variant, Binding, EnumRegistry, Storage},
+    env::{Binding, EnumRegistry, Storage, lookup_variant},
 };
 
 use super::PatternPlan;

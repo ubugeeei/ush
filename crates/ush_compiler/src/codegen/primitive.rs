@@ -1,10 +1,10 @@
 use alloc::boxed::Box;
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 
 use super::super::{
     ast::{Expr, ExprFields, Type, VariantExpr, VariantFields},
-    env::{lookup_variant, EnumRegistry, Env},
+    env::{EnumRegistry, Env, lookup_variant},
 };
 use super::{
     compare::infer_compare,
@@ -13,7 +13,7 @@ use super::{
     render::{compile_bool_expr, compile_int_expr, compile_string_expr, compile_unit_expr},
     task_block::infer_async_block_type,
 };
-use crate::traits::{ensure_trait, TraitImplRegistry};
+use crate::traits::{TraitImplRegistry, ensure_trait};
 use crate::types::OutputString as String;
 
 pub(crate) fn infer(

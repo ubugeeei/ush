@@ -2,7 +2,7 @@ mod extra;
 
 use std::{fs, path::Path, process::Command};
 
-use rustyline::{completion::Completer, history::DefaultHistory, Context};
+use rustyline::{Context, completion::Completer, history::DefaultHistory};
 use tempfile::tempdir;
 
 use crate::repl::UshHelper;
@@ -116,12 +116,16 @@ fn completes_mise_tasks() {
         .expect("mise nested");
 
     assert!(run_pairs.iter().any(|pair| pair.replacement == "build"));
-    assert!(top_level_pairs
-        .iter()
-        .any(|pair| pair.replacement == "lint"));
-    assert!(nested_pairs
-        .iter()
-        .any(|pair| pair.replacement == "frontend/dev"));
+    assert!(
+        top_level_pairs
+            .iter()
+            .any(|pair| pair.replacement == "lint")
+    );
+    assert!(
+        nested_pairs
+            .iter()
+            .any(|pair| pair.replacement == "frontend/dev")
+    );
 }
 
 #[test]

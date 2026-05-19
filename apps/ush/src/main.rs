@@ -13,7 +13,7 @@ use clap::Parser;
 
 use ush_compiler::UshCompiler;
 use ush_config::UshConfig;
-use ush_shell::{run_posix_script, SessionStartup, Shell, ShellOptions};
+use ush_shell::{SessionStartup, Shell, ShellOptions, run_posix_script};
 use ush_tooling::{check_file, format_source};
 
 use crate::cli::{Action, Cli};

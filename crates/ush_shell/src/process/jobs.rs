@@ -1,8 +1,8 @@
 use std::process::{Child, Command, Stdio};
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 
-use crate::{repl::ReplJobCandidate, signal, Shell, ValueStream};
+use crate::{Shell, ValueStream, repl::ReplJobCandidate, signal};
 
 use super::render_alias_prelude;
 

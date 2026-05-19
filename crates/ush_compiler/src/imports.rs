@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 use crate::{
     ast::{Call, Expr, FunctionDef, Statement, StatementKind},

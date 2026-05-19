@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use ush_compiler::UshCompiler;
 
 const SMALL_SOURCE: &str = r#"

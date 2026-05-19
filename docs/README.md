@@ -17,5 +17,8 @@ Available today:
 - [`typed-errors.md`](./typed-errors.md): how `.ush` typed errors, Zig-style `Problem!T`
   signatures, `raise`, inferred `# raises:`, Rust-like `?`, and tail expressions fit together
 - [`lsp.md`](./lsp.md): how to wire `ush_lsp` into editors over stdio
+- [`release-process.md`](./release-process.md): pre-flight checklist, published
+  artefacts, post-flight verification, and rollback procedure for cutting a
+  release
 
 For runnable scripts, see [`../examples/README.md`](../examples/README.md).

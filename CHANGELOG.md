@@ -10,6 +10,62 @@ project adheres to [Semantic Versioning][semver].
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-05-19
+
+A polish-pass release on top of 0.7.0's production-readiness work.
+Focus is CI hardening, contributor-facing docs, and shared
+infrastructure.
+
+### Added
+
+- `MAINTAINERS.md` and `SUPPORT.md` for community-health coverage.
+- `scripts/preflight.sh` runs every gate CI runs, in the same order,
+  behind a single `sh scripts/preflight.sh`.
+- `docs/architecture.md` — top-down map of the workspace + symptom
+  → file table; `docs/release-process.md` indexed from the docs
+  README; `docs/release-process.md` referenced from the README's
+  Release section.
+- New CI jobs / steps: dedicated **`no_std` clippy** gate, every
+  `.ush` example dogfooded through `ush format --check`, and an
+  end-to-end LSP `initialize/shutdown/exit` smoke test.
+- CLI smoke test now covers `ush compile` and `ush check`.
+- Crate-level rustdoc on `ush_compiler`, `ush_shell`, `ush_tooling`,
+  and `ush_config` so `cargo doc` / docs.rs no longer show blank
+  summaries.
+- `apps/ush` now installs a user-facing panic hook that prints a
+  triage-ready message + tracker link.
+- `.github/labeler.yml` auto-labels PRs by changed paths;
+  `.github/CODEOWNERS` auto-requests review.
+- `.github/ISSUE_TEMPLATE/config.yml` adds an issue chooser with
+  links to the security advisory form, release process, and
+  architecture overview.
+- Dependabot now also watches the `cargo` ecosystem in
+  security-advisory-only mode.
+- README adds a "Production readiness" section + CodeQL / Secret
+  scan badges.
+
+### Changed
+
+- **CI concurrency** — every workflow's `concurrency.group` is now
+  keyed on `run_id` for main pushes, so successive merges no longer
+  cancel each other.
+- **MSRV** bumped from 1.88 to **1.89** (vendored rustyline uses
+  `std::fs::File::lock`, stabilised in 1.89).
+- **Workspace stable rustfmt** — re-formatted with
+  `rustfmt --edition 2024` so CI's import-sort matches the local
+  edition-2024 layout.
+- **PR template** — wider validation checklist + a `## Security`
+  block; matches what current CI runs.
+- **CONTRIBUTING.md** documents the rustfmt + edition-2024 gotcha
+  and the `scripts/preflight.sh` shortcut.
+- **cargo-deny** graph is now restricted to the four released
+  targets; `bans.multiple-versions = "deny"` with a single
+  `bitflags@1.3.2` skip; BSL-1.0 added to the allowed-license set.
+- **GitHub Actions** — every third-party action is pinned to a
+  full commit SHA (with a trailing comment giving the human-readable
+  version) to remove the trust-on-first-use risk of mutable major
+  tags.
+
 ## [0.7.0] — 2026-05-19
 
 A production-readiness release. Everything below was previously
@@ -98,6 +154,7 @@ for the full diff.
 For 0.6.0 and earlier, refer to the
 [GitHub releases page](https://github.com/ubugeeei/ush/releases).
 
-[Unreleased]: https://github.com/ubugeeei/ush/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/ubugeeei/ush/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/ubugeeei/ush/releases/tag/v0.8.0
 [0.7.0]: https://github.com/ubugeeei/ush/releases/tag/v0.7.0
 [0.6.1]: https://github.com/ubugeeei/ush/releases/tag/v0.6.1

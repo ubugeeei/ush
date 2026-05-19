@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779161203432,
+  "lastUpdate": 1779161320003,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -587,6 +587,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 104753,
             "range": "± 5874",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f1513f8c1cab69fb4d7a591fa59910475ead4bf7",
+          "message": "ci: enable Dependabot security alerts for Cargo (advisories only) (#118)\n\n#48 disabled routine cargo version updates because of the vendored\nrustyline pin; that decision stands. But `open-pull-requests-limit:\n0` only suppresses version-update PRs — it leaves\nsecurity-advisory-driven PRs alive. Adding the cargo ecosystem with\nthat limit means a freshly-published CVE will still produce an\nupdate PR even though normal patch bumps will not.\n\nMirror it under the existing weekly schedule and label such PRs\n`dependencies` + `security` so they can be filtered.",
+          "timestamp": "2026-05-19T12:26:26+09:00",
+          "tree_id": "985587c54d10e2907ea97bfdf3b4f0b4ab4147d4",
+          "url": "https://github.com/ubugeeei/ush/commit/f1513f8c1cab69fb4d7a591fa59910475ead4bf7"
+        },
+        "date": 1779161319186,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3226,
+            "range": "± 9",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 82996,
+            "range": "± 725",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 106237,
+            "range": "± 1991",
             "unit": "ns/iter"
           }
         ]

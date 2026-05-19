@@ -1,3 +1,10 @@
+//! Config loading and runtime paths for the `ush` shell.
+//!
+//! Resolves the user's config file, profile / rc lookup chain, and
+//! the various ush-owned directories on disk
+//! (`~/.config/ush/...`, history file, etc.). The compiler and
+//! shell crates depend on this for consistent path handling.
+
 mod starship;
 
 use std::{

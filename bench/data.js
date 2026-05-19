@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779171746459,
+  "lastUpdate": 1779171906977,
   "repoUrl": "https://github.com/ubugeeei/ush",
   "entries": {
     "Criterion microbenchmarks": [
@@ -965,6 +965,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 104133,
             "range": "± 1064",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "612be62598db0f740b4629af430d2642fa6562b3",
+          "message": "ci(deny): promote multiple-versions from warn to deny (#128)\n\nThe only duplicate-version pair in the workspace's Cargo.lock now\nthat the cargo-deny graph is restricted to the released targets is\n`bitflags` v1 (pulled in via `fluent-uri` → `lsp-types`) vs v2\n(everything else). Add a single `skip = [\"bitflags@1.3.2\"]` entry\nand flip `multiple-versions = \"deny\"` so any *new* duplicate that\nlands without an explicit skip will fail CI.",
+          "timestamp": "2026-05-19T14:03:42+09:00",
+          "tree_id": "a76e8b2be67e71752ef000ab68d2968f90d1f55e",
+          "url": "https://github.com/ubugeeei/ush/commit/612be62598db0f740b4629af430d2642fa6562b3"
+        },
+        "date": 1779171906503,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3034,
+            "range": "± 169",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 79927,
+            "range": "± 8568",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 98302,
+            "range": "± 1332",
             "unit": "ns/iter"
           }
         ]

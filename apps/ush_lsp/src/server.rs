@@ -1,15 +1,14 @@
+mod requests;
+
 use anyhow::Result;
 use lsp_server::{Connection, Message, Notification, Request, Response};
 use lsp_types::{
-    CompletionOptions, CompletionParams, DidChangeTextDocumentParams, DidOpenTextDocumentParams,
-    DidSaveTextDocumentParams, DocumentFormattingParams, DocumentHighlightParams,
-    DocumentSymbolParams, DocumentSymbolResponse, FoldingRangeParams,
-    FoldingRangeProviderCapability, GotoDefinitionParams, GotoDefinitionResponse, HoverParams,
-    HoverProviderCapability, Location, OneOf, PublishDiagnosticsParams, ReferenceParams,
-    RenameOptions, RenameParams, SemanticTokenType, SemanticTokensFullOptions,
-    SemanticTokensLegend, SemanticTokensOptions, SemanticTokensParams,
-    SemanticTokensServerCapabilities, ServerCapabilities, SignatureHelpOptions,
-    SignatureHelpParams, TextDocumentSyncCapability, TextDocumentSyncKind, WorkDoneProgressOptions,
+    CompletionOptions, DidChangeTextDocumentParams, DidOpenTextDocumentParams,
+    DidSaveTextDocumentParams, FoldingRangeProviderCapability, HoverProviderCapability, OneOf,
+    PublishDiagnosticsParams, RenameOptions, SemanticTokenType, SemanticTokensFullOptions,
+    SemanticTokensLegend, SemanticTokensOptions, SemanticTokensServerCapabilities,
+    ServerCapabilities, SignatureHelpOptions, TextDocumentSyncCapability, TextDocumentSyncKind,
+    WorkDoneProgressOptions,
     notification::{
         DidChangeTextDocument, DidOpenTextDocument, DidSaveTextDocument, Notification as _,
     },
@@ -19,12 +18,7 @@ use lsp_types::{
         Request as _, SemanticTokensFullRequest, SignatureHelpRequest,
     },
 };
-use ush_tooling::{
-    check_source, completions, definition as ush_definition, document_highlights, document_symbols,
-    folding_ranges, format_source, hover as ush_hover, prepare_rename as ush_prepare_rename,
-    references as ush_refs, rename_locations, semantic_token_legend, semantic_tokens,
-    signature_help as ush_signature_help,
-};
+use ush_tooling::{check_source, semantic_token_legend};
 
 use crate::{convert, document::DocumentStore};
 
@@ -98,18 +92,18 @@ fn handle_request(
     request: Request,
 ) -> Result<()> {
     match request.method.as_str() {
-        Formatting::METHOD => formatting(connection, docs, request),
-        SemanticTokensFullRequest::METHOD => semantic_full(connection, docs, request),
-        DocumentHighlightRequest::METHOD => highlight(connection, docs, request),
-        DocumentSymbolRequest::METHOD => symbols(connection, docs, request),
-        FoldingRangeRequest::METHOD => folding(connection, docs, request),
-        Completion::METHOD => completion(connection, docs, request),
-        HoverRequest::METHOD => hover(connection, docs, request),
-        GotoDefinition::METHOD => definition(connection, docs, request),
-        References::METHOD => references(connection, docs, request),
-        Rename::METHOD => rename(connection, docs, request),
-        PrepareRenameRequest::METHOD => prepare_rename(connection, docs, request),
-        SignatureHelpRequest::METHOD => signature_help(connection, docs, request),
+        Formatting::METHOD => requests::formatting(connection, docs, request),
+        SemanticTokensFullRequest::METHOD => requests::semantic_full(connection, docs, request),
+        DocumentHighlightRequest::METHOD => requests::highlight(connection, docs, request),
+        DocumentSymbolRequest::METHOD => requests::symbols(connection, docs, request),
+        FoldingRangeRequest::METHOD => requests::folding(connection, docs, request),
+        Completion::METHOD => requests::completion(connection, docs, request),
+        HoverRequest::METHOD => requests::hover(connection, docs, request),
+        GotoDefinition::METHOD => requests::definition(connection, docs, request),
+        References::METHOD => requests::references(connection, docs, request),
+        Rename::METHOD => requests::rename(connection, docs, request),
+        PrepareRenameRequest::METHOD => requests::prepare_rename(connection, docs, request),
+        SignatureHelpRequest::METHOD => requests::signature_help(connection, docs, request),
         _ => {
             connection.sender.send(Message::Response(Response::new_err(
                 request.id,
@@ -153,150 +147,6 @@ fn handle_notification(
     }
 }
 
-fn formatting(connection: &Connection, docs: &mut DocumentStore, request: Request) -> Result<()> {
-    let params: DocumentFormattingParams = serde_json::from_value(request.params)?;
-    let source = docs.read(&params.text_document.uri)?;
-    let formatted = format_source(&source);
-    let edits = if source == formatted {
-        Vec::new()
-    } else {
-        vec![convert::full_document_edit(&source, &formatted)]
-    };
-    respond_ok(connection, request.id, serde_json::to_value(edits)?)
-}
-
-fn semantic_full(
-    connection: &Connection,
-    docs: &mut DocumentStore,
-    request: Request,
-) -> Result<()> {
-    let params: SemanticTokensParams = serde_json::from_value(request.params)?;
-    let source = docs.read(&params.text_document.uri)?;
-    let tokens = convert::semantic_tokens(&semantic_tokens(&source));
-    respond_ok(connection, request.id, serde_json::to_value(tokens)?)
-}
-
-fn highlight(connection: &Connection, docs: &mut DocumentStore, request: Request) -> Result<()> {
-    let params: DocumentHighlightParams = serde_json::from_value(request.params)?;
-    let source = docs.read(&params.text_document_position_params.text_document.uri)?;
-    let position = params.text_document_position_params.position;
-    let highlights = convert::document_highlights(&document_highlights(
-        &source,
-        position.line,
-        position.character,
-    ));
-    respond_ok(connection, request.id, serde_json::to_value(highlights)?)
-}
-
-fn symbols(connection: &Connection, docs: &mut DocumentStore, request: Request) -> Result<()> {
-    let params: DocumentSymbolParams = serde_json::from_value(request.params)?;
-    let source = docs.read(&params.text_document.uri)?;
-    let response =
-        DocumentSymbolResponse::Nested(convert::document_symbols(&document_symbols(&source)));
-    respond_ok(connection, request.id, serde_json::to_value(response)?)
-}
-
-fn folding(connection: &Connection, docs: &mut DocumentStore, request: Request) -> Result<()> {
-    let params: FoldingRangeParams = serde_json::from_value(request.params)?;
-    let source = docs.read(&params.text_document.uri)?;
-    let ranges = convert::folding_ranges(&folding_ranges(&source));
-    respond_ok(connection, request.id, serde_json::to_value(ranges)?)
-}
-
-fn completion(connection: &Connection, docs: &mut DocumentStore, request: Request) -> Result<()> {
-    let params: CompletionParams = serde_json::from_value(request.params)?;
-    let source = docs.read(&params.text_document_position.text_document.uri)?;
-    let items = convert::completion_items(&completions(&source));
-    respond_ok(connection, request.id, serde_json::to_value(items)?)
-}
-
-fn hover(connection: &Connection, docs: &mut DocumentStore, request: Request) -> Result<()> {
-    let params: HoverParams = serde_json::from_value(request.params)?;
-    let source = docs.read(&params.text_document_position_params.text_document.uri)?;
-    let position = params.text_document_position_params.position;
-    let result = ush_hover(&source, position.line, position.character).map(convert::hover);
-    respond_ok(connection, request.id, serde_json::to_value(result)?)
-}
-
-fn definition(connection: &Connection, docs: &mut DocumentStore, request: Request) -> Result<()> {
-    let params: GotoDefinitionParams = serde_json::from_value(request.params)?;
-    let uri = params
-        .text_document_position_params
-        .text_document
-        .uri
-        .clone();
-    let source = docs.read(&uri)?;
-    let position = params.text_document_position_params.position;
-    let result = ush_definition(&source, position.line, position.character).map(|reference| {
-        GotoDefinitionResponse::Scalar(Location {
-            uri: uri.clone(),
-            range: convert::range_of_reference(&reference),
-        })
-    });
-    respond_ok(connection, request.id, serde_json::to_value(result)?)
-}
-
-fn references(connection: &Connection, docs: &mut DocumentStore, request: Request) -> Result<()> {
-    let params: ReferenceParams = serde_json::from_value(request.params)?;
-    let uri = params.text_document_position.text_document.uri.clone();
-    let source = docs.read(&uri)?;
-    let position = params.text_document_position.position;
-    let locations: Vec<Location> = ush_refs(&source, position.line, position.character)
-        .into_iter()
-        .map(|reference| Location {
-            uri: uri.clone(),
-            range: convert::range_of_reference(&reference),
-        })
-        .collect();
-    respond_ok(connection, request.id, serde_json::to_value(locations)?)
-}
-
-fn signature_help(
-    connection: &Connection,
-    docs: &mut DocumentStore,
-    request: Request,
-) -> Result<()> {
-    let params: SignatureHelpParams = serde_json::from_value(request.params)?;
-    let source = docs.read(&params.text_document_position_params.text_document.uri)?;
-    let position = params.text_document_position_params.position;
-    let result =
-        ush_signature_help(&source, position.line, position.character).map(convert::signature_help);
-    respond_ok(connection, request.id, serde_json::to_value(result)?)
-}
-
-fn prepare_rename(
-    connection: &Connection,
-    docs: &mut DocumentStore,
-    request: Request,
-) -> Result<()> {
-    let params: lsp_types::TextDocumentPositionParams = serde_json::from_value(request.params)?;
-    let source = docs.read(&params.text_document.uri)?;
-    let result = ush_prepare_rename(&source, params.position.line, params.position.character)
-        .map(|reference| convert::range_of_reference(&reference));
-    respond_ok(connection, request.id, serde_json::to_value(result)?)
-}
-
-fn rename(connection: &Connection, docs: &mut DocumentStore, request: Request) -> Result<()> {
-    let params: RenameParams = serde_json::from_value(request.params)?;
-    let uri = params.text_document_position.text_document.uri.clone();
-    let source = docs.read(&uri)?;
-    let position = params.text_document_position.position;
-    match rename_locations(&source, position.line, position.character, &params.new_name) {
-        Ok(locations) => {
-            let edit = convert::rename_workspace_edit(&uri, &locations, &params.new_name);
-            respond_ok(connection, request.id, serde_json::to_value(edit)?)
-        }
-        Err(_) => {
-            connection.sender.send(Message::Response(Response::new_err(
-                request.id,
-                -32602,
-                format!("`{}` is not a valid .ush identifier", params.new_name),
-            )))?;
-            Ok(())
-        }
-    }
-}
-
 fn publish_diagnostics(connection: &Connection, uri: &lsp_types::Uri, source: &str) -> Result<()> {
     let params = PublishDiagnosticsParams {
         uri: uri.clone(),
@@ -309,16 +159,5 @@ fn publish_diagnostics(connection: &Connection, uri: &lsp_types::Uri, source: &s
             "textDocument/publishDiagnostics".to_string(),
             params,
         )))?;
-    Ok(())
-}
-
-fn respond_ok(
-    connection: &Connection,
-    id: lsp_server::RequestId,
-    value: serde_json::Value,
-) -> Result<()> {
-    connection
-        .sender
-        .send(Message::Response(Response::new_ok(id, value)))?;
     Ok(())
 }

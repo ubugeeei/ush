@@ -1,6 +1,6 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779173640346,
-  "repoUrl": "https://github.com/ubugeeei/ush",
+  "lastUpdate": 1780241916437,
+  "repoUrl": "https://github.com/ubugeeei-prod/ush",
   "entries": {
     "Criterion microbenchmarks": [
       {
@@ -1427,6 +1427,48 @@ window.BENCHMARK_DATA = {
             "name": "compile adt ush program",
             "value": 107915,
             "range": "± 1690",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ubuge1122@gmail.com",
+            "name": "ubugeeei",
+            "username": "ubugeeei"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "16690ef8e20d64836024505971d4f45384c93207",
+          "message": "refactor(lsp): split large modules (#144)",
+          "timestamp": "2026-06-01T00:32:29+09:00",
+          "tree_id": "495c18e8bda4f421f13a2fa36f7d668fe9083aa8",
+          "url": "https://github.com/ubugeeei-prod/ush/commit/16690ef8e20d64836024505971d4f45384c93207"
+        },
+        "date": 1780241915190,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse pipeline with helper",
+            "value": 3194,
+            "range": "± 37",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile small ush program",
+            "value": 83682,
+            "range": "± 2269",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "compile adt ush program",
+            "value": 104280,
+            "range": "± 1859",
             "unit": "ns/iter"
           }
         ]
